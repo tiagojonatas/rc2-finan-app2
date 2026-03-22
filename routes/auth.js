@@ -103,21 +103,71 @@ router.get('/dashboard', requireAuth, async (req, res) => {
 
     const balance = totalIncome - totalExpenses;
 
+    // Group transactions by date
+    const groupedTransactions = {};
+    const today = new Date();
+    const yesterday = new Date(today);
+    yesterday.setDate(yesterday.getDate() - 1);
+
+    transactions.forEach(transaction => {
+      const transactionDate = new Date(transaction.date);
+      const dateKey = transactionDate.toISOString().split('T')[0]; // YYYY-MM-DD format
+
+      if (!groupedTransactions[dateKey]) {
+        groupedTransactions[dateKey] = {
+          date: transactionDate,
+          transactions: [],
+          totalIncome: 0,
+          totalExpenses: 0
+        };
+      }
+
+      groupedTransactions[dateKey].transactions.push(transaction);
+
+      if (transaction.type === 'income') {
+        groupedTransactions[dateKey].totalIncome += parseFloat(transaction.amount);
+      } else if (transaction.type === 'expense') {
+        groupedTransactions[dateKey].totalExpenses += parseFloat(transaction.amount);
+      }
+    });
+
+    // Convert grouped transactions to array and sort by date (most recent first)
+    let transactionGroups = Object.values(groupedTransactions).sort((a, b) => b.date - a.date);
+
+    // Add formatted date labels
+    transactionGroups.forEach(group => {
+      const groupDate = group.date;
+      const todayStr = today.toISOString().split('T')[0];
+      const yesterdayStr = yesterday.toISOString().split('T')[0];
+      const groupDateStr = groupDate.toISOString().split('T')[0];
+
+      if (groupDateStr === todayStr) {
+        group.dateLabel = 'Hoje';
+      } else if (groupDateStr === yesterdayStr) {
+        group.dateLabel = 'Ontem';
+      } else {
+        group.dateLabel = groupDate.toLocaleDateString('pt-BR', {
+          day: '2-digit',
+          month: 'long'
+        });
+      }
+    });
+
     res.render('dashboard', {
       userName: req.session.userName,
       totalIncome: totalIncome.toFixed(2),
       totalExpenses: totalExpenses.toFixed(2),
       balance: balance.toFixed(2),
-      transactions: transactions
+      transactionGroups: transactionGroups
     });
   } catch (error) {
-    console.error(error);
+    console.error('Dashboard error:', error);
     res.render('dashboard', {
-      userName: req.session.userName,
+      userName: req.session.userName || 'Usuário',
       totalIncome: '0.00',
       totalExpenses: '0.00',
       balance: '0.00',
-      transactions: []
+      transactionGroups: []
     });
   }
 });

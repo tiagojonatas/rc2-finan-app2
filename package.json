@@ -6,7 +6,8 @@
   "scripts": {
     "start": "node app.js",
     "dev": "nodemon app.js",
-    "init-db": "node init.js"
+    "init-db": "node init.js",
+    "init-credit-cards": "node init-credit-cards.js"
   },
   "dependencies": {
     "bcrypt": "^6.0.0",

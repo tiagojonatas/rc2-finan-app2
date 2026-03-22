@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Editar Transação - Sistema Financeiro</title>
+  <title>Novo Gasto - Sistema Financeiro</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <script>
     tailwind.config = {
@@ -14,6 +14,9 @@
           },
           colors: {
             'custom-bg': '#f5f6fa',
+            'brand-purple': '#8A05BE',
+            'brand-purple-dark': '#6A047E',
+            'brand-purple-50': '#F8F0FF',
           }
         }
       }
@@ -31,48 +34,41 @@
     <div class="max-w-md w-full space-y-8">
       <div class="bg-white p-8 rounded-xl shadow-md border border-gray-100">
         <div>
-          <h2 class="mt-6 text-center text-3xl font-bold text-gray-900">
-            Editar Transação
+          <h2 class="mt-6 text-center text-2xl font-bold text-gray-900">
+            Novo Gasto
           </h2>
+          <p class="text-center text-gray-600 mt-2 text-sm">Cartão: <span class="font-semibold text-brand-purple"><%= card.name %></span></p>
         </div>
         <% if (error) { %>
           <div class="mt-4 bg-rose-50 border border-rose-200 text-rose-700 px-4 py-3 rounded-lg">
             <%= error %>
           </div>
         <% } %>
-        <form class="mt-8 space-y-6" action="/transactions/edit/<%= transaction.id %>" method="POST">
+        <form class="mt-8 space-y-6" action="/credit-cards/<%= card.id %>/add-transaction" method="POST">
           <div class="space-y-4">
             <div>
               <label for="description" class="block text-sm font-medium text-gray-700">Descrição</label>
-              <input id="description" name="description" type="text" value="<%= transaction.description %>" required
+              <input id="description" name="description" type="text" placeholder="Ex: Restaurante" required
                      class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm placeholder-gray-400 focus:outline-none focus:ring-slate-500 focus:border-slate-500">
             </div>
             <div>
               <label for="amountDisplay" class="block text-sm font-medium text-gray-700">Valor (R$)</label>
               <input id="amountDisplay" type="text" inputmode="numeric" placeholder="0,00" required
                      class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm placeholder-gray-400 focus:outline-none focus:ring-slate-500 focus:border-slate-500">
-              <input id="amount" name="amount" type="hidden" value="<%= transaction.amount %>">
-            </div>
-            <div>
-              <label for="type" class="block text-sm font-medium text-gray-700">Tipo</label>
-              <select id="type" name="type" required
-                      class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-slate-500 focus:border-slate-500">
-                <option value="income" <%= transaction.type === 'income' ? 'selected' : '' %>>Entrada</option>
-                <option value="expense" <%= transaction.type === 'expense' ? 'selected' : '' %>>Despesa</option>
-              </select>
+              <input id="amount" name="amount" type="hidden" value="0.00">
             </div>
             <div>
               <label for="date" class="block text-sm font-medium text-gray-700">Data</label>
-              <input id="date" name="date" type="date" value="<%= transaction.date.toISOString().split('T')[0] %>" required
+              <input id="date" name="date" type="date" required
                      class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-slate-500 focus:border-slate-500">
             </div>
           </div>
 
           <div class="flex space-x-3">
             <button type="submit" class="flex-1 flex justify-center py-3 px-4 border border-transparent rounded-lg shadow-sm text-sm font-medium text-white bg-slate-600 hover:bg-slate-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-slate-500 transition duration-200">
-              Salvar
+              Adicionar
             </button>
-            <a href="/dashboard" class="flex-1 flex justify-center py-3 px-4 border border-gray-300 rounded-lg shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-slate-500 transition duration-200">
+            <a href="/credit-cards/<%= card.id %>/transactions" class="flex-1 flex justify-center py-3 px-4 border border-gray-300 rounded-lg shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-slate-500 transition duration-200">
               Cancelar
             </a>
           </div>
@@ -85,49 +81,35 @@
     // Máscara de moeda brasileira para input de valor
     const amountDisplay = document.getElementById('amountDisplay');
     const amountInput = document.getElementById('amount');
+    const dateInput = document.getElementById('date');
 
-    // Formata o valor inicial (ao carregar a página)
-    function initializeAmount() {
-      const currentValue = parseFloat(amountInput.value) || 0;
-      const formatted = currentValue.toLocaleString('pt-BR', {
+    function formatBRL(value) {
+      return value.toLocaleString('pt-BR', {
         minimumFractionDigits: 2,
         maximumFractionDigits: 2
       });
-      amountDisplay.value = formatted;
     }
 
-    // Inicializa ao carregar
-    initializeAmount();
+    // Set today's date as default
+    const today = new Date().toISOString().split('T')[0];
+    dateInput.value = today;
 
-    // Aplicar máscara ao digitar
     amountDisplay.addEventListener('input', function(event) {
-      // Remove todos os caracteres não numéricos
       let value = event.target.value.replace(/\D/g, '');
 
-      // Se vazio, limpa
       if (value === '') {
         amountDisplay.value = '';
         amountInput.value = '0.00';
         return;
       }
 
-      // Converte para número e divide por 100 (para considerar centavos)
       const numValue = parseInt(value, 10) / 100;
+      const formatted = formatBRL(numValue);
 
-      // Formata como moeda brasileira
-      const formatted = numValue.toLocaleString('pt-BR', {
-        minimumFractionDigits: 2,
-        maximumFractionDigits: 2
-      });
-
-      // Atualiza o campo visual
       amountDisplay.value = formatted;
-
-      // Atualiza o campo oculto com o valor decimal para envio
       amountInput.value = numValue.toFixed(2);
     });
 
-    // Impede que o usuário digite não-números
     amountDisplay.addEventListener('keypress', function(event) {
       const char = String.fromCharCode(event.which);
       if (!/[0-9]/.test(char)) {
@@ -135,15 +117,13 @@
       }
     });
 
-    // Impede cola de valores não-numéricos
     amountDisplay.addEventListener('paste', function(event) {
       event.preventDefault();
       const pastedText = (event.clipboardData || window.clipboardData).getData('text');
       const numericOnly = pastedText.replace(/\D/g, '');
-      
+
       if (numericOnly) {
         amountDisplay.value = numericOnly;
-        // Dispara o evento input para aplicar a formatação
         amountDisplay.dispatchEvent(new Event('input'));
       }
     });

@@ -48,9 +48,10 @@
                      class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm placeholder-gray-400 focus:outline-none focus:ring-slate-500 focus:border-slate-500">
             </div>
             <div>
-              <label for="amount" class="block text-sm font-medium text-gray-700">Valor (R$)</label>
-              <input id="amount" name="amount" type="number" step="0.01" min="0" required
+              <label for="amountDisplay" class="block text-sm font-medium text-gray-700">Valor (R$)</label>
+              <input id="amountDisplay" type="text" inputmode="numeric" placeholder="0,00" required
                      class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm placeholder-gray-400 focus:outline-none focus:ring-slate-500 focus:border-slate-500">
+              <input id="amount" name="amount" type="hidden" value="0.00">
             </div>
             <div>
               <label for="type" class="block text-sm font-medium text-gray-700">Tipo</label>
@@ -79,5 +80,65 @@
       </div>
     </div>
   </div>
+
+  <script>
+    // Máscara de moeda brasileira para input de valor
+    const amountDisplay = document.getElementById('amountDisplay');
+    const amountInput = document.getElementById('amount');
+
+    // Função para formatar valor como moeda brasileira (sem símbolo R$)
+    function formatBRL(value) {
+      return value.toLocaleString('pt-BR', {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2
+      });
+    }
+
+    // Aplicar máscara ao digitar
+    amountDisplay.addEventListener('input', function(event) {
+      // Remove todos os caracteres não numéricos
+      let value = event.target.value.replace(/\D/g, '');
+
+      // Se vazio, limpa
+      if (value === '') {
+        amountDisplay.value = '';
+        amountInput.value = '0.00';
+        return;
+      }
+
+      // Converte para número e divide por 100 (para considerar centavos)
+      const numValue = parseInt(value, 10) / 100;
+
+      // Formata como moeda brasileira (apenas números com . e ,)
+      const formatted = formatBRL(numValue);
+
+      // Atualiza o campo visual
+      amountDisplay.value = formatted;
+
+      // Atualiza o campo oculto com o valor decimal para envio
+      amountInput.value = numValue.toFixed(2);
+    });
+
+    // Impede que o usuário digite não-números
+    amountDisplay.addEventListener('keypress', function(event) {
+      const char = String.fromCharCode(event.which);
+      if (!/[0-9]/.test(char)) {
+        event.preventDefault();
+      }
+    });
+
+    // Impede cola de valores não-numéricos
+    amountDisplay.addEventListener('paste', function(event) {
+      event.preventDefault();
+      const pastedText = (event.clipboardData || window.clipboardData).getData('text');
+      const numericOnly = pastedText.replace(/\D/g, '');
+      
+      if (numericOnly) {
+        amountDisplay.value = numericOnly;
+        // Dispara o evento input para aplicar a formatação
+        amountDisplay.dispatchEvent(new Event('input'));
+      }
+    });
+  </script>
 </body>
 </html>

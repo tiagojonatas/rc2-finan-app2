@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Meus Cartões - Sistema Financeiro</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            'sans': ['Inter', 'system-ui', 'sans-serif'],
+          },
+          colors: {
+            'custom-bg': '#f1f5f9',
+            'brand-purple': '#8A05BE',
+            'brand-purple-light': '#9D4EDD',
+            'brand-purple-dark': '#6A047E',
+            'brand-purple-50': '#F8F0FF',
+            'brand-purple-100': '#E9D5FF',
+            'brand-purple-200': '#D4BBFF',
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    body {
+      background-color: #f1f5f9;
+      font-family: 'Inter', system-ui, sans-serif;
+    }
+  </style>
+</head>
+<body class="bg-custom-bg font-sans">
+  <div class="container mx-auto px-6 py-6 max-w-5xl">
+    <div class="flex justify-between items-center mb-8">
+      <h1 class="text-3xl font-bold text-gray-900">Meus Cartões</h1>
+      <div class="flex space-x-3">
+        <a href="/dashboard" class="bg-gray-100 hover:bg-brand-purple-50 text-gray-700 hover:text-brand-purple font-medium py-2 px-4 rounded-lg transition-all duration-200 border border-gray-300 hover:border-brand-purple-200">
+          ← Dashboard
+        </a>
+        <a href="/credit-cards/add" class="bg-brand-purple hover:bg-brand-purple-dark text-white font-medium py-2 px-4 rounded-lg transition-all duration-200 shadow-md hover:shadow-lg hover:scale-105">
+          + Novo Cartão
+        </a>
+      </div>
+    </div>
+
+    <% if (error) { %>
+      <div class="mb-6 bg-rose-50 border border-rose-200 text-rose-700 px-4 py-3 rounded-lg">
+        <%= error %>
+      </div>
+    <% } %>
+
+    <% if (success) { %>
+      <div class="mb-6 bg-emerald-50 border border-emerald-200 text-emerald-700 px-4 py-3 rounded-lg">
+        <%= success %>
+      </div>
+    <% } %>
+
+    <% if (cards.length === 0) { %>
+      <div class="text-center py-16 bg-gradient-to-br from-brand-purple-50/20 to-white rounded-lg border border-brand-purple-100/50">
+        <h3 class="text-lg font-medium text-gray-900 mb-2">Nenhum cartão adicionado</h3>
+        <p class="text-brand-purple mb-6">Crie seu primeiro cartão para gerenciar suas despesas.</p>
+        <a href="/credit-cards/add" class="inline-block bg-brand-purple hover:bg-brand-purple-dark text-white font-medium py-2 px-6 rounded-lg transition-all duration-200 shadow-md hover:shadow-lg hover:scale-105">
+          + Adicionar Cartão
+        </a>
+      </div>
+    <% } else { %>
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <% cards.forEach(card => { %>
+          <div class="bg-white rounded-xl shadow-md border border-gray-200 hover:shadow-lg transition-all duration-200 overflow-hidden">
+            <!-- Card Header -->
+            <div class="bg-gradient-to-r from-brand-purple to-brand-purple-light p-6 text-white">
+              <div class="flex justify-between items-start mb-8">
+                <div>
+                  <p class="text-sm font-medium opacity-90 mb-1">Cartão de Crédito</p>
+                  <h3 class="text-xl font-bold"><%= card.name %></h3>
+                </div>
+                <svg class="w-8 h-8 opacity-70" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h10m4 0a1 1 0 11-2 0 1 1 0 012 0z"></path>
+                </svg>
+              </div>
+              <div class="space-y-4">
+                <div>
+                  <p class="text-xs font-medium opacity-75 mb-1">Limite Total</p>
+                  <p class="text-2xl font-bold"><%= formatCurrency(card.limit_amount) %></p>
+                </div>
+                <div class="flex space-x-8 pt-2 border-t border-white/20">
+                  <div>
+                    <p class="text-xs opacity-75">Fechamento</p>
+                    <p class="font-semibold"><%= card.closing_day %>º</p>
+                  </div>
+                  <div>
+                    <p class="text-xs opacity-75">Vencimento</p>
+                    <p class="font-semibold"><%= card.due_day %>º</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Card Body -->
+            <div class="p-6 space-y-4">
+              <div class="space-y-2">
+                <div class="flex justify-between text-sm">
+                  <span class="text-gray-600">Transações</span>
+                  <a href="/credit-cards/<%= card.id %>/transactions" class="text-brand-purple hover:text-brand-purple-dark font-medium underline">
+                    Ver detalhes →
+                  </a>
+                </div>
+              </div>
+
+              <div class="flex gap-2 pt-2">
+                <a href="/credit-cards/<%= card.id %>/add-transaction" class="flex-1 bg-brand-purple-100 hover:bg-brand-purple-200 text-brand-purple font-medium py-2 px-3 rounded-lg transition-colors duration-200 text-center text-sm">
+                  + Gasto
+                </a>
+                <a href="/credit-cards/<%= card.id %>/edit" class="flex-1 bg-blue-100 hover:bg-blue-200 text-blue-700 font-medium py-2 px-3 rounded-lg transition-colors duration-200 text-center text-sm">
+                  Editar
+                </a>
+                <form action="/credit-cards/delete/<%= card.id %>" method="POST" class="flex-1" onsubmit="return confirm('Têm certeza que deseja deletar este cartão?');">
+                  <button type="submit" class="w-full bg-rose-100 hover:bg-rose-200 text-rose-700 font-medium py-2 px-3 rounded-lg transition-colors duration-200 text-sm">
+                    Deletar
+                  </button>
+                </form>
+              </div>
+            </div>
+          </div>
+        <% }); %>
+      </div>
+    <% } %>
+  </div>
+</body>
+</html>

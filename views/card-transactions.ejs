@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Transações do Cartão - Sistema Financeiro</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            'sans': ['Inter', 'system-ui', 'sans-serif'],
+          },
+          colors: {
+            'custom-bg': '#f1f5f9',
+            'brand-purple': '#8A05BE',
+            'brand-purple-light': '#9D4EDD',
+            'brand-purple-dark': '#6A047E',
+            'brand-purple-50': '#F8F0FF',
+            'brand-purple-100': '#E9D5FF',
+            'brand-purple-200': '#D4BBFF',
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    body {
+      background-color: #f1f5f9;
+      font-family: 'Inter', system-ui, sans-serif;
+    }
+  </style>
+</head>
+<body class="bg-custom-bg font-sans">
+  <div class="container mx-auto px-6 py-6 max-w-5xl">
+    <div class="flex justify-between items-center mb-8">
+      <div>
+        <a href="/credit-cards" class="text-brand-purple hover:text-brand-purple-dark font-medium mb-2 inline-block">← Voltar para Cartões</a>
+        <h1 class="text-3xl font-bold text-gray-900"><%= card.name %></h1>
+      </div>
+      <a href="/credit-cards/<%= card.id %>/add-transaction" class="bg-brand-purple hover:bg-brand-purple-dark text-white font-medium py-2 px-4 rounded-lg transition-all duration-200 shadow-md hover:shadow-lg hover:scale-105">
+        + Novo Gasto
+      </a>
+    </div>
+
+    <!-- Card Info -->
+    <div class="bg-gradient-to-r from-brand-purple to-brand-purple-light rounded-2xl shadow-lg p-8 text-white mb-8">
+      <div class="grid grid-cols-3 gap-6">
+        <div>
+          <p class="text-sm font-medium opacity-90 mb-1">Limite Total</p>
+          <p class="text-3xl font-bold"><%= formatCurrency(card.limit_amount) %></p>
+        </div>
+        <div class="border-l border-white/20 pl-6">
+          <p class="text-sm font-medium opacity-90 mb-1">Gasto este mês</p>
+          <p class="text-3xl font-bold"><%= formatCurrency(totalThisMonth) %></p>
+        </div>
+        <div class="border-l border-white/20 pl-6">
+          <p class="text-sm font-medium opacity-90 mb-1">Disponível</p>
+          <p class="text-3xl font-bold <%= availableLimit < 0 ? 'text-red-200' : '' %>"><%= formatCurrency(availableLimit) %></p>
+        </div>
+      </div>
+    </div>
+
+    <% if (error) { %>
+      <div class="mb-6 bg-rose-50 border border-rose-200 text-rose-700 px-4 py-3 rounded-lg">
+        <%= error %>
+      </div>
+    <% } %>
+
+    <% if (success) { %>
+      <div class="mb-6 bg-emerald-50 border border-emerald-200 text-emerald-700 px-4 py-3 rounded-lg">
+        <%= success %>
+      </div>
+    <% } %>
+
+    <!-- Transactions List -->
+    <div class="bg-white rounded-xl shadow-md border border-gray-200">
+      <% if (transactions.length === 0) { %>
+        <div class="text-center py-16 px-6">
+          <h3 class="text-lg font-medium text-gray-900 mb-2">Nenhuma transação</h3>
+          <p class="text-brand-purple">Adicione seu primeiro gasto neste cartão.</p>
+        </div>
+      <% } else { %>
+        <div class="overflow-x-auto">
+          <table class="w-full">
+            <thead>
+              <tr class="border-b border-gray-200 bg-gray-50">
+                <th class="px-6 py-3 text-left text-sm font-semibold text-gray-900">Descrição</th>
+                <th class="px-6 py-3 text-right text-sm font-semibold text-gray-900">Valor</th>
+                <th class="px-6 py-3 text-center text-sm font-semibold text-gray-900">Data</th>
+                <th class="px-6 py-3 text-center text-sm font-semibold text-gray-900">Ações</th>
+              </tr>
+            </thead>
+            <tbody>
+              <% transactions.forEach(transaction => { %>
+                <tr class="border-b border-gray-100 hover:bg-gray-50 transition-colors">
+                  <td class="px-6 py-4 text-sm text-gray-700"><%= transaction.description %></td>
+                  <td class="px-6 py-4 text-right text-sm font-semibold text-rose-600"><%= formatCurrency(transaction.amount) %></td>
+                  <td class="px-6 py-4 text-center text-sm text-gray-600"><%= formatDate(transaction.date) %></td>
+                  <td class="px-6 py-4 text-center">
+                    <div class="flex justify-center space-x-2">
+                      <a href="/credit-cards/<%= card.id %>/edit-transaction/<%= transaction.id %>" class="text-blue-600 hover:text-blue-700 font-medium text-sm">
+                        Editar
+                      </a>
+                      <form action="/credit-cards/<%= card.id %>/delete-transaction/<%= transaction.id %>" method="POST" class="inline" onsubmit="return confirm('Têm certeza que deseja deletar esta transação?');">
+                        <button type="submit" class="text-rose-600 hover:text-rose-700 font-medium text-sm">
+                          Deletar
+                        </button>
+                      </form>
+                    </div>
+                  </td>
+                </tr>
+              <% }); %>
+            </tbody>
+          </table>
+        </div>
+      <% } %>
+    </div>
+  </div>
+</body>
+</html>

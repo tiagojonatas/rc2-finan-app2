@@ -14,6 +14,12 @@
           },
           colors: {
             'custom-bg': '#f1f5f9',
+            'brand-purple': '#8A05BE',
+            'brand-purple-light': '#9D4EDD',
+            'brand-purple-dark': '#6A047E',
+            'brand-purple-50': '#F8F0FF',
+            'brand-purple-100': '#E9D5FF',
+            'brand-purple-200': '#D4BBFF',
           }
         }
       }
@@ -31,115 +37,144 @@
     <div class="flex justify-between items-center mb-8">
       <div>
         <h1 class="text-3xl font-bold text-gray-900">Dashboard</h1>
-        <p id="currentMonth" class="text-lg text-gray-600 mt-2 font-medium"></p>
+        <p id="currentMonth" class="text-lg text-brand-purple mt-2 font-medium"></p>
       </div>
-      <form action="/logout" method="POST">
-        <button type="submit" class="bg-gray-100 hover:bg-gray-200 text-gray-700 font-medium py-2 px-4 rounded-lg transition-all duration-200 hover:scale-105 border border-gray-300">
-          Sair
-        </button>
-      </form>
+      <div class="flex space-x-3">
+        <a href="/credit-cards" class="bg-brand-purple-100 hover:bg-brand-purple-200 text-brand-purple font-medium py-2 px-4 rounded-lg transition-all duration-200 border border-brand-purple-200 hover:border-brand-purple hover:scale-105">
+          💳 Cartões
+        </a>
+        <form action="/logout" method="POST">
+          <button type="submit" class="bg-gray-100 hover:bg-brand-purple-50 text-gray-700 hover:text-brand-purple font-medium py-2 px-4 rounded-lg transition-all duration-200 hover:scale-105 border border-gray-300 hover:border-brand-purple-200">
+            Sair
+          </button>
+        </form>
+      </div>
     </div>
 
     <!-- Featured Balance Section -->
-    <div class="bg-white rounded-2xl shadow-lg border border-gray-100 p-8 mb-8 hover:shadow-xl transition-all duration-200">
-      <div class="text-center">
-        <h2 class="text-lg font-medium text-gray-600 mb-2">Saldo disponível</h2>
-        <p class="text-6xl font-bold <%= balance >= 0 ? 'text-[#8A05BE]' : 'text-rose-500' %> mb-2">
-          R$ <%= balance %>
+    <div class="bg-gradient-to-br from-white to-brand-purple-50/40 rounded-2xl shadow-lg border border-brand-purple-100/50 p-12 mb-6 hover:shadow-xl transition-all duration-200 relative overflow-hidden">
+      <div class="absolute top-0 right-0 w-32 h-32 bg-brand-purple-100/20 rounded-full -mr-16 -mt-16"></div>
+      <div class="absolute bottom-0 left-0 w-24 h-24 bg-brand-purple-50/30 rounded-full -ml-12 -mb-12"></div>
+      <div class="text-center relative z-10">
+        <p class="text-sm font-medium text-brand-purple mb-3 uppercase tracking-wide">Seu saldo atual</p>
+        <h2 class="text-lg font-medium text-gray-600 mb-4">Saldo disponível</h2>
+        <p class="text-5xl font-bold <%= balance >= 0 ? 'text-brand-purple' : 'text-rose-500' %>">
+          <%= formatCurrency(balance) %>
         </p>
       </div>
     </div>
 
-    <!-- Secondary Financial Summary -->
-    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
-      <div class="bg-white p-5 rounded-xl shadow-lg border border-gray-100 hover:shadow-xl transition-all duration-200">
-        <div>
-          <h3 class="text-base font-medium text-gray-600">Entradas</h3>
-          <p class="text-2xl font-bold text-emerald-500 mt-1">R$ <%= totalIncome %></p>
+    <!-- Monthly Summary -->
+    <div class="bg-gradient-to-r from-brand-purple-50/30 via-white to-brand-purple-50/30 rounded-lg p-4 mb-8 border border-brand-purple-100/50 mx-auto shadow-sm" style="max-width: 704px;">
+      <div class="flex justify-center space-x-8">
+        <div class="text-center">
+          <p class="text-xs text-brand-purple mb-1 font-medium">Você recebeu este mês</p>
+          <p class="text-lg font-medium text-emerald-600"><%= formatCurrency(totalIncome) %></p>
         </div>
-      </div>
-      <div class="bg-white p-5 rounded-xl shadow-lg border border-gray-100 hover:shadow-xl transition-all duration-200">
-        <div>
-          <h3 class="text-base font-medium text-gray-600">Despesas</h3>
-          <p class="text-2xl font-bold text-rose-500 mt-1">R$ <%= totalExpenses %></p>
+        <div class="text-center border-l border-brand-purple-200/50 pl-8">
+          <p class="text-xs text-brand-purple mb-1 font-medium">Você gastou este mês</p>
+          <p class="text-lg font-medium text-rose-600"><%= formatCurrency(totalExpenses) %></p>
         </div>
       </div>
     </div>
 
-    <!-- Transactions List -->
-    <div class="bg-white p-6 rounded-xl shadow-lg border border-gray-100 hover:shadow-xl transition-all duration-300">
-      <div class="mb-8">
-        <h2 class="text-2xl font-bold text-gray-900">Transações</h2>
-      </div>
+    <!-- Transactions Section -->
+    <div class="mb-8">
+      <h2 class="text-2xl font-bold text-gray-900 mb-6 flex items-center">
+        <span class="w-1 h-8 bg-brand-purple rounded-full mr-3"></span>
+        Transações
+      </h2>
 
-      <% if (transactions.length === 0) { %>
-        <div class="text-center py-16">
+      <% 
+        // Ensure transactionGroups is always an array
+        const safeTransactionGroups = Array.isArray(transactionGroups) ? transactionGroups : [];
+      %>
+
+      <% if (safeTransactionGroups.length === 0) { %>
+        <div class="text-center py-16 bg-gradient-to-br from-brand-purple-50/20 to-white rounded-lg border border-brand-purple-100/50">
           <h3 class="text-lg font-medium text-gray-900 mb-2">Nenhuma transação</h3>
-          <p class="text-gray-500">Adicione sua primeira transação.</p>
+          <p class="text-brand-purple">Adicione sua primeira transação.</p>
         </div>
       <% } else { %>
-        <div class="divide-y divide-gray-100">
-          <% transactions.forEach((transaction, index) => { %>
-            <div class="flex items-center justify-between py-4 px-2 hover:bg-gray-50 transition-all duration-200 rounded-lg hover:px-4 -mx-2 group">
-              <!-- Left side - Icon, Description, Date -->
-              <div class="flex items-center space-x-4 flex-1">
-                <!-- Transaction Icon -->
-                <div class="w-12 h-12 rounded-full flex items-center justify-center <%= transaction.type === 'income' ? 'bg-emerald-100' : 'bg-rose-100' %> transition-all duration-200 group-hover:scale-110">
-                  <span class="text-lg <%= transaction.type === 'income' ? 'text-emerald-600' : 'text-rose-600' %>">
-                    <%= transaction.type === 'income' ? '↓' : '↑' %>
-                  </span>
+        <% safeTransactionGroups.forEach((group, groupIndex) => { %>
+          <!-- Date Group Header -->
+          <div class="mb-4">
+            <div class="flex items-center justify-between bg-gradient-to-r from-brand-purple-50/40 to-white px-6 py-3 rounded-lg border-l-4 border-brand-purple mb-2 shadow-sm">
+              <h3 class="text-lg font-semibold text-gray-900"><%= group && group.dateLabel ? group.dateLabel : 'Data não definida' %></h3>
+              <% if (group && ((group.totalIncome && group.totalIncome > 0) || (group.totalExpenses && group.totalExpenses > 0))) { %>
+                <div class="flex space-x-4 text-sm">
+                  <% if (group.totalIncome && group.totalIncome > 0) { %>
+                    <span class="text-emerald-600 font-medium"><%= formatCurrency(group.totalIncome) %></span>
+                  <% } %>
+                  <% if (group.totalExpenses && group.totalExpenses > 0) { %>
+                    <span class="text-rose-600 font-medium"><%= formatCurrency(group.totalExpenses) %></span>
+                  <% } %>
                 </div>
-
-                <!-- Description and Details -->
-                <div class="flex-1">
-                  <div class="flex items-center space-x-2">
-                    <h3 class="font-bold text-gray-900 text-lg">
-                      <%= transaction.description %>
-                    </h3>
-                    <span class="text-xs px-2 py-1 rounded-full <%= transaction.type === 'income' ? 'bg-emerald-100 text-emerald-700' : 'bg-rose-100 text-rose-700' %> font-medium transition-all duration-200 group-hover:scale-105">
-                      <%= transaction.type === 'income' ? 'Entrada' : 'Saída' %>
-                    </span>
-                  </div>
-                  <p class="text-sm text-gray-400 mt-1">
-                    <%= new Date(transaction.date).toLocaleDateString('pt-BR', {
-                      day: '2-digit',
-                      month: 'short',
-                      year: 'numeric'
-                    }) %>
-                  </p>
-                </div>
-              </div>
-
-              <!-- Right side - Amount and Actions -->
-              <div class="flex items-center space-x-4">
-                <!-- Amount -->
-                <div class="text-right">
-                  <p class="text-2xl font-bold <%= transaction.type === 'income' ? 'text-emerald-600' : 'text-rose-600' %> transition-all duration-200 group-hover:scale-105">
-                    <%= transaction.type === 'income' ? '+' : '-' %>R$ <%= parseFloat(transaction.amount).toFixed(2) %>
-                  </p>
-                </div>
-
-                <!-- Action Buttons -->
-                <div class="flex space-x-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
-                  <a href="/transactions/edit/<%= transaction.id %>"
-                     class="bg-gray-100 hover:bg-gray-200 text-gray-600 p-2 rounded-lg transition-all duration-200 hover:scale-110"
-                     title="Editar">
-                    ✏️
-                  </a>
-                  <form action="/transactions/delete/<%= transaction.id %>" method="POST"
-                        class="inline"
-                        onsubmit="return confirm('Tem certeza que deseja excluir esta transação?')">
-                    <button type="submit"
-                            class="bg-gray-100 hover:bg-red-100 text-gray-600 hover:text-red-600 p-2 rounded-lg transition-all duration-200 hover:scale-110"
-                            title="Excluir">
-                      🗑️
-                    </button>
-                  </form>
-                </div>
-              </div>
+              <% } %>
             </div>
-          <% }); %>
-        </div>
+
+            <!-- Transactions for this date -->
+            <div class="bg-white rounded-lg border border-gray-100 overflow-hidden shadow-sm <%= groupIndex < safeTransactionGroups.length - 1 ? 'mb-6' : '' %>">
+              <% if (group && group.transactions && Array.isArray(group.transactions) && group.transactions.length > 0) { %>
+                <% group.transactions.forEach((transaction, index) => { %>
+                  <div class="grid grid-cols-12 items-center py-6 px-6 hover:bg-brand-purple-50/20 transition-all duration-200 group <%= index < group.transactions.length - 1 ? 'border-b border-brand-purple-100/30' : '' %>">
+                    <!-- Icon Column -->
+                    <div class="col-span-1 flex justify-center">
+                      <div class="w-10 h-10 rounded-full flex items-center justify-center <%= transaction && transaction.type === 'income' ? 'bg-emerald-50' : 'bg-rose-50' %> transition-all duration-200 group-hover:scale-110">
+                        <span class="text-base <%= transaction && transaction.type === 'income' ? 'text-emerald-500' : 'text-rose-500' %>">
+                          <%= transaction && transaction.type === 'income' ? '↙' : '↗' %>
+                        </span>
+                      </div>
+                    </div>
+
+                    <!-- Content Column -->
+                    <div class="col-span-8 flex-1 ml-4">
+                      <div class="flex items-center space-x-3 mb-1">
+                        <h3 class="font-bold text-gray-900 text-lg leading-tight">
+                          <%= transaction && transaction.description ? transaction.description : 'Sem descrição' %>
+                        </h3>
+                        <span class="text-xs px-2 py-1 rounded-full <%= transaction && transaction.type === 'income' ? 'bg-emerald-100 text-emerald-700' : 'bg-rose-100 text-rose-700' %> font-medium transition-all duration-200 group-hover:scale-105">
+                          <%= transaction && transaction.type === 'income' ? 'Entrada' : 'Saída' %>
+                        </span>
+                      </div>
+                      <p class="text-xs text-gray-400 font-medium">
+                        <%= transaction && transaction.date ? new Date(transaction.date).toLocaleTimeString('pt-BR', {
+                          hour: '2-digit',
+                          minute: '2-digit'
+                        }) : '' %>
+                      </p>
+                    </div>
+
+                    <!-- Amount Column -->
+                    <div class="col-span-3 flex justify-end items-center">
+                      <p class="text-2xl font-bold <%= transaction && transaction.type === 'income' ? 'text-emerald-600' : 'text-rose-600' %> transition-all duration-200 group-hover:scale-105">
+                        <%= transaction && transaction.type === 'income' ? '+' : '-' %><%= formatCurrency(Math.abs(transaction && transaction.amount ? transaction.amount : 0)) %>
+                      </p>
+
+                      <!-- Action Buttons -->
+                      <div class="flex space-x-1 opacity-0 group-hover:opacity-100 transition-opacity duration-200 ml-4">
+                        <a href="/transactions/edit/<%= transaction && transaction.id ? transaction.id : '' %>"
+                           class="bg-gray-100 hover:bg-brand-purple-50 text-gray-600 hover:text-brand-purple p-2 rounded-lg transition-all duration-200 hover:scale-110 border border-transparent hover:border-brand-purple-200"
+                           title="Editar">
+                          ✏️
+                        </a>
+                        <form action="/transactions/delete/<%= transaction && transaction.id ? transaction.id : '' %>" method="POST"
+                              class="inline"
+                              onsubmit="return confirm('Tem certeza que deseja excluir esta transação?')">
+                          <button type="submit"
+                                  class="bg-gray-100 hover:bg-red-50 text-gray-600 hover:text-red-600 p-2 rounded-lg transition-all duration-200 hover:scale-110 border border-transparent hover:border-red-200"
+                                  title="Excluir">
+                            🗑️
+                          </button>
+                        </form>
+                      </div>
+                    </div>
+                  </div>
+                <% }); %>
+              <% } %>
+            </div>
+          </div>
+        <% }); %>
       <% } %>
     </div>
 
