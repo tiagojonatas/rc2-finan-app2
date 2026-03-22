@@ -6,6 +6,9 @@
   <title>Dashboard - Sistema Financeiro</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <script>
+    // Verificação se Tailwind carregou
+    console.log('🎨 Tailwind CSS carregado! Versão do layout: 2026');
+
     tailwind.config = {
       theme: {
         extend: {
@@ -28,6 +31,12 @@
 </head>
 <body class="bg-custom-bg font-sans">
   <div class="container mx-auto px-5 py-5" style="max-width: 1200px;">
+    <!-- CABEÇALHO VISUAL PARA CONFIRMAR MUDANÇAS -->
+    <div class="bg-gradient-to-r from-blue-500 to-purple-600 text-white p-6 rounded-xl shadow-lg mb-8">
+      <h1 class="text-4xl font-bold mb-2">🎨 DASHBOARD MODERNIZADO</h1>
+      <p class="text-lg opacity-90">Layout atualizado com Tailwind CSS - Versão 2026</p>
+    </div>
+
     <div class="flex justify-between items-center mb-8">
       <h1 class="text-3xl font-bold text-gray-800">Dashboard</h1>
       <form action="/logout" method="POST">
@@ -41,17 +50,17 @@
 
     <!-- Financial Summary -->
     <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-      <div class="bg-white p-8 rounded-xl shadow-md border border-gray-100">
-        <h2 class="text-lg font-semibold text-gray-700 mb-2">Total de Entradas</h2>
-        <p class="text-3xl font-bold text-emerald-600">R$ <%= totalIncome %></p>
+      <div class="bg-gradient-to-br from-green-400 to-green-600 text-white p-8 rounded-xl shadow-lg border border-green-300 transform hover:scale-105 transition duration-300">
+        <h2 class="text-xl font-bold mb-2">💰 Total de Entradas</h2>
+        <p class="text-4xl font-black">R$ <%= totalIncome %></p>
       </div>
-      <div class="bg-white p-8 rounded-xl shadow-md border border-gray-100">
-        <h2 class="text-lg font-semibold text-gray-700 mb-2">Total de Despesas</h2>
-        <p class="text-3xl font-bold text-rose-500">R$ <%= totalExpenses %></p>
+      <div class="bg-gradient-to-br from-red-400 to-red-600 text-white p-8 rounded-xl shadow-lg border border-red-300 transform hover:scale-105 transition duration-300">
+        <h2 class="text-xl font-bold mb-2">💸 Total de Despesas</h2>
+        <p class="text-4xl font-black">R$ <%= totalExpenses %></p>
       </div>
-      <div class="bg-white p-8 rounded-xl shadow-md border border-gray-100">
-        <h2 class="text-lg font-semibold text-gray-700 mb-2">Saldo</h2>
-        <p class="text-3xl font-bold <%= balance >= 0 ? 'text-slate-700' : 'text-rose-500' %>">R$ <%= balance %></p>
+      <div class="bg-gradient-to-br from-blue-400 to-blue-600 text-white p-8 rounded-xl shadow-lg border border-blue-300 transform hover:scale-105 transition duration-300">
+        <h2 class="text-xl font-bold mb-2">⚖️ Saldo</h2>
+        <p class="text-4xl font-black <%= balance >= 0 ? 'text-white' : 'text-red-200' %>">R$ <%= balance %></p>
       </div>
     </div>
 
