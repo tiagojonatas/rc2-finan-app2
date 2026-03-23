@@ -120,6 +120,13 @@ router.post('/logout', (req, res) => {
 router.get('/dashboard', requireAuth, async (req, res) => {
   try {
     const userId = req.session.userId;
+    const toastType = req.query.toast;
+    const highlightedTransactionId = Number.parseInt(req.query.tx, 10);
+    const toastByType = {
+      created: 'Transacao criada com sucesso',
+      updated: 'Transacao atualizada com sucesso'
+    };
+    const dashboardToast = toastByType[toastType] || null;
 
     // Fetch transactions
     const [transactions] = await db.query('SELECT * FROM transactions WHERE user_id = ? ORDER BY date DESC', [userId]);
@@ -296,6 +303,8 @@ router.get('/dashboard', requireAuth, async (req, res) => {
       totalExpenses: totalExpenses.toFixed(2),
       balance: balance.toFixed(2),
       transactionGroups,
+      dashboardToast,
+      highlightedTransactionId: Number.isNaN(highlightedTransactionId) ? null : highlightedTransactionId,
       creditCardSummary,
       dashboardCards,
       expenseCategoryData,
@@ -309,6 +318,8 @@ router.get('/dashboard', requireAuth, async (req, res) => {
       totalExpenses: '0.00',
       balance: '0.00',
       transactionGroups: [],
+      dashboardToast: null,
+      highlightedTransactionId: null,
       creditCardSummary: {
         hasCards: false,
         currentInvoice: 0,

@@ -29,45 +29,80 @@
   <style>
     body {
       background:
-        radial-gradient(circle at 8% 10%, rgba(157, 78, 221, 0.16), transparent 28%),
-        radial-gradient(circle at 90% 12%, rgba(138, 5, 190, 0.12), transparent 26%),
-        linear-gradient(180deg, #f8f5ff 0%, #f4f6fb 48%, #eef2ff 100%);
+        radial-gradient(circle at 10% 8%, rgba(138, 5, 190, 0.28), transparent 34%),
+        radial-gradient(circle at 90% 5%, rgba(157, 78, 221, 0.26), transparent 30%),
+        radial-gradient(circle at 50% 100%, rgba(188, 132, 233, 0.22), transparent 38%),
+        linear-gradient(180deg, #f7f2ff 0%, #f2f5ff 48%, #eef3ff 100%);
       font-family: 'Inter', system-ui, sans-serif;
       min-height: 100vh;
+      background-attachment: fixed;
     }
 
     .glass-card {
-      background: rgba(255, 255, 255, 0.62);
-      backdrop-filter: blur(12px);
-      -webkit-backdrop-filter: blur(12px);
-      border: 1px solid rgba(233, 213, 255, 0.7);
+      background: linear-gradient(140deg, rgba(255, 255, 255, 0.72), rgba(255, 255, 255, 0.45));
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border: 1px solid rgba(206, 167, 239, 0.65);
     }
 
     .soft-shadow {
       box-shadow:
-        0 10px 30px rgba(106, 4, 126, 0.08),
-        0 2px 8px rgba(15, 23, 42, 0.04);
+        0 18px 45px rgba(106, 4, 126, 0.12),
+        0 3px 10px rgba(15, 23, 42, 0.06);
+    }
+
+    .header-glass-btn {
+      background: rgba(255, 255, 255, 0.66);
+      border: 1px solid rgba(212, 187, 255, 0.8);
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+    }
+
+    .toast-enter {
+      opacity: 0;
+      transform: translateY(8px) scale(0.98);
+    }
+
+    .toast-show {
+      opacity: 1;
+      transform: translateY(0) scale(1);
+    }
+
+    .tx-highlight {
+      animation: txPulse 1.1s ease-out;
+    }
+
+    @keyframes txPulse {
+      0% { background-color: rgba(138, 5, 190, 0.2); }
+      100% { background-color: transparent; }
     }
   </style>
 </head>
 <body class="font-sans text-gray-900">
-  <div class="container mx-auto px-6 py-6 max-w-5xl">
+  <div class="container mx-auto px-6 py-8 max-w-5xl relative">
     <div class="flex justify-between items-center mb-8">
       <div>
         <h1 class="text-3xl font-bold text-gray-900">Dashboard</h1>
         <p id="currentMonth" class="text-lg text-brand-purple mt-2 font-medium"></p>
       </div>
       <div class="flex space-x-3">
-        <a href="/credit-cards" class="bg-brand-purple-100 hover:bg-brand-purple-200 text-brand-purple font-medium py-2 px-4 rounded-lg transition-all duration-200 border border-brand-purple-200 hover:border-brand-purple hover:scale-105">
+        <a href="/credit-cards" class="header-glass-btn hover:bg-brand-purple-100 text-brand-purple font-medium py-2 px-4 rounded-2xl transition-all duration-200 hover:scale-105">
           💳 Cartões
         </a>
         <form action="/logout" method="POST">
-          <button type="submit" class="bg-gray-100 hover:bg-brand-purple-50 text-gray-700 hover:text-brand-purple font-medium py-2 px-4 rounded-lg transition-all duration-200 hover:scale-105 border border-gray-300 hover:border-brand-purple-200">
+          <button type="submit" class="header-glass-btn hover:bg-brand-purple-50 text-gray-700 hover:text-brand-purple font-medium py-2 px-4 rounded-2xl transition-all duration-200 hover:scale-105">
             Sair
           </button>
         </form>
       </div>
     </div>
+
+    <% if (typeof dashboardToast !== 'undefined' && dashboardToast) { %>
+      <div id="dashboardToast"
+           class="toast-enter transition-all duration-300 mb-6 glass-card soft-shadow rounded-2xl border border-emerald-200/80 px-4 py-3">
+        <p class="text-sm font-semibold text-emerald-700"><%= dashboardToast %></p>
+      </div>
+    <% } %>
 
     <!-- Featured Balance Section -->
     <div class="glass-card soft-shadow bg-gradient-to-br from-white/70 to-brand-purple-50/40 rounded-2xl border border-brand-purple-100/60 p-12 mb-6 transition-all duration-200 relative overflow-hidden">
@@ -230,7 +265,8 @@
             <div class="glass-card soft-shadow rounded-2xl border border-gray-100 overflow-hidden">
               <% if (group && group.transactions && Array.isArray(group.transactions) && group.transactions.length > 0) { %>
                 <% group.transactions.forEach((transaction, index) => { %>
-                  <div class="group px-4 sm:px-5 py-4 sm:py-5 transition-colors duration-200 hover:bg-brand-purple-50/20 <%= index < group.transactions.length - 1 ? 'border-b border-gray-100' : '' %>">
+                  <div data-transaction-id="<%= transaction && transaction.id ? transaction.id : '' %>"
+                       class="group px-4 sm:px-5 py-4 sm:py-5 transition-all duration-300 hover:bg-brand-purple-50/20 <%= index < group.transactions.length - 1 ? 'border-b border-gray-100' : '' %>">
                     <div class="flex items-center gap-4">
                       <div class="flex-shrink-0 w-11 h-11 rounded-full flex items-center justify-center <%= transaction && transaction.type === 'income' ? 'bg-emerald-50 text-emerald-600' : 'bg-rose-50 text-rose-600' %>">
                         <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" viewBox="0 0 20 20" fill="currentColor">
@@ -349,6 +385,41 @@
         const currentMonth = monthNames[now.getMonth()];
         const currentYear = now.getFullYear();
         currentMonthElement.textContent = `${currentMonth} ${currentYear}`;
+
+        const toastEl = document.getElementById('dashboardToast');
+        const highlightedTxId = <%- JSON.stringify(typeof highlightedTransactionId !== 'undefined' ? highlightedTransactionId : null) %>;
+
+        if (toastEl) {
+          requestAnimationFrame(function() {
+            toastEl.classList.add('toast-show');
+          });
+
+          setTimeout(function() {
+            toastEl.classList.remove('toast-show');
+            toastEl.classList.add('toast-enter');
+          }, 2600);
+
+          setTimeout(function() {
+            if (toastEl && toastEl.parentNode) {
+              toastEl.parentNode.removeChild(toastEl);
+            }
+          }, 3000);
+        }
+
+        if (highlightedTxId) {
+          const txEl = document.querySelector(`[data-transaction-id=\"${highlightedTxId}\"]`);
+          if (txEl) {
+            txEl.classList.add('tx-highlight');
+            txEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          }
+        }
+
+        if (window.history && window.history.replaceState) {
+          const cleanUrl = new URL(window.location.href);
+          cleanUrl.searchParams.delete('toast');
+          cleanUrl.searchParams.delete('tx');
+          window.history.replaceState({}, '', cleanUrl.pathname + cleanUrl.search + cleanUrl.hash);
+        }
 
         const actionFab = document.getElementById('actionFab');
         const actionMenu = document.getElementById('actionMenu');

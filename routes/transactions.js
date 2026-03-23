@@ -24,9 +24,9 @@ router.post('/add', requireAuth, async (req, res) => {
   const userId = req.session.userId;
 
   try {
-    await db.query('INSERT INTO transactions (user_id, description, amount, type, date) VALUES (?, ?, ?, ?, ?)',
+    const [result] = await db.query('INSERT INTO transactions (user_id, description, amount, type, date) VALUES (?, ?, ?, ?, ?)',
       [userId, description, parseFloat(amount), type, date]);
-    res.redirect('/dashboard');
+    res.redirect(`/dashboard?toast=created&tx=${result.insertId}`);
   } catch (error) {
     console.error(error);
     const defaultType = type === 'income' || type === 'expense' ? type : 'expense';
@@ -60,7 +60,7 @@ router.post('/edit/:id', requireAuth, async (req, res) => {
   try {
     await db.query('UPDATE transactions SET description = ?, amount = ?, type = ?, date = ? WHERE id = ? AND user_id = ?',
       [description, parseFloat(amount), type, date, transactionId, userId]);
-    res.redirect('/dashboard');
+    res.redirect(`/dashboard?toast=updated&tx=${transactionId}`);
   } catch (error) {
     console.error(error);
     const [transactions] = await db.query('SELECT * FROM transactions WHERE id = ? AND user_id = ?', [transactionId, userId]);
