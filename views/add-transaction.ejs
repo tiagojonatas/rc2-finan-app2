@@ -57,8 +57,8 @@
               <label for="type" class="block text-sm font-medium text-gray-700">Tipo</label>
               <select id="type" name="type" required
                       class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-slate-500 focus:border-slate-500">
-                <option value="income">Entrada</option>
-                <option value="expense">Despesa</option>
+                <option value="income" <%= defaultType === 'income' ? 'selected' : '' %>>Entrada</option>
+                <option value="expense" <%= defaultType === 'expense' ? 'selected' : '' %>>Despesa</option>
               </select>
             </div>
             <div>

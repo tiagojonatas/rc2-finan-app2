@@ -13,7 +13,9 @@ function requireAuth(req, res, next) {
 
 // GET /transactions/add - Show add transaction form
 router.get('/add', requireAuth, (req, res) => {
-  res.render('add-transaction', { error: null });
+  const requestedType = req.query.type;
+  const defaultType = requestedType === 'income' || requestedType === 'expense' ? requestedType : 'expense';
+  res.render('add-transaction', { error: null, defaultType });
 });
 
 // POST /transactions/add - Add new transaction
@@ -27,7 +29,8 @@ router.post('/add', requireAuth, async (req, res) => {
     res.redirect('/dashboard');
   } catch (error) {
     console.error(error);
-    res.render('add-transaction', { error: 'Erro ao adicionar transação' });
+    const defaultType = type === 'income' || type === 'expense' ? type : 'expense';
+    res.render('add-transaction', { error: 'Erro ao adicionar transação', defaultType });
   }
 });
 
@@ -80,3 +83,4 @@ router.post('/delete/:id', requireAuth, async (req, res) => {
 });
 
 module.exports = router;
+

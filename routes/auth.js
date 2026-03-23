@@ -11,6 +11,33 @@ function getLocalDateKey(date) {
   return `${year}-${month}-${day}`;
 }
 
+function getNextOccurrence(dayOfMonth, baseDate) {
+  const targetDay = Number(dayOfMonth);
+  if (!Number.isFinite(targetDay) || targetDay < 1) return null;
+
+  let year = baseDate.getFullYear();
+  let monthIndex = baseDate.getMonth();
+  let day = Math.min(targetDay, new Date(year, monthIndex + 1, 0).getDate());
+  let candidate = new Date(year, monthIndex, day);
+
+  if (candidate < baseDate) {
+    monthIndex += 1;
+    if (monthIndex > 11) {
+      monthIndex = 0;
+      year += 1;
+    }
+    day = Math.min(targetDay, new Date(year, monthIndex + 1, 0).getDate());
+    candidate = new Date(year, monthIndex, day);
+  }
+
+  return candidate;
+}
+
+function getMonthKey(date) {
+  const d = new Date(date);
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+}
+
 // Middleware to check if user is authenticated
 function requireAuth(req, res, next) {
   if (req.session.userId) {
@@ -111,6 +138,45 @@ router.get('/dashboard', requireAuth, async (req, res) => {
 
     const balance = totalIncome - totalExpenses;
 
+    // Expense categories for pie chart (grouped by description)
+    const expenseCategoryMap = new Map();
+    transactions.forEach((transaction) => {
+      if (transaction.type !== 'expense') return;
+      const category = (transaction.description || 'Outros').trim() || 'Outros';
+      const current = expenseCategoryMap.get(category) || 0;
+      expenseCategoryMap.set(category, current + parseFloat(transaction.amount || 0));
+    });
+
+    const expenseCategoryData = Array.from(expenseCategoryMap.entries())
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 8)
+      .map(([label, value]) => ({ label, value }));
+
+    // Monthly balance evolution (last 12 months)
+    const monthlyMap = new Map();
+    transactions.forEach((transaction) => {
+      const key = getMonthKey(transaction.date);
+      const bucket = monthlyMap.get(key) || { income: 0, expense: 0 };
+      if (transaction.type === 'income') {
+        bucket.income += parseFloat(transaction.amount || 0);
+      } else if (transaction.type === 'expense') {
+        bucket.expense += parseFloat(transaction.amount || 0);
+      }
+      monthlyMap.set(key, bucket);
+    });
+
+    const monthKeys = Array.from(monthlyMap.keys()).sort().slice(-12);
+    const monthlyBalanceData = monthKeys.map((key) => {
+      const [year, month] = key.split('-');
+      const monthDate = new Date(Number(year), Number(month) - 1, 1);
+      const monthLabel = monthDate.toLocaleDateString('pt-BR', { month: 'short', year: '2-digit' });
+      const bucket = monthlyMap.get(key) || { income: 0, expense: 0 };
+      return {
+        label: monthLabel,
+        balance: bucket.income - bucket.expense
+      };
+    });
+
     // Group transactions by date
     const groupedTransactions = {};
     const today = new Date();
@@ -162,12 +228,78 @@ router.get('/dashboard', requireAuth, async (req, res) => {
       }
     });
 
+    // Credit card summary
+    const [creditCards] = await db.query('SELECT id, name, limit_amount, closing_day, due_day FROM credit_cards WHERE user_id = ?', [userId]);
+    const now = new Date();
+    let creditCardSummary = {
+      hasCards: false,
+      currentInvoice: 0,
+      totalLimit: 0,
+      usedPercent: 0,
+      progressPercent: 0,
+      isRisk: false,
+      nextClosingDate: null,
+      nextDueDate: null
+    };
+
+    if (creditCards.length > 0) {
+      const cardIds = creditCards.map((card) => card.id);
+      const [monthlyTotals] = await db.query(
+        `SELECT card_id, COALESCE(SUM(amount), 0) AS total
+         FROM card_transactions
+         WHERE card_id IN (?) AND YEAR(date) = ? AND MONTH(date) = ?
+         GROUP BY card_id`,
+        [cardIds, now.getFullYear(), now.getMonth() + 1]
+      );
+
+      const totalsByCard = new Map();
+      monthlyTotals.forEach((row) => {
+        totalsByCard.set(Number(row.card_id), parseFloat(row.total));
+      });
+
+      const totalLimit = creditCards.reduce((acc, card) => acc + parseFloat(card.limit_amount || 0), 0);
+      const currentInvoice = creditCards.reduce((acc, card) => acc + (totalsByCard.get(Number(card.id)) || 0), 0);
+      const usedPercent = totalLimit > 0 ? (currentInvoice / totalLimit) * 100 : 0;
+
+      let nextClosingDate = null;
+      let nextDueDate = null;
+
+      creditCards.forEach((card) => {
+        const closing = getNextOccurrence(card.closing_day, now);
+        const due = getNextOccurrence(card.due_day, now);
+
+        if (closing && (!nextClosingDate || closing < nextClosingDate)) {
+          nextClosingDate = closing;
+        }
+
+        if (due && (!nextDueDate || due < nextDueDate)) {
+          nextDueDate = due;
+        }
+      });
+
+      creditCardSummary = {
+        hasCards: true,
+        currentInvoice,
+        totalLimit,
+        usedPercent,
+        progressPercent: Math.min(100, usedPercent),
+        isRisk: usedPercent >= 80,
+        nextClosingDate,
+        nextDueDate
+      };
+    }
+    const dashboardCards = creditCards.map((card) => ({ id: card.id, name: card.name }));
+
     res.render('dashboard', {
       userName: req.session.userName,
       totalIncome: totalIncome.toFixed(2),
       totalExpenses: totalExpenses.toFixed(2),
       balance: balance.toFixed(2),
-      transactionGroups
+      transactionGroups,
+      creditCardSummary,
+      dashboardCards,
+      expenseCategoryData,
+      monthlyBalanceData
     });
   } catch (error) {
     console.error('Dashboard error:', error);
@@ -176,7 +308,20 @@ router.get('/dashboard', requireAuth, async (req, res) => {
       totalIncome: '0.00',
       totalExpenses: '0.00',
       balance: '0.00',
-      transactionGroups: []
+      transactionGroups: [],
+      creditCardSummary: {
+        hasCards: false,
+        currentInvoice: 0,
+        totalLimit: 0,
+        usedPercent: 0,
+        progressPercent: 0,
+        isRisk: false,
+        nextClosingDate: null,
+        nextDueDate: null
+      },
+      dashboardCards: [],
+      expenseCategoryData: [],
+      monthlyBalanceData: []
     });
   }
 });

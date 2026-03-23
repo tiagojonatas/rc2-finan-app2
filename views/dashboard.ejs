@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Dashboard - Sistema Financeiro</title>
   <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <script>
     tailwind.config = {
       theme: {
@@ -27,12 +28,29 @@
   </script>
   <style>
     body {
-      background-color: #f1f5f9;
+      background:
+        radial-gradient(circle at 8% 10%, rgba(157, 78, 221, 0.16), transparent 28%),
+        radial-gradient(circle at 90% 12%, rgba(138, 5, 190, 0.12), transparent 26%),
+        linear-gradient(180deg, #f8f5ff 0%, #f4f6fb 48%, #eef2ff 100%);
       font-family: 'Inter', system-ui, sans-serif;
+      min-height: 100vh;
+    }
+
+    .glass-card {
+      background: rgba(255, 255, 255, 0.62);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border: 1px solid rgba(233, 213, 255, 0.7);
+    }
+
+    .soft-shadow {
+      box-shadow:
+        0 10px 30px rgba(106, 4, 126, 0.08),
+        0 2px 8px rgba(15, 23, 42, 0.04);
     }
   </style>
 </head>
-<body class="bg-custom-bg font-sans">
+<body class="font-sans text-gray-900">
   <div class="container mx-auto px-6 py-6 max-w-5xl">
     <div class="flex justify-between items-center mb-8">
       <div>
@@ -52,7 +70,7 @@
     </div>
 
     <!-- Featured Balance Section -->
-    <div class="bg-gradient-to-br from-white to-brand-purple-50/40 rounded-2xl shadow-lg border border-brand-purple-100/50 p-12 mb-6 hover:shadow-xl transition-all duration-200 relative overflow-hidden">
+    <div class="glass-card soft-shadow bg-gradient-to-br from-white/70 to-brand-purple-50/40 rounded-2xl border border-brand-purple-100/60 p-12 mb-6 transition-all duration-200 relative overflow-hidden">
       <div class="absolute top-0 right-0 w-32 h-32 bg-brand-purple-100/20 rounded-full -mr-16 -mt-16"></div>
       <div class="absolute bottom-0 left-0 w-24 h-24 bg-brand-purple-50/30 rounded-full -ml-12 -mb-12"></div>
       <div class="text-center relative z-10">
@@ -65,7 +83,7 @@
     </div>
 
     <!-- Monthly Summary -->
-    <div class="bg-gradient-to-r from-brand-purple-50/30 via-white to-brand-purple-50/30 rounded-lg p-4 mb-8 border border-brand-purple-100/50 mx-auto shadow-sm" style="max-width: 704px;">
+    <div class="glass-card soft-shadow bg-gradient-to-r from-brand-purple-50/35 via-white/70 to-brand-purple-50/35 rounded-2xl p-4 mb-8 border border-brand-purple-100/60 mx-auto" style="max-width: 704px;">
       <div class="flex justify-center space-x-8">
         <div class="text-center">
           <p class="text-xs text-brand-purple mb-1 font-medium">Você recebeu este mês</p>
@@ -78,95 +96,183 @@
       </div>
     </div>
 
+
+    <!-- Credit Card Financial Summary -->
+    <% const summary = (typeof creditCardSummary !== 'undefined' && creditCardSummary) ? creditCardSummary : {}; %>
+    <div class="mb-8">
+      <div class="glass-card soft-shadow rounded-2xl overflow-hidden <%= summary.isRisk ? 'border-rose-300' : 'border-brand-purple-100' %>">
+        <div class="px-6 py-4 bg-gradient-to-r <%= summary.isRisk ? 'from-rose-50 via-white to-rose-50' : 'from-brand-purple-50/60 via-white to-brand-purple-50/60' %>">
+          <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+            <h2 class="text-xl font-bold <%= summary.isRisk ? 'text-rose-700' : 'text-gray-900' %>">Resumo do Cartao</h2>
+            <a href="/credit-cards" class="text-sm font-medium <%= summary.isRisk ? 'text-rose-600 hover:text-rose-700' : 'text-brand-purple hover:text-brand-purple-dark' %>">
+              Gerenciar cartoes
+            </a>
+          </div>
+        </div>
+
+        <% if (!summary.hasCards) { %>
+          <div class="px-6 py-8 text-center">
+            <p class="text-gray-700 mb-4">Voce ainda nao possui cartao cadastrado.</p>
+            <a href="/credit-cards/add" class="inline-block bg-brand-purple hover:bg-brand-purple-dark text-white font-medium py-2 px-5 rounded-lg transition-colors">
+              + Adicionar Cartao
+            </a>
+          </div>
+        <% } else { %>
+          <div class="p-6">
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+              <div class="rounded-xl border <%= summary.isRisk ? 'border-rose-200 bg-rose-50/50' : 'border-brand-purple-100 bg-brand-purple-50/30' %> p-4">
+                <p class="text-xs uppercase tracking-wide mb-1 <%= summary.isRisk ? 'text-rose-600' : 'text-brand-purple' %>">Fatura Atual</p>
+                <p class="text-2xl font-bold <%= summary.isRisk ? 'text-rose-700' : 'text-gray-900' %>"><%= formatCurrency(summary.currentInvoice) %></p>
+              </div>
+
+              <div class="rounded-xl border border-gray-200 bg-gray-50 p-4">
+                <p class="text-xs uppercase tracking-wide mb-1 text-gray-500">Fechamento</p>
+                <p class="text-xl font-bold text-gray-900">
+                  <%= summary.nextClosingDate ? formatDate(summary.nextClosingDate) : '-' %>
+                </p>
+              </div>
+
+              <div class="rounded-xl border border-gray-200 bg-gray-50 p-4">
+                <p class="text-xs uppercase tracking-wide mb-1 text-gray-500">Vencimento</p>
+                <p class="text-xl font-bold text-gray-900">
+                  <%= summary.nextDueDate ? formatDate(summary.nextDueDate) : '-' %>
+                </p>
+              </div>
+            </div>
+
+            <div class="rounded-xl border <%= summary.isRisk ? 'border-rose-200 bg-rose-50/40' : 'border-brand-purple-100 bg-brand-purple-50/20' %> p-4">
+              <div class="flex items-center justify-between mb-2">
+                <p class="text-sm font-medium <%= summary.isRisk ? 'text-rose-700' : 'text-gray-700' %>">Limite Utilizado</p>
+                <p class="text-sm font-bold <%= summary.isRisk ? 'text-rose-700' : 'text-brand-purple' %>"><%= Math.round(summary.usedPercent || 0) %>%</p>
+              </div>
+
+              <div class="w-full h-3 rounded-full bg-gray-200 overflow-hidden">
+                <div
+                  class="h-full rounded-full transition-all duration-500 <%= summary.isRisk ? 'bg-gradient-to-r from-rose-500 to-red-600' : 'bg-gradient-to-r from-brand-purple to-brand-purple-light' %>"
+                  style="width: <%= Math.max(0, Math.min(100, summary.progressPercent || 0)) %>%;">
+                </div>
+              </div>
+
+              <div class="flex items-center justify-between mt-3 text-xs">
+                <span class="<%= summary.isRisk ? 'text-rose-600' : 'text-gray-500' %>">
+                  Limite total: <strong><%= formatCurrency(summary.totalLimit) %></strong>
+                </span>
+                <% if (summary.isRisk) { %>
+                  <span class="font-semibold text-rose-700">Risco de estouro</span>
+                <% } else { %>
+                  <span class="font-semibold text-emerald-600">Dentro do planejado</span>
+                <% } %>
+              </div>
+            </div>
+          </div>
+        <% } %>
+      </div>
+    </div>
+
+    <!-- Charts Section -->
+    <div class="grid grid-cols-1 xl:grid-cols-2 gap-6 mb-8">
+      <div class="glass-card soft-shadow rounded-2xl border border-brand-purple-100 p-6">
+        <div class="flex items-center justify-between mb-4">
+          <h3 class="text-lg font-bold text-gray-900">Despesas por Categoria</h3>
+          <span class="text-xs font-medium text-brand-purple bg-brand-purple-50 px-2 py-1 rounded-full">Pizza</span>
+        </div>
+        <div class="h-72">
+          <canvas id="expensePieChart"></canvas>
+        </div>
+      </div>
+
+      <div class="glass-card soft-shadow rounded-2xl border border-brand-purple-100 p-6">
+        <div class="flex items-center justify-between mb-4">
+          <h3 class="text-lg font-bold text-gray-900">Evolucao de Saldo Mensal</h3>
+          <span class="text-xs font-medium text-brand-purple bg-brand-purple-50 px-2 py-1 rounded-full">Linha</span>
+        </div>
+        <div class="h-72">
+          <canvas id="balanceLineChart"></canvas>
+        </div>
+      </div>
+    </div>
+
     <!-- Transactions Section -->
     <div class="mb-8">
       <h2 class="text-2xl font-bold text-gray-900 mb-6 flex items-center">
         <span class="w-1 h-8 bg-brand-purple rounded-full mr-3"></span>
-        Transações
+        Transacoes
       </h2>
 
-      <% 
-        // Ensure transactionGroups is always an array
-        const safeTransactionGroups = Array.isArray(transactionGroups) ? transactionGroups : [];
-      %>
+      <% const safeTransactionGroups = Array.isArray(transactionGroups) ? transactionGroups : []; %>
 
       <% if (safeTransactionGroups.length === 0) { %>
-        <div class="text-center py-16 bg-gradient-to-br from-brand-purple-50/20 to-white rounded-lg border border-brand-purple-100/50">
-          <h3 class="text-lg font-medium text-gray-900 mb-2">Nenhuma transação</h3>
-          <p class="text-brand-purple">Adicione sua primeira transação.</p>
+        <div class="glass-card soft-shadow text-center py-16 bg-gradient-to-br from-brand-purple-50/20 to-white/70 rounded-2xl border border-brand-purple-100/50">
+          <h3 class="text-lg font-medium text-gray-900 mb-2">Nenhuma transacao</h3>
+          <p class="text-brand-purple">Adicione sua primeira transacao.</p>
         </div>
       <% } else { %>
         <% safeTransactionGroups.forEach((group, groupIndex) => { %>
-          <!-- Date Group Header -->
-          <div class="mb-4">
-            <div class="flex items-center justify-between bg-gradient-to-r from-brand-purple-50/40 to-white px-6 py-3 rounded-lg border-l-4 border-brand-purple mb-2 shadow-sm">
-              <h3 class="text-lg font-semibold text-gray-900"><%= group && group.dateLabel ? group.dateLabel : 'Data não definida' %></h3>
-              <% if (group && ((group.totalIncome && group.totalIncome > 0) || (group.totalExpenses && group.totalExpenses > 0))) { %>
-                <div class="flex space-x-4 text-sm">
-                  <% if (group.totalIncome && group.totalIncome > 0) { %>
-                    <span class="text-emerald-600 font-medium"><%= formatCurrency(group.totalIncome) %></span>
-                  <% } %>
-                  <% if (group.totalExpenses && group.totalExpenses > 0) { %>
-                    <span class="text-rose-600 font-medium"><%= formatCurrency(group.totalExpenses) %></span>
-                  <% } %>
-                </div>
-              <% } %>
+          <div class="<%= groupIndex < safeTransactionGroups.length - 1 ? 'mb-6' : '' %>">
+            <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-2 px-4 py-3 rounded-xl bg-gradient-to-r from-brand-purple-50/50 via-white to-brand-purple-50/20 border border-brand-purple-100/70">
+              <h3 class="text-sm sm:text-base font-semibold text-gray-900 tracking-wide">
+                <%= group && group.dateLabel ? group.dateLabel : 'Data nao definida' %>
+              </h3>
+              <div class="flex items-center gap-2 text-xs">
+                <% if (group && group.totalIncome && group.totalIncome > 0) { %>
+                  <span class="px-2.5 py-1 rounded-full bg-emerald-50 text-emerald-700 font-semibold">
+                    + <%= formatCurrency(group.totalIncome) %>
+                  </span>
+                <% } %>
+                <% if (group && group.totalExpenses && group.totalExpenses > 0) { %>
+                  <span class="px-2.5 py-1 rounded-full bg-rose-50 text-rose-700 font-semibold">
+                    - <%= formatCurrency(group.totalExpenses) %>
+                  </span>
+                <% } %>
+              </div>
             </div>
 
-            <!-- Transactions for this date -->
-            <div class="bg-white rounded-lg border border-gray-100 overflow-hidden shadow-sm <%= groupIndex < safeTransactionGroups.length - 1 ? 'mb-6' : '' %>">
+            <div class="glass-card soft-shadow rounded-2xl border border-gray-100 overflow-hidden">
               <% if (group && group.transactions && Array.isArray(group.transactions) && group.transactions.length > 0) { %>
                 <% group.transactions.forEach((transaction, index) => { %>
-                  <div class="grid grid-cols-12 items-center py-6 px-6 hover:bg-brand-purple-50/20 transition-all duration-200 group <%= index < group.transactions.length - 1 ? 'border-b border-brand-purple-100/30' : '' %>">
-                    <!-- Icon Column -->
-                    <div class="col-span-1 flex justify-center">
-                      <div class="w-10 h-10 rounded-full flex items-center justify-center <%= transaction && transaction.type === 'income' ? 'bg-emerald-50' : 'bg-rose-50' %> transition-all duration-200 group-hover:scale-110">
-                        <span class="text-base <%= transaction && transaction.type === 'income' ? 'text-emerald-500' : 'text-rose-500' %>">
-                          <%= transaction && transaction.type === 'income' ? '↙' : '↗' %>
-                        </span>
+                  <div class="group px-4 sm:px-5 py-4 sm:py-5 transition-colors duration-200 hover:bg-brand-purple-50/20 <%= index < group.transactions.length - 1 ? 'border-b border-gray-100' : '' %>">
+                    <div class="flex items-center gap-4">
+                      <div class="flex-shrink-0 w-11 h-11 rounded-full flex items-center justify-center <%= transaction && transaction.type === 'income' ? 'bg-emerald-50 text-emerald-600' : 'bg-rose-50 text-rose-600' %>">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" viewBox="0 0 20 20" fill="currentColor">
+                          <% if (transaction && transaction.type === 'income') { %>
+                            <path fill-rule="evenodd" d="M10 3a1 1 0 011 1v7.586l2.293-2.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 111.414-1.414L9 11.586V4a1 1 0 011-1z" clip-rule="evenodd" />
+                          <% } else { %>
+                            <path fill-rule="evenodd" d="M10 17a1 1 0 01-1-1V8.414L6.707 10.707a1 1 0 11-1.414-1.414l4-4a1 1 0 011.414 0l4 4a1 1 0 11-1.414 1.414L11 8.414V16a1 1 0 01-1 1z" clip-rule="evenodd" />
+                          <% } %>
+                        </svg>
                       </div>
-                    </div>
 
-                    <!-- Content Column -->
-                    <div class="col-span-8 flex-1 ml-4">
-                      <div class="flex items-center space-x-3 mb-1">
-                        <h3 class="font-bold text-gray-900 text-lg leading-tight">
-                          <%= transaction && transaction.description ? transaction.description : 'Sem descrição' %>
-                        </h3>
-                        <span class="text-xs px-2 py-1 rounded-full <%= transaction && transaction.type === 'income' ? 'bg-emerald-100 text-emerald-700' : 'bg-rose-100 text-rose-700' %> font-medium transition-all duration-200 group-hover:scale-105">
-                          <%= transaction && transaction.type === 'income' ? 'Entrada' : 'Saída' %>
-                        </span>
+                      <div class="flex-1 min-w-0">
+                        <div class="flex flex-wrap items-center gap-2">
+                          <p class="text-base font-semibold text-gray-900 truncate">
+                            <%= transaction && transaction.description ? transaction.description : 'Sem descricao' %>
+                          </p>
+                          <span class="inline-flex items-center rounded-full px-2.5 py-0.5 text-[11px] font-semibold <%= transaction && transaction.type === 'income' ? 'bg-emerald-100 text-emerald-700' : 'bg-rose-100 text-rose-700' %>">
+                            <%= transaction && transaction.type === 'income' ? 'Entrada' : 'Saida' %>
+                          </span>
+                        </div>
+                        <p class="text-xs text-gray-400 mt-1">
+                          <%= transaction && transaction.date ? formatDate(transaction.date) : '' %>
+                        </p>
                       </div>
-                      <p class="text-xs text-gray-400 font-medium">
-                        <%= transaction && transaction.date ? new Date(transaction.date).toLocaleTimeString('pt-BR', {
-                          hour: '2-digit',
-                          minute: '2-digit'
-                        }) : '' %>
-                      </p>
-                    </div>
 
-                    <!-- Amount Column -->
-                    <div class="col-span-3 flex justify-end items-center">
-                      <p class="text-2xl font-bold <%= transaction && transaction.type === 'income' ? 'text-emerald-600' : 'text-rose-600' %> transition-all duration-200 group-hover:scale-105">
-                        <%= transaction && transaction.type === 'income' ? '+' : '-' %><%= formatCurrency(Math.abs(transaction && transaction.amount ? transaction.amount : 0)) %>
-                      </p>
-
-                      <!-- Action Buttons -->
-                      <div class="flex space-x-1 opacity-0 group-hover:opacity-100 transition-opacity duration-200 ml-4">
-                        <a href="/transactions/edit/<%= transaction && transaction.id ? transaction.id : '' %>"
-                           class="bg-gray-100 hover:bg-brand-purple-50 text-gray-600 hover:text-brand-purple p-2 rounded-lg transition-all duration-200 hover:scale-110 border border-transparent hover:border-brand-purple-200"
-                           title="Editar">
-                          ✏️
-                        </a>
-                        <form action="/transactions/delete/<%= transaction && transaction.id ? transaction.id : '' %>" method="POST"
-                              class="inline"
-                              onsubmit="return confirm('Tem certeza que deseja excluir esta transação?')">
-                          <button type="submit"
-                                  class="bg-gray-100 hover:bg-red-50 text-gray-600 hover:text-red-600 p-2 rounded-lg transition-all duration-200 hover:scale-110 border border-transparent hover:border-red-200"
-                                  title="Excluir">
-                            🗑️
-                          </button>
-                        </form>
+                      <div class="text-right">
+                        <p class="text-lg sm:text-xl font-bold <%= transaction && transaction.type === 'income' ? 'text-emerald-600' : 'text-rose-600' %>">
+                          <%= transaction && transaction.type === 'income' ? '+' : '-' %><%= formatCurrency(Math.abs(transaction && transaction.amount ? transaction.amount : 0)) %>
+                        </p>
+                        <div class="mt-1 flex items-center justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                          <a href="/transactions/edit/<%= transaction && transaction.id ? transaction.id : '' %>"
+                             class="text-xs px-2 py-1 rounded-md bg-gray-100 hover:bg-brand-purple-100 text-gray-700 hover:text-brand-purple">
+                            Editar
+                          </a>
+                          <form action="/transactions/delete/<%= transaction && transaction.id ? transaction.id : '' %>" method="POST" class="inline"
+                                onsubmit="return confirm('Tem certeza que deseja excluir esta transacao?')">
+                            <button type="submit"
+                                    class="text-xs px-2 py-1 rounded-md bg-rose-50 hover:bg-rose-100 text-rose-700">
+                              Excluir
+                            </button>
+                          </form>
+                        </div>
                       </div>
                     </div>
                   </div>
@@ -178,12 +284,58 @@
       <% } %>
     </div>
 
-    <!-- Floating Action Button (FAB) -->
-    <a href="/transactions/add"
-       class="fixed bottom-6 right-6 w-16 h-16 bg-[#8A05BE] hover:bg-[#6A047E] rounded-full shadow-2xl hover:shadow-3xl flex items-center justify-center text-white text-3xl font-bold transition-all duration-300 hover:scale-110 hover:rotate-90 z-50"
-       title="Adicionar Transação">
-      +
-    </a>
+    <!-- Floating Action Menu -->
+    <div class="fixed bottom-6 right-6 z-50 flex flex-col items-end gap-3">
+      <div id="actionMenu"
+           class="origin-bottom-right opacity-0 scale-95 pointer-events-none transition-all duration-200 ease-out flex flex-col gap-2">
+        <a href="/transactions/add?type=income"
+           class="glass-card border border-brand-purple-100 text-brand-purple soft-shadow rounded-2xl px-4 py-2 text-sm font-semibold hover:bg-brand-purple-50/70 transition-colors">
+          Nova receita
+        </a>
+        <a href="/transactions/add?type=expense"
+           class="glass-card border border-brand-purple-100 text-brand-purple soft-shadow rounded-2xl px-4 py-2 text-sm font-semibold hover:bg-brand-purple-50/70 transition-colors">
+          Nova despesa
+        </a>
+        <button id="openCardPurchaseModal"
+           type="button"
+           class="glass-card border border-brand-purple-100 text-brand-purple soft-shadow rounded-2xl px-4 py-2 text-sm font-semibold hover:bg-brand-purple-50/70 transition-colors text-left">
+          Nova compra no cartao
+        </button>
+      </div>
+
+      <button id="actionFab"
+              type="button"
+              aria-label="Abrir menu de acoes"
+              class="w-16 h-16 bg-gradient-to-br from-brand-purple to-brand-purple-dark hover:from-brand-purple-dark hover:to-brand-purple rounded-full shadow-2xl flex items-center justify-center text-white text-3xl font-bold transition-all duration-300 hover:scale-110">
+        +
+      </button>
+    </div>
+
+    <% const safeDashboardCards = Array.isArray(dashboardCards) ? dashboardCards : []; %>
+    <div id="cardPurchaseModal" class="fixed inset-0 z-[60] hidden items-center justify-center p-4">
+      <div id="cardPurchaseBackdrop" class="absolute inset-0 bg-black/30 opacity-0 transition-opacity duration-200"></div>
+      <div id="cardPurchasePanel" class="glass-card soft-shadow relative w-full max-w-md rounded-2xl border border-brand-purple-100 p-6 opacity-0 scale-95 transition-all duration-200">
+        <div class="flex items-center justify-between mb-4">
+          <h3 class="text-lg font-bold text-gray-900">Nova compra no cartao</h3>
+          <button id="closeCardPurchaseModal" type="button" class="text-gray-500 hover:text-gray-700 text-xl leading-none">&times;</button>
+        </div>
+        <% if (safeDashboardCards.length === 0) { %>
+          <p class="text-sm text-gray-600 mb-4">Voce ainda nao tem cartoes cadastrados.</p>
+          <a href="/credit-cards/add" class="inline-block bg-brand-purple hover:bg-brand-purple-dark text-white font-medium py-2 px-4 rounded-lg transition-colors">
+            Adicionar cartao
+          </a>
+        <% } else { %>
+          <div class="flex flex-col gap-2 max-h-64 overflow-auto pr-1">
+            <% safeDashboardCards.forEach((card) => { %>
+              <a href="/credit-cards/<%= card.id %>/add-transaction"
+                 class="w-full rounded-xl border border-brand-purple-100 bg-brand-purple-50/30 hover:bg-brand-purple-50 text-gray-800 px-4 py-3 text-sm font-semibold transition-colors">
+                <%= card.name %>
+              </a>
+            <% }); %>
+          </div>
+        <% } %>
+      </div>
+    </div>
 
     <script>
       // Mostrar mês atual no dashboard
@@ -197,8 +349,196 @@
         const currentMonth = monthNames[now.getMonth()];
         const currentYear = now.getFullYear();
         currentMonthElement.textContent = `${currentMonth} ${currentYear}`;
+
+        const actionFab = document.getElementById('actionFab');
+        const actionMenu = document.getElementById('actionMenu');
+        const openCardPurchaseModalBtn = document.getElementById('openCardPurchaseModal');
+        const cardPurchaseModal = document.getElementById('cardPurchaseModal');
+        const cardPurchaseBackdrop = document.getElementById('cardPurchaseBackdrop');
+        const cardPurchasePanel = document.getElementById('cardPurchasePanel');
+        const closeCardPurchaseModalBtn = document.getElementById('closeCardPurchaseModal');
+        let isActionMenuOpen = false;
+        let isCardPurchaseModalOpen = false;
+
+        function setActionMenuState(open) {
+          isActionMenuOpen = open;
+          if (!actionFab || !actionMenu) return;
+
+          if (open) {
+            actionMenu.classList.remove('opacity-0', 'scale-95', 'pointer-events-none');
+            actionMenu.classList.add('opacity-100', 'scale-100');
+            actionFab.classList.add('rotate-45');
+          } else {
+            actionMenu.classList.add('opacity-0', 'scale-95', 'pointer-events-none');
+            actionMenu.classList.remove('opacity-100', 'scale-100');
+            actionFab.classList.remove('rotate-45');
+          }
+        }
+
+        function setCardPurchaseModalState(open) {
+          isCardPurchaseModalOpen = open;
+          if (!cardPurchaseModal || !cardPurchaseBackdrop || !cardPurchasePanel) return;
+
+          if (open) {
+            cardPurchaseModal.classList.remove('hidden');
+            cardPurchaseModal.classList.add('flex');
+            requestAnimationFrame(function() {
+              cardPurchaseBackdrop.classList.remove('opacity-0');
+              cardPurchaseBackdrop.classList.add('opacity-100');
+              cardPurchasePanel.classList.remove('opacity-0', 'scale-95');
+              cardPurchasePanel.classList.add('opacity-100', 'scale-100');
+            });
+          } else {
+            cardPurchaseBackdrop.classList.add('opacity-0');
+            cardPurchaseBackdrop.classList.remove('opacity-100');
+            cardPurchasePanel.classList.add('opacity-0', 'scale-95');
+            cardPurchasePanel.classList.remove('opacity-100', 'scale-100');
+            setTimeout(function() {
+              if (!isCardPurchaseModalOpen) {
+                cardPurchaseModal.classList.add('hidden');
+                cardPurchaseModal.classList.remove('flex');
+              }
+            }, 200);
+          }
+        }
+
+        if (actionFab && actionMenu) {
+          actionFab.addEventListener('click', function() {
+            setActionMenuState(!isActionMenuOpen);
+          });
+
+          if (openCardPurchaseModalBtn) {
+            openCardPurchaseModalBtn.addEventListener('click', function() {
+              setActionMenuState(false);
+              setCardPurchaseModalState(true);
+            });
+          }
+
+          if (closeCardPurchaseModalBtn) {
+            closeCardPurchaseModalBtn.addEventListener('click', function() {
+              setCardPurchaseModalState(false);
+            });
+          }
+
+          if (cardPurchaseBackdrop) {
+            cardPurchaseBackdrop.addEventListener('click', function() {
+              setCardPurchaseModalState(false);
+            });
+          }
+
+          document.addEventListener('click', function(event) {
+            const clickedInsideMenu = actionMenu.contains(event.target);
+            const clickedFab = actionFab.contains(event.target);
+            if (!clickedInsideMenu && !clickedFab) {
+              setActionMenuState(false);
+            }
+          });
+
+          document.addEventListener('keydown', function(event) {
+            if (event.key === 'Escape') {
+              setActionMenuState(false);
+              setCardPurchaseModalState(false);
+            }
+          });
+        }
       });
     </script>
   </div>
+
+    <script>
+      document.addEventListener('DOMContentLoaded', function() {
+        const expenseCategoryDataServer = <%- JSON.stringify(typeof expenseCategoryData !== 'undefined' ? expenseCategoryData : []) %>;
+        const monthlyBalanceDataServer = <%- JSON.stringify(typeof monthlyBalanceData !== 'undefined' ? monthlyBalanceData : []) %>;
+
+        const pieColors = ['#8A05BE', '#A75AD9', '#B88AE8', '#7C9CF5', '#62B6CB', '#7BD389', '#F6BD60', '#F28482'];
+
+        const pieCanvas = document.getElementById('expensePieChart');
+        if (pieCanvas && expenseCategoryDataServer.length > 0 && typeof Chart !== 'undefined') {
+          new Chart(pieCanvas, {
+            type: 'pie',
+            data: {
+              labels: expenseCategoryDataServer.map(function(item) { return item.label; }),
+              datasets: [{
+                data: expenseCategoryDataServer.map(function(item) { return Number(item.value) || 0; }),
+                backgroundColor: pieColors,
+                borderColor: '#ffffff',
+                borderWidth: 2,
+                hoverOffset: 8
+              }]
+            },
+            options: {
+              responsive: true,
+              maintainAspectRatio: false,
+              plugins: {
+                legend: {
+                  position: 'bottom',
+                  labels: { usePointStyle: true, boxWidth: 8, padding: 16 }
+                }
+              }
+            }
+          });
+        }
+
+        const lineCanvas = document.getElementById('balanceLineChart');
+        if (lineCanvas && monthlyBalanceDataServer.length > 0 && typeof Chart !== 'undefined') {
+          new Chart(lineCanvas, {
+            type: 'line',
+            data: {
+              labels: monthlyBalanceDataServer.map(function(item) { return item.label; }),
+              datasets: [{
+                label: 'Saldo',
+                data: monthlyBalanceDataServer.map(function(item) { return Number(item.balance) || 0; }),
+                borderColor: '#8A05BE',
+                backgroundColor: 'rgba(138, 5, 190, 0.12)',
+                pointBackgroundColor: monthlyBalanceDataServer.map(function(item) { return (Number(item.balance) || 0) < 0 ? '#ef4444' : '#8A05BE'; }),
+                pointBorderColor: '#ffffff',
+                pointBorderWidth: 2,
+                pointRadius: 4,
+                fill: true,
+                tension: 0.35
+              }]
+            },
+            options: {
+              responsive: true,
+              maintainAspectRatio: false,
+              scales: {
+                y: {
+                  grid: { color: 'rgba(148, 163, 184, 0.18)' },
+                  ticks: {
+                    callback: function(value) {
+                      return new Intl.NumberFormat('pt-BR', {
+                        style: 'currency',
+                        currency: 'BRL',
+                        maximumFractionDigits: 0
+                      }).format(value);
+                    }
+                  }
+                },
+                x: { grid: { display: false } }
+              },
+              plugins: {
+                legend: { display: false },
+                tooltip: {
+                  callbacks: {
+                    label: function(context) {
+                      return new Intl.NumberFormat('pt-BR', {
+                        style: 'currency',
+                        currency: 'BRL'
+                      }).format(context.parsed.y || 0);
+                    }
+                  }
+                }
+              }
+            }
+          });
+        }
+      });
+    </script>
 </body>
 </html>
+
+
+
+
+
+
