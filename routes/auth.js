@@ -3,6 +3,14 @@ const bcrypt = require('bcrypt');
 const db = require('../db');
 const router = express.Router();
 
+function getLocalDateKey(date) {
+  const d = new Date(date);
+  const year = d.getFullYear();
+  const month = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
 // Middleware to check if user is authenticated
 function requireAuth(req, res, next) {
   if (req.session.userId) {
@@ -25,7 +33,7 @@ router.post('/register', async (req, res) => {
     // Check if user already exists
     const [existingUser] = await db.query('SELECT id FROM users WHERE email = ?', [email]);
     if (existingUser.length > 0) {
-      return res.render('register', { error: 'Email já cadastrado' });
+      return res.render('register', { error: 'Email ja cadastrado' });
     }
 
     // Hash password
@@ -37,7 +45,7 @@ router.post('/register', async (req, res) => {
     res.redirect('/login');
   } catch (error) {
     console.error(error);
-    res.render('register', { error: 'Erro ao cadastrar usuário' });
+    res.render('register', { error: 'Erro ao cadastrar usuario' });
   }
 });
 
@@ -53,13 +61,13 @@ router.post('/login', async (req, res) => {
   try {
     const [users] = await db.query('SELECT id, name, password_hash FROM users WHERE email = ?', [email]);
     if (users.length === 0) {
-      return res.render('login', { error: 'Email ou senha inválidos' });
+      return res.render('login', { error: 'Email ou senha invalidos' });
     }
 
     const user = users[0];
     const isValidPassword = await bcrypt.compare(password, user.password_hash);
     if (!isValidPassword) {
-      return res.render('login', { error: 'Email ou senha inválidos' });
+      return res.render('login', { error: 'Email ou senha invalidos' });
     }
 
     req.session.userId = user.id;
@@ -93,7 +101,7 @@ router.get('/dashboard', requireAuth, async (req, res) => {
     let totalIncome = 0;
     let totalExpenses = 0;
 
-    transactions.forEach(transaction => {
+    transactions.forEach((transaction) => {
       if (transaction.type === 'income') {
         totalIncome += parseFloat(transaction.amount);
       } else if (transaction.type === 'expense') {
@@ -109,9 +117,9 @@ router.get('/dashboard', requireAuth, async (req, res) => {
     const yesterday = new Date(today);
     yesterday.setDate(yesterday.getDate() - 1);
 
-    transactions.forEach(transaction => {
+    transactions.forEach((transaction) => {
       const transactionDate = new Date(transaction.date);
-      const dateKey = transactionDate.toISOString().split('T')[0]; // YYYY-MM-DD format
+      const dateKey = getLocalDateKey(transactionDate);
 
       if (!groupedTransactions[dateKey]) {
         groupedTransactions[dateKey] = {
@@ -132,14 +140,15 @@ router.get('/dashboard', requireAuth, async (req, res) => {
     });
 
     // Convert grouped transactions to array and sort by date (most recent first)
-    let transactionGroups = Object.values(groupedTransactions).sort((a, b) => b.date - a.date);
+    const transactionGroups = Object.values(groupedTransactions).sort((a, b) => b.date - a.date);
 
     // Add formatted date labels
-    transactionGroups.forEach(group => {
+    const todayStr = getLocalDateKey(today);
+    const yesterdayStr = getLocalDateKey(yesterday);
+
+    transactionGroups.forEach((group) => {
       const groupDate = group.date;
-      const todayStr = today.toISOString().split('T')[0];
-      const yesterdayStr = yesterday.toISOString().split('T')[0];
-      const groupDateStr = groupDate.toISOString().split('T')[0];
+      const groupDateStr = getLocalDateKey(groupDate);
 
       if (groupDateStr === todayStr) {
         group.dateLabel = 'Hoje';
@@ -158,12 +167,12 @@ router.get('/dashboard', requireAuth, async (req, res) => {
       totalIncome: totalIncome.toFixed(2),
       totalExpenses: totalExpenses.toFixed(2),
       balance: balance.toFixed(2),
-      transactionGroups: transactionGroups
+      transactionGroups
     });
   } catch (error) {
     console.error('Dashboard error:', error);
     res.render('dashboard', {
-      userName: req.session.userName || 'Usuário',
+      userName: req.session.userName || 'Usuario',
       totalIncome: '0.00',
       totalExpenses: '0.00',
       balance: '0.00',

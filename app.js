@@ -1,11 +1,18 @@
 const express = require('express');
 const path = require('path');
+const crypto = require('crypto');
 const session = require('express-session');
-const db = require('./db'); // Adiciona a conexão com o banco
+const db = require('./db'); // Adiciona a conexao com o banco
 const helpers = require('./helpers'); // Import helpers
 const app = express();
+const isProduction = process.env.NODE_ENV === 'production';
+const sessionSecret = process.env.SESSION_SECRET || crypto.randomBytes(48).toString('hex');
 
-// Configuração do EJS
+if (!process.env.SESSION_SECRET) {
+  console.warn('SESSION_SECRET nao definido no .env. Gerado segredo temporario para esta execucao.');
+}
+
+// Configuracao do EJS
 app.set('view engine', 'ejs');
 app.set('views', path.join(__dirname, 'views'));
 
@@ -20,11 +27,20 @@ app.use((req, res, next) => {
 // Middleware
 app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
+if (isProduction) {
+  app.set('trust proxy', 1);
+}
+
 app.use(session({
-  secret: 'your-secret-key', // Change this to a secure secret
+  secret: sessionSecret,
   resave: false,
   saveUninitialized: false,
-  cookie: { secure: false } // Set to true if using HTTPS
+  cookie: {
+    httpOnly: true,
+    sameSite: 'lax',
+    secure: isProduction,
+    maxAge: 1000 * 60 * 60 * 24 * 7
+  }
 }));
 
 // Static

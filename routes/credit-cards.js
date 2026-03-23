@@ -20,7 +20,7 @@ router.get('/', requireAuth, async (req, res) => {
     res.render('credit-cards', { cards, error: null, success: null });
   } catch (error) {
     console.error(error);
-    res.render('credit-cards', { cards: [], error: 'Erro ao carregar cartões', success: null });
+    res.render('credit-cards', { cards: [], error: 'Erro ao carregar cartoes', success: null });
   }
 });
 
@@ -34,12 +34,11 @@ router.post('/add', requireAuth, async (req, res) => {
   const { name, limit_amount, closing_day, due_day } = req.body;
   const userId = req.session.userId;
 
-  // Validate days
   const closingDay = parseInt(closing_day, 10);
   const dueDay = parseInt(due_day, 10);
 
   if (closingDay < 1 || closingDay > 31 || dueDay < 1 || dueDay > 31) {
-    return res.render('add-credit-card', { error: 'Días de fechamento e vencimento devem estar entre 1 e 31' });
+    return res.render('add-credit-card', { error: 'Dias de fechamento e vencimento devem estar entre 1 e 31' });
   }
 
   try {
@@ -48,12 +47,11 @@ router.post('/add', requireAuth, async (req, res) => {
     res.redirect('/credit-cards');
   } catch (error) {
     console.error(error);
-    res.render('add-credit-card', { error: 'Erro ao adicionar cartão' });
+    res.render('add-credit-card', { error: 'Erro ao adicionar cartao' });
   }
 });
 
-// GET /credit-cards/edit/:id - Show edit credit card form
-router.get('/edit/:id', requireAuth, async (req, res) => {
+async function renderEditCardForm(req, res) {
   const cardId = req.params.id;
   const userId = req.session.userId;
 
@@ -67,7 +65,13 @@ router.get('/edit/:id', requireAuth, async (req, res) => {
     console.error(error);
     res.redirect('/credit-cards');
   }
-});
+}
+
+// GET /credit-cards/edit/:id - legacy format
+router.get('/edit/:id', requireAuth, renderEditCardForm);
+
+// GET /credit-cards/:id/edit - format used by view links
+router.get('/:id/edit', requireAuth, renderEditCardForm);
 
 // POST /credit-cards/edit/:id - Update credit card
 router.post('/edit/:id', requireAuth, async (req, res) => {
@@ -80,7 +84,7 @@ router.post('/edit/:id', requireAuth, async (req, res) => {
 
   if (closingDay < 1 || closingDay > 31 || dueDay < 1 || dueDay > 31) {
     const [cards] = await db.query('SELECT * FROM credit_cards WHERE id = ? AND user_id = ?', [cardId, userId]);
-    return res.render('edit-credit-card', { card: cards[0], error: 'Días devem estar entre 1 e 31' });
+    return res.render('edit-credit-card', { card: cards[0], error: 'Dias devem estar entre 1 e 31' });
   }
 
   try {
@@ -90,7 +94,7 @@ router.post('/edit/:id', requireAuth, async (req, res) => {
   } catch (error) {
     console.error(error);
     const [cards] = await db.query('SELECT * FROM credit_cards WHERE id = ? AND user_id = ?', [cardId, userId]);
-    res.render('edit-credit-card', { card: cards[0], error: 'Erro ao editar cartão' });
+    res.render('edit-credit-card', { card: cards[0], error: 'Erro ao editar cartao' });
   }
 });
 
@@ -121,13 +125,12 @@ router.get('/:id/transactions', requireAuth, async (req, res) => {
 
     const [transactions] = await db.query('SELECT * FROM card_transactions WHERE card_id = ? ORDER BY date DESC', [cardId]);
 
-    // Calculate total this month and available limit
     const currentDate = new Date();
     const currentYear = currentDate.getFullYear();
     const currentMonth = currentDate.getMonth() + 1;
 
     let totalThisMonth = 0;
-    transactions.forEach(t => {
+    transactions.forEach((t) => {
       const tDate = new Date(t.date);
       if (tDate.getFullYear() === currentYear && tDate.getMonth() + 1 === currentMonth) {
         totalThisMonth += parseFloat(t.amount);
@@ -186,7 +189,7 @@ router.post('/:id/add-transaction', requireAuth, async (req, res) => {
   } catch (error) {
     console.error(error);
     const [cards] = await db.query('SELECT * FROM credit_cards WHERE id = ? AND user_id = ?', [cardId, userId]);
-    res.render('add-card-transaction', { card: cards[0], error: 'Erro ao adicionar transação' });
+    res.render('add-card-transaction', { card: cards[0], error: 'Erro ao adicionar transacao' });
   }
 });
 
@@ -231,8 +234,27 @@ router.post('/:cardId/edit-transaction/:transactionId', requireAuth, async (req,
     res.redirect(`/credit-cards/${cardId}/transactions`);
   } catch (error) {
     console.error(error);
-    const [transactions] = await db.query('SELECT * FROM card_transactions WHERE id = ? AND card_id = ?', [transactionId, cardId]);
-    res.render('edit-card-transaction', { card: cards[0], transaction: transactions[0], error: 'Erro ao editar transação' });
+
+    try {
+      const [cards] = await db.query('SELECT * FROM credit_cards WHERE id = ? AND user_id = ?', [cardId, userId]);
+      if (cards.length === 0) {
+        return res.redirect('/credit-cards');
+      }
+
+      const [transactions] = await db.query('SELECT * FROM card_transactions WHERE id = ? AND card_id = ?', [transactionId, cardId]);
+      if (transactions.length === 0) {
+        return res.redirect(`/credit-cards/${cardId}/transactions`);
+      }
+
+      return res.render('edit-card-transaction', {
+        card: cards[0],
+        transaction: transactions[0],
+        error: 'Erro ao editar transacao'
+      });
+    } catch (fallbackError) {
+      console.error(fallbackError);
+      return res.redirect(`/credit-cards/${cardId}/transactions`);
+    }
   }
 });
 
