@@ -5,7 +5,6 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Dashboard - Sistema Financeiro</title>
   <script src="https://cdn.tailwindcss.com"></script>
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <script>
     tailwind.config = {
       theme: {
@@ -97,6 +96,9 @@
             <% }); %>
           </select>
         </form>
+        <a href="/reports" class="header-glass-btn hover:bg-brand-purple-100 text-brand-purple font-medium py-2 px-4 rounded-2xl transition-all duration-200 hover:scale-105">
+          Relatorios
+        </a>
         <a href="/categories" class="header-glass-btn hover:bg-brand-purple-100 text-brand-purple font-medium py-2 px-4 rounded-2xl transition-all duration-200 hover:scale-105">
           Categorias
         </a>
@@ -148,6 +150,34 @@
         <div class="text-center md:border-l md:border-brand-purple-200/50 md:pl-6">
           <p class="text-xs text-brand-purple mb-1 font-medium">Despesas fixas (mensais)</p>
           <p class="text-lg font-medium text-brand-purple"><%= formatCurrency(totalFixedExpenses) %></p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Monthly Projection -->
+    <% const projection = monthlyProjection || {}; %>
+    <div class="glass-card soft-shadow rounded-2xl border mb-8 overflow-hidden <%= projection.isPositive ? 'border-emerald-200/80' : 'border-rose-200/80' %>">
+      <div class="px-6 py-4 <%= projection.isPositive ? 'bg-emerald-50/70' : 'bg-rose-50/70' %> border-b <%= projection.isPositive ? 'border-emerald-200/70' : 'border-rose-200/70' %>">
+        <h2 class="text-lg font-bold <%= projection.isPositive ? 'text-emerald-700' : 'text-rose-700' %>">Previsao de gastos do mes</h2>
+      </div>
+      <div class="p-6">
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-5">
+          <div class="rounded-xl border border-gray-200 bg-white/70 p-4">
+            <p class="text-xs uppercase tracking-wide text-gray-500 mb-1">Despesas fixas</p>
+            <p class="text-lg font-bold text-gray-900"><%= formatCurrency(projection.fixedExpenses || 0) %></p>
+          </div>
+          <div class="rounded-xl border border-gray-200 bg-white/70 p-4">
+            <p class="text-xs uppercase tracking-wide text-gray-500 mb-1">Media variavel (3m)</p>
+            <p class="text-lg font-bold text-gray-900"><%= formatCurrency(projection.averageVariableExpenses || 0) %></p>
+          </div>
+          <div class="rounded-xl border border-gray-200 bg-white/70 p-4">
+            <p class="text-xs uppercase tracking-wide text-gray-500 mb-1">Estimativa total do mes</p>
+            <p class="text-lg font-bold text-gray-900"><%= formatCurrency(projection.estimatedTotalMonthExpense || 0) %></p>
+          </div>
+        </div>
+        <div class="rounded-xl px-4 py-4 <%= projection.isPositive ? 'bg-emerald-100/70' : 'bg-rose-100/70' %>">
+          <p class="text-xs uppercase tracking-wide mb-1 <%= projection.isPositive ? 'text-emerald-700' : 'text-rose-700' %>">Saldo projetado</p>
+          <p class="text-3xl font-bold <%= projection.isPositive ? 'text-emerald-700' : 'text-rose-700' %>"><%= formatCurrency(projection.projectedBalance || 0) %></p>
         </div>
       </div>
     </div>
@@ -222,51 +252,6 @@
             </div>
           </div>
         <% } %>
-      </div>
-    </div>
-
-    <!-- Charts Section -->
-    <div class="grid grid-cols-1 xl:grid-cols-2 gap-6 mb-8">
-      <div class="glass-card soft-shadow rounded-2xl border border-brand-purple-100 p-6">
-        <% const safeExpenseCategoryReport = Array.isArray(expenseCategoryReport) ? expenseCategoryReport : []; %>
-        <div class="flex items-center justify-between mb-4">
-          <h3 class="text-lg font-bold text-gray-900">Despesas por Categoria</h3>
-          <span class="text-xs font-medium text-brand-purple bg-brand-purple-50 px-2 py-1 rounded-full">Pizza + Ranking</span>
-        </div>
-
-        <% if (safeExpenseCategoryReport.length === 0) { %>
-          <div class="h-72 flex items-center justify-center text-gray-500 text-sm">Sem despesas no periodo selecionado</div>
-        <% } else { %>
-          <div class="grid grid-cols-1 md:grid-cols-2 gap-4 items-start">
-            <div class="h-72">
-              <canvas id="expensePieChart"></canvas>
-            </div>
-            <div class="space-y-2 max-h-72 overflow-auto pr-1">
-              <% safeExpenseCategoryReport.forEach((item, index) => { %>
-                <div class="flex items-center justify-between rounded-xl border border-gray-100 bg-white/70 px-3 py-2">
-                  <div class="min-w-0">
-                    <p class="text-sm font-semibold text-gray-800 truncate flex items-center gap-2">
-                      <span class="inline-block w-2.5 h-2.5 rounded-full" style="background-color: <%= item.color %>;"></span>
-                      <span><%= index + 1 %>. <%= item.name %></span>
-                    </p>
-                    <p class="text-xs text-gray-500"><%= item.percentage.toFixed(1) %>% do total</p>
-                  </div>
-                  <p class="text-sm font-bold text-gray-900 ml-3"><%= formatCurrency(item.total) %></p>
-                </div>
-              <% }); %>
-            </div>
-          </div>
-        <% } %>
-      </div>
-
-      <div class="glass-card soft-shadow rounded-2xl border border-brand-purple-100 p-6">
-        <div class="flex items-center justify-between mb-4">
-          <h3 class="text-lg font-bold text-gray-900">Evolucao de Saldo Mensal</h3>
-          <span class="text-xs font-medium text-brand-purple bg-brand-purple-50 px-2 py-1 rounded-full">Linha</span>
-        </div>
-        <div class="h-72">
-          <canvas id="balanceLineChart"></canvas>
-        </div>
       </div>
     </div>
 
@@ -565,108 +550,10 @@
         }
       });
     </script>
-  </div>
-
-    <script>
-      document.addEventListener('DOMContentLoaded', function() {
-        const expenseCategoryReportServer = <%- JSON.stringify(typeof expenseCategoryReport !== 'undefined' ? expenseCategoryReport : []) %>;
-        const monthlyBalanceDataServer = <%- JSON.stringify(typeof monthlyBalanceData !== 'undefined' ? monthlyBalanceData : []) %>;
-
-        const pieCanvas = document.getElementById('expensePieChart');
-        if (pieCanvas && expenseCategoryReportServer.length > 0 && typeof Chart !== 'undefined') {
-          new Chart(pieCanvas, {
-            type: 'pie',
-            data: {
-              labels: expenseCategoryReportServer.map(function(item) { return item.name; }),
-              datasets: [{
-                data: expenseCategoryReportServer.map(function(item) { return Number(item.total) || 0; }),
-                backgroundColor: expenseCategoryReportServer.map(function(item) { return item.color || '#8A05BE'; }),
-                borderColor: '#ffffff',
-                borderWidth: 2,
-                hoverOffset: 8
-              }]
-            },
-            options: {
-              responsive: true,
-              maintainAspectRatio: false,
-              plugins: {
-                legend: {
-                  position: 'bottom',
-                  labels: { usePointStyle: true, boxWidth: 8, padding: 16 }
-                },
-                tooltip: {
-                  callbacks: {
-                    label: function(context) {
-                      const idx = context.dataIndex;
-                      const item = expenseCategoryReportServer[idx];
-                      const value = Number(context.parsed || 0);
-                      const percentage = item ? Number(item.percentage || 0).toFixed(1) : '0.0';
-                      return `${new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value)} (${percentage}%)`;
-                    }
-                  }
-                }
-              }
-            }
-          });
-        }
-
-        const lineCanvas = document.getElementById('balanceLineChart');
-        if (lineCanvas && monthlyBalanceDataServer.length > 0 && typeof Chart !== 'undefined') {
-          new Chart(lineCanvas, {
-            type: 'line',
-            data: {
-              labels: monthlyBalanceDataServer.map(function(item) { return item.label; }),
-              datasets: [{
-                label: 'Saldo',
-                data: monthlyBalanceDataServer.map(function(item) { return Number(item.balance) || 0; }),
-                borderColor: '#8A05BE',
-                backgroundColor: 'rgba(138, 5, 190, 0.12)',
-                pointBackgroundColor: monthlyBalanceDataServer.map(function(item) { return (Number(item.balance) || 0) < 0 ? '#ef4444' : '#8A05BE'; }),
-                pointBorderColor: '#ffffff',
-                pointBorderWidth: 2,
-                pointRadius: 4,
-                fill: true,
-                tension: 0.35
-              }]
-            },
-            options: {
-              responsive: true,
-              maintainAspectRatio: false,
-              scales: {
-                y: {
-                  grid: { color: 'rgba(148, 163, 184, 0.18)' },
-                  ticks: {
-                    callback: function(value) {
-                      return new Intl.NumberFormat('pt-BR', {
-                        style: 'currency',
-                        currency: 'BRL',
-                        maximumFractionDigits: 0
-                      }).format(value);
-                    }
-                  }
-                },
-                x: { grid: { display: false } }
-              },
-              plugins: {
-                legend: { display: false },
-                tooltip: {
-                  callbacks: {
-                    label: function(context) {
-                      return new Intl.NumberFormat('pt-BR', {
-                        style: 'currency',
-                        currency: 'BRL'
-                      }).format(context.parsed.y || 0);
-                    }
-                  }
-                }
-              }
-            }
-          });
-        }
-      });
-    </script>
-</body>
+  </div></body>
 </html>
+
+
 
 
 

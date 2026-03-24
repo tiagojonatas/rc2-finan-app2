@@ -221,6 +221,32 @@ router.get('/dashboard', requireAuth, async (req, res) => {
       console.warn('Fixed expenses table unavailable. Run: npm run init-fixed-expenses');
       totalFixedExpenses = 0;
     }
+
+    // Monthly projection: fixed expenses + average variable expenses from the last 3 months
+    const projectionWindowStartDate = new Date(selectedYear, selectedMonthNumber - 3, 1);
+    const projectionWindowStart = `${projectionWindowStartDate.getFullYear()}-${String(projectionWindowStartDate.getMonth() + 1).padStart(2, '0')}-01`;
+    const [variableRows] = await db.query(
+      `SELECT DATE_FORMAT(date, '%Y-%m') AS month_key, COALESCE(SUM(amount), 0) AS total
+       FROM transactions
+       WHERE user_id = ? AND type = 'expense' AND date BETWEEN ? AND ?
+       GROUP BY DATE_FORMAT(date, '%Y-%m')
+       ORDER BY month_key DESC`,
+      [userId, projectionWindowStart, endDate]
+    );
+    const recentVariableRows = variableRows.slice(0, 3);
+    const averageVariableExpenses = recentVariableRows.length > 0
+      ? recentVariableRows.reduce((sum, row) => sum + parseFloat(row.total || 0), 0) / recentVariableRows.length
+      : 0;
+    const estimatedTotalMonthExpense = totalFixedExpenses + averageVariableExpenses;
+    const projectedBalance = totalIncome - estimatedTotalMonthExpense;
+    const monthlyProjection = {
+      fixedExpenses: totalFixedExpenses,
+      averageVariableExpenses,
+      estimatedTotalMonthExpense,
+      projectedBalance,
+      isPositive: projectedBalance >= 0
+    };
+
     const totalExpensesWithFixed = totalExpenses + totalFixedExpenses;
     const balance = totalIncome - totalExpensesWithFixed;
 
@@ -387,6 +413,7 @@ router.get('/dashboard', requireAuth, async (req, res) => {
       totalIncome: totalIncome.toFixed(2),
       totalExpenses: totalExpensesWithFixed.toFixed(2),
       totalFixedExpenses: totalFixedExpenses.toFixed(2),
+      monthlyProjection,
       balance: balance.toFixed(2),
       selectedMonth,
       selectedMonthLabel,
@@ -406,6 +433,13 @@ router.get('/dashboard', requireAuth, async (req, res) => {
       totalIncome: '0.00',
       totalExpenses: '0.00',
       totalFixedExpenses: '0.00',
+      monthlyProjection: {
+        fixedExpenses: 0,
+        averageVariableExpenses: 0,
+        estimatedTotalMonthExpense: 0,
+        projectedBalance: 0,
+        isPositive: true
+      },
       balance: '0.00',
       selectedMonth: null,
       selectedMonthLabel: '',
