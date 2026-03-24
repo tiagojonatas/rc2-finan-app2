@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Nova Categoria - Sistema Financeiro</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-slate-100 font-sans">
+  <div class="min-h-screen flex items-center justify-center py-10 px-4">
+    <div class="w-full max-w-lg bg-white rounded-2xl border border-gray-200 shadow-sm p-8">
+      <h1 class="text-2xl font-bold text-gray-900 mb-2">Nova Categoria</h1>
+      <p class="text-gray-600 mb-6">Crie categorias para organizar suas transacoes.</p>
+
+      <% if (error) { %>
+        <div class="mb-4 rounded-xl border border-rose-200 bg-rose-50 text-rose-700 px-4 py-3"><%= error %></div>
+      <% } %>
+
+      <form action="/categories/add" method="POST" class="space-y-4">
+        <div>
+          <label for="name" class="block text-sm font-medium text-gray-700 mb-1">Nome</label>
+          <input id="name" name="name" type="text" required class="w-full rounded-xl border border-gray-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-purple-300 focus:border-[#8A05BE]" />
+        </div>
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div>
+            <label for="type" class="block text-sm font-medium text-gray-700 mb-1">Tipo</label>
+            <select id="type" name="type" class="w-full rounded-xl border border-gray-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-purple-300 focus:border-[#8A05BE]">
+              <option value="expense">Despesa</option>
+              <option value="income">Entrada</option>
+            </select>
+          </div>
+          <div>
+            <label for="color" class="block text-sm font-medium text-gray-700 mb-1">Cor</label>
+            <input id="color" name="color" type="color" value="#8A05BE" class="w-full h-10 rounded-xl border border-gray-300 px-1 py-1" />
+          </div>
+        </div>
+
+        <div class="pt-2 flex gap-3">
+          <button type="submit" class="bg-[#8A05BE] hover:bg-[#6A047E] text-white py-2 px-5 rounded-xl">Salvar</button>
+          <a href="/categories" class="bg-white border border-gray-300 text-gray-700 py-2 px-5 rounded-xl hover:bg-gray-50">Cancelar</a>
+        </div>
+      </form>
+    </div>
+  </div>
+</body>
+</html>

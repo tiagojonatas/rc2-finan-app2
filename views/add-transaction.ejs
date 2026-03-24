@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Adicionar Transação - Sistema Financeiro</title>
+  <title>Adicionar Transacao - Sistema Financeiro</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <script>
     tailwind.config = {
@@ -27,12 +27,15 @@
   </style>
 </head>
 <body class="bg-custom-bg font-sans">
+  <% const safeCategories = Array.isArray(categories) ? categories : []; %>
+  <% const safeFormData = formData || {}; %>
+  <% const selectedType = safeFormData.type || defaultType || 'expense'; %>
   <div class="min-h-screen flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
     <div class="max-w-md w-full space-y-8">
       <div class="bg-white p-8 rounded-xl shadow-md border border-gray-100">
         <div>
           <h2 class="mt-6 text-center text-3xl font-bold text-gray-900">
-            Adicionar Transação
+            Adicionar Transacao
           </h2>
         </div>
         <% if (error) { %>
@@ -43,27 +46,42 @@
         <form class="mt-8 space-y-6" action="/transactions/add" method="POST">
           <div class="space-y-4">
             <div>
-              <label for="description" class="block text-sm font-medium text-gray-700">Descrição</label>
-              <input id="description" name="description" type="text" required
+              <label for="description" class="block text-sm font-medium text-gray-700">Descricao</label>
+              <input id="description" name="description" type="text" value="<%= safeFormData.description || '' %>" required
                      class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm placeholder-gray-400 focus:outline-none focus:ring-slate-500 focus:border-slate-500">
             </div>
             <div>
               <label for="amountDisplay" class="block text-sm font-medium text-gray-700">Valor (R$)</label>
               <input id="amountDisplay" type="text" inputmode="numeric" placeholder="0,00" required
                      class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm placeholder-gray-400 focus:outline-none focus:ring-slate-500 focus:border-slate-500">
-              <input id="amount" name="amount" type="hidden" value="0.00">
+              <input id="amount" name="amount" type="hidden" value="<%= safeFormData.amount || '0.00' %>">
             </div>
             <div>
               <label for="type" class="block text-sm font-medium text-gray-700">Tipo</label>
               <select id="type" name="type" required
                       class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-slate-500 focus:border-slate-500">
-                <option value="income" <%= defaultType === 'income' ? 'selected' : '' %>>Entrada</option>
-                <option value="expense" <%= defaultType === 'expense' ? 'selected' : '' %>>Despesa</option>
+                <option value="income" <%= selectedType === 'income' ? 'selected' : '' %>>Entrada</option>
+                <option value="expense" <%= selectedType === 'expense' ? 'selected' : '' %>>Despesa</option>
+              </select>
+            </div>
+            <div>
+              <label for="category_id" class="block text-sm font-medium text-gray-700">Categoria</label>
+              <select id="category_id" name="category_id" required
+                      class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-slate-500 focus:border-slate-500">
+                <% safeCategories.forEach(category => { %>
+                  <option
+                    value="<%= category.id %>"
+                    data-type="<%= category.type %>"
+                    data-color="<%= category.color %>"
+                    <%= String(safeFormData.category_id || '') === String(category.id) ? 'selected' : '' %>>
+                    <%= category.name %>
+                  </option>
+                <% }); %>
               </select>
             </div>
             <div>
               <label for="date" class="block text-sm font-medium text-gray-700">Data</label>
-              <input id="date" name="date" type="date" required
+              <input id="date" name="date" type="date" value="<%= safeFormData.date || '' %>" required
                      class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-slate-500 focus:border-slate-500">
             </div>
           </div>
@@ -82,11 +100,11 @@
   </div>
 
   <script>
-    // Máscara de moeda brasileira para input de valor
     const amountDisplay = document.getElementById('amountDisplay');
     const amountInput = document.getElementById('amount');
+    const typeSelect = document.getElementById('type');
+    const categorySelect = document.getElementById('category_id');
 
-    // Função para formatar valor como moeda brasileira (sem símbolo R$)
     function formatBRL(value) {
       return value.toLocaleString('pt-BR', {
         minimumFractionDigits: 2,
@@ -94,32 +112,51 @@
       });
     }
 
-    // Aplicar máscara ao digitar
+    function initializeAmount() {
+      const currentValue = parseFloat(amountInput.value) || 0;
+      amountDisplay.value = formatBRL(currentValue);
+    }
+
+    function updateCategoryOptions() {
+      const selectedType = typeSelect.value;
+      const options = Array.from(categorySelect.options);
+      let hasVisibleSelected = false;
+
+      options.forEach((option) => {
+        const isVisible = option.dataset.type === selectedType;
+        option.hidden = !isVisible;
+        if (isVisible && option.selected) {
+          hasVisibleSelected = true;
+        }
+      });
+
+      if (!hasVisibleSelected) {
+        const firstVisible = options.find((option) => !option.hidden);
+        if (firstVisible) {
+          firstVisible.selected = true;
+        }
+      }
+    }
+
+    initializeAmount();
+    updateCategoryOptions();
+
+    typeSelect.addEventListener('change', updateCategoryOptions);
+
     amountDisplay.addEventListener('input', function(event) {
-      // Remove todos os caracteres não numéricos
       let value = event.target.value.replace(/\D/g, '');
 
-      // Se vazio, limpa
       if (value === '') {
         amountDisplay.value = '';
         amountInput.value = '0.00';
         return;
       }
 
-      // Converte para número e divide por 100 (para considerar centavos)
       const numValue = parseInt(value, 10) / 100;
-
-      // Formata como moeda brasileira (apenas números com . e ,)
-      const formatted = formatBRL(numValue);
-
-      // Atualiza o campo visual
-      amountDisplay.value = formatted;
-
-      // Atualiza o campo oculto com o valor decimal para envio
+      amountDisplay.value = formatBRL(numValue);
       amountInput.value = numValue.toFixed(2);
     });
 
-    // Impede que o usuário digite não-números
     amountDisplay.addEventListener('keypress', function(event) {
       const char = String.fromCharCode(event.which);
       if (!/[0-9]/.test(char)) {
@@ -127,15 +164,13 @@
       }
     });
 
-    // Impede cola de valores não-numéricos
     amountDisplay.addEventListener('paste', function(event) {
       event.preventDefault();
       const pastedText = (event.clipboardData || window.clipboardData).getData('text');
       const numericOnly = pastedText.replace(/\D/g, '');
-      
+
       if (numericOnly) {
         amountDisplay.value = numericOnly;
-        // Dispara o evento input para aplicar a formatação
         amountDisplay.dispatchEvent(new Event('input'));
       }
     });

@@ -97,6 +97,9 @@
             <% }); %>
           </select>
         </form>
+        <a href="/categories" class="header-glass-btn hover:bg-brand-purple-100 text-brand-purple font-medium py-2 px-4 rounded-2xl transition-all duration-200 hover:scale-105">
+          Categorias
+        </a>
         <a href="/fixed-expenses" class="header-glass-btn hover:bg-brand-purple-100 text-brand-purple font-medium py-2 px-4 rounded-2xl transition-all duration-200 hover:scale-105">
           Fixas
         </a>
@@ -225,13 +228,35 @@
     <!-- Charts Section -->
     <div class="grid grid-cols-1 xl:grid-cols-2 gap-6 mb-8">
       <div class="glass-card soft-shadow rounded-2xl border border-brand-purple-100 p-6">
+        <% const safeExpenseCategoryReport = Array.isArray(expenseCategoryReport) ? expenseCategoryReport : []; %>
         <div class="flex items-center justify-between mb-4">
           <h3 class="text-lg font-bold text-gray-900">Despesas por Categoria</h3>
-          <span class="text-xs font-medium text-brand-purple bg-brand-purple-50 px-2 py-1 rounded-full">Pizza</span>
+          <span class="text-xs font-medium text-brand-purple bg-brand-purple-50 px-2 py-1 rounded-full">Pizza + Ranking</span>
         </div>
-        <div class="h-72">
-          <canvas id="expensePieChart"></canvas>
-        </div>
+
+        <% if (safeExpenseCategoryReport.length === 0) { %>
+          <div class="h-72 flex items-center justify-center text-gray-500 text-sm">Sem despesas no periodo selecionado</div>
+        <% } else { %>
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4 items-start">
+            <div class="h-72">
+              <canvas id="expensePieChart"></canvas>
+            </div>
+            <div class="space-y-2 max-h-72 overflow-auto pr-1">
+              <% safeExpenseCategoryReport.forEach((item, index) => { %>
+                <div class="flex items-center justify-between rounded-xl border border-gray-100 bg-white/70 px-3 py-2">
+                  <div class="min-w-0">
+                    <p class="text-sm font-semibold text-gray-800 truncate flex items-center gap-2">
+                      <span class="inline-block w-2.5 h-2.5 rounded-full" style="background-color: <%= item.color %>;"></span>
+                      <span><%= index + 1 %>. <%= item.name %></span>
+                    </p>
+                    <p class="text-xs text-gray-500"><%= item.percentage.toFixed(1) %>% do total</p>
+                  </div>
+                  <p class="text-sm font-bold text-gray-900 ml-3"><%= formatCurrency(item.total) %></p>
+                </div>
+              <% }); %>
+            </div>
+          </div>
+        <% } %>
       </div>
 
       <div class="glass-card soft-shadow rounded-2xl border border-brand-purple-100 p-6">
@@ -303,6 +328,10 @@
                           </p>
                           <span class="inline-flex items-center rounded-full px-2.5 py-0.5 text-[11px] font-semibold <%= transaction && transaction.type === 'income' ? 'bg-emerald-100 text-emerald-700' : 'bg-rose-100 text-rose-700' %>">
                             <%= transaction && transaction.type === 'income' ? 'Entrada' : 'Saida' %>
+                          </span>
+                          <span class="inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[11px] font-semibold text-gray-700 bg-white border border-gray-200">
+                            <span class="w-2 h-2 rounded-full" style="background-color: <%= transaction && transaction.category_color ? transaction.category_color : '#8A05BE' %>;"></span>
+                            <%= transaction && transaction.category_name ? transaction.category_name : 'Sem categoria' %>
                           </span>
                         </div>
                         <p class="text-xs text-gray-400 mt-1">
@@ -540,20 +569,18 @@
 
     <script>
       document.addEventListener('DOMContentLoaded', function() {
-        const expenseCategoryDataServer = <%- JSON.stringify(typeof expenseCategoryData !== 'undefined' ? expenseCategoryData : []) %>;
+        const expenseCategoryReportServer = <%- JSON.stringify(typeof expenseCategoryReport !== 'undefined' ? expenseCategoryReport : []) %>;
         const monthlyBalanceDataServer = <%- JSON.stringify(typeof monthlyBalanceData !== 'undefined' ? monthlyBalanceData : []) %>;
 
-        const pieColors = ['#8A05BE', '#A75AD9', '#B88AE8', '#7C9CF5', '#62B6CB', '#7BD389', '#F6BD60', '#F28482'];
-
         const pieCanvas = document.getElementById('expensePieChart');
-        if (pieCanvas && expenseCategoryDataServer.length > 0 && typeof Chart !== 'undefined') {
+        if (pieCanvas && expenseCategoryReportServer.length > 0 && typeof Chart !== 'undefined') {
           new Chart(pieCanvas, {
             type: 'pie',
             data: {
-              labels: expenseCategoryDataServer.map(function(item) { return item.label; }),
+              labels: expenseCategoryReportServer.map(function(item) { return item.name; }),
               datasets: [{
-                data: expenseCategoryDataServer.map(function(item) { return Number(item.value) || 0; }),
-                backgroundColor: pieColors,
+                data: expenseCategoryReportServer.map(function(item) { return Number(item.total) || 0; }),
+                backgroundColor: expenseCategoryReportServer.map(function(item) { return item.color || '#8A05BE'; }),
                 borderColor: '#ffffff',
                 borderWidth: 2,
                 hoverOffset: 8
@@ -566,6 +593,17 @@
                 legend: {
                   position: 'bottom',
                   labels: { usePointStyle: true, boxWidth: 8, padding: 16 }
+                },
+                tooltip: {
+                  callbacks: {
+                    label: function(context) {
+                      const idx = context.dataIndex;
+                      const item = expenseCategoryReportServer[idx];
+                      const value = Number(context.parsed || 0);
+                      const percentage = item ? Number(item.percentage || 0).toFixed(1) : '0.0';
+                      return `${new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value)} (${percentage}%)`;
+                    }
+                  }
                 }
               }
             }

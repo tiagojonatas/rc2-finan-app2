@@ -2,6 +2,34 @@ const express = require('express');
 const bcrypt = require('bcrypt');
 const db = require('../db');
 const router = express.Router();
+const DEFAULT_EXPENSE_CATEGORIES = [
+  { name: 'Moradia', color: '#8B5CF6' },
+  { name: 'Alimentacao', color: '#10B981' },
+  { name: 'Transporte', color: '#3B82F6' },
+  { name: 'Lazer', color: '#F59E0B' },
+  { name: 'Saude', color: '#EF4444' },
+  { name: 'Educacao', color: '#6366F1' },
+  { name: 'Impostos', color: '#EC4899' },
+  { name: 'Outros', color: '#6B7280' }
+];
+
+async function createDefaultCategoriesForUser(userId) {
+  for (const category of DEFAULT_EXPENSE_CATEGORIES) {
+    await db.query(
+      `INSERT INTO categories (user_id, name, type, color)
+       VALUES (?, ?, 'expense', ?)
+       ON DUPLICATE KEY UPDATE color = VALUES(color)`,
+      [userId, category.name, category.color]
+    );
+  }
+
+  await db.query(
+    `INSERT INTO categories (user_id, name, type, color)
+     VALUES (?, 'Outros', 'income', '#14B8A6')
+     ON DUPLICATE KEY UPDATE color = VALUES(color)`,
+    [userId]
+  );
+}
 
 function getLocalDateKey(date) {
   const d = new Date(date);
@@ -71,7 +99,12 @@ router.post('/register', async (req, res) => {
     const hashedPassword = await bcrypt.hash(password, 10);
 
     // Insert user
-    await db.query('INSERT INTO users (name, email, password_hash) VALUES (?, ?, ?)', [name, email, hashedPassword]);
+    const [result] = await db.query('INSERT INTO users (name, email, password_hash) VALUES (?, ?, ?)', [name, email, hashedPassword]);
+    try {
+      await createDefaultCategoriesForUser(result.insertId);
+    } catch (categoryError) {
+      console.warn('Categories table unavailable during register. Run: npm run init-categories');
+    }
 
     res.redirect('/login');
   } catch (error) {
@@ -145,7 +178,11 @@ router.get('/dashboard', requireAuth, async (req, res) => {
 
     // Fetch transactions in selected month
     const [transactions] = await db.query(
-      'SELECT * FROM transactions WHERE user_id = ? AND date BETWEEN ? AND ? ORDER BY date DESC',
+      `SELECT t.*, c.name AS category_name, c.color AS category_color
+       FROM transactions t
+       LEFT JOIN categories c ON c.id = t.category_id
+       WHERE t.user_id = ? AND t.date BETWEEN ? AND ?
+       ORDER BY t.date DESC`,
       [userId, startDate, endDate]
     );
 
@@ -187,19 +224,26 @@ router.get('/dashboard', requireAuth, async (req, res) => {
     const totalExpensesWithFixed = totalExpenses + totalFixedExpenses;
     const balance = totalIncome - totalExpensesWithFixed;
 
-    // Expense categories for pie chart (grouped by description)
+    // Expense report by category (sum + percentage + ranking)
     const expenseCategoryMap = new Map();
     transactions.forEach((transaction) => {
       if (transaction.type !== 'expense') return;
-      const category = (transaction.description || 'Outros').trim() || 'Outros';
-      const current = expenseCategoryMap.get(category) || 0;
-      expenseCategoryMap.set(category, current + parseFloat(transaction.amount || 0));
+      const categoryName = (transaction.category_name || 'Outros').trim() || 'Outros';
+      const categoryColor = transaction.category_color || '#8A05BE';
+      const current = expenseCategoryMap.get(categoryName) || { total: 0, color: categoryColor };
+      current.total += parseFloat(transaction.amount || 0);
+      if (!current.color && categoryColor) current.color = categoryColor;
+      expenseCategoryMap.set(categoryName, current);
     });
 
-    const expenseCategoryData = Array.from(expenseCategoryMap.entries())
-      .sort((a, b) => b[1] - a[1])
-      .slice(0, 8)
-      .map(([label, value]) => ({ label, value }));
+    const expenseCategoryReport = Array.from(expenseCategoryMap.entries())
+      .map(([name, info]) => ({
+        name,
+        total: info.total,
+        color: info.color || '#8A05BE',
+        percentage: totalExpenses > 0 ? (info.total / totalExpenses) * 100 : 0
+      }))
+      .sort((a, b) => b.total - a.total);
 
     // Monthly balance evolution (last 12 months)
     const monthlyMap = new Map();
@@ -352,7 +396,7 @@ router.get('/dashboard', requireAuth, async (req, res) => {
       highlightedTransactionId: Number.isNaN(highlightedTransactionId) ? null : highlightedTransactionId,
       creditCardSummary,
       dashboardCards,
-      expenseCategoryData,
+      expenseCategoryReport,
       monthlyBalanceData
     });
   } catch (error) {
@@ -380,7 +424,7 @@ router.get('/dashboard', requireAuth, async (req, res) => {
         nextDueDate: null
       },
       dashboardCards: [],
-      expenseCategoryData: [],
+      expenseCategoryReport: [],
       monthlyBalanceData: []
     });
   }
