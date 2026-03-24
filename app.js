@@ -51,10 +51,12 @@ const indexRoutes = require('./routes/index');
 const authRoutes = require('./routes/auth');
 const transactionRoutes = require('./routes/transactions');
 const creditCardRoutes = require('./routes/credit-cards');
+const fixedExpenseRoutes = require('./routes/fixed-expenses');
 app.use('/', indexRoutes);
 app.use('/', authRoutes);
 app.use('/transactions', transactionRoutes);
 app.use('/credit-cards', creditCardRoutes);
+app.use('/fixed-expenses', fixedExpenseRoutes);
 
 // Servidor
 const PORT = 3000;

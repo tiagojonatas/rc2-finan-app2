@@ -38,6 +38,10 @@ function getMonthKey(date) {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
 }
 
+function isValidMonthKey(value) {
+  return /^\d{4}-(0[1-9]|1[0-2])$/.test(value || '');
+}
+
 // Middleware to check if user is authenticated
 function requireAuth(req, res, next) {
   if (req.session.userId) {
@@ -122,14 +126,40 @@ router.get('/dashboard', requireAuth, async (req, res) => {
     const userId = req.session.userId;
     const toastType = req.query.toast;
     const highlightedTransactionId = Number.parseInt(req.query.tx, 10);
+    const requestedMonth = req.query.month;
+    const now = new Date();
+    const currentMonthKey = getMonthKey(now);
+    const selectedMonth = isValidMonthKey(requestedMonth) ? requestedMonth : currentMonthKey;
+    const [selectedYear, selectedMonthNumber] = selectedMonth.split('-').map(Number);
+    const startDate = `${selectedMonth}-01`;
+    const endDate = new Date(selectedYear, selectedMonthNumber, 0).toISOString().split('T')[0];
     const toastByType = {
       created: 'Transacao criada com sucesso',
       updated: 'Transacao atualizada com sucesso'
     };
     const dashboardToast = toastByType[toastType] || null;
+    const selectedMonthLabel = new Date(selectedYear, selectedMonthNumber - 1, 1).toLocaleDateString('pt-BR', {
+      month: 'long',
+      year: 'numeric'
+    });
 
-    // Fetch transactions
-    const [transactions] = await db.query('SELECT * FROM transactions WHERE user_id = ? ORDER BY date DESC', [userId]);
+    // Fetch transactions in selected month
+    const [transactions] = await db.query(
+      'SELECT * FROM transactions WHERE user_id = ? AND date BETWEEN ? AND ? ORDER BY date DESC',
+      [userId, startDate, endDate]
+    );
+
+    // Month options for selector
+    const [monthRows] = await db.query(
+      `SELECT DISTINCT DATE_FORMAT(date, '%Y-%m') AS month_key
+       FROM transactions
+       WHERE user_id = ?
+       ORDER BY month_key DESC`,
+      [userId]
+    );
+    const monthOptions = monthRows.map((row) => row.month_key).filter(Boolean);
+    if (!monthOptions.includes(currentMonthKey)) monthOptions.unshift(currentMonthKey);
+    if (!monthOptions.includes(selectedMonth)) monthOptions.unshift(selectedMonth);
 
     // Calculate totals
     let totalIncome = 0;
@@ -143,7 +173,19 @@ router.get('/dashboard', requireAuth, async (req, res) => {
       }
     });
 
-    const balance = totalIncome - totalExpenses;
+    let totalFixedExpenses = 0;
+    try {
+      const [fixedExpenseRows] = await db.query(
+        'SELECT COALESCE(SUM(amount), 0) AS total FROM fixed_expenses WHERE user_id = ? AND is_active = 1',
+        [userId]
+      );
+      totalFixedExpenses = parseFloat((fixedExpenseRows[0] && fixedExpenseRows[0].total) || 0);
+    } catch (fixedError) {
+      console.warn('Fixed expenses table unavailable. Run: npm run init-fixed-expenses');
+      totalFixedExpenses = 0;
+    }
+    const totalExpensesWithFixed = totalExpenses + totalFixedExpenses;
+    const balance = totalIncome - totalExpensesWithFixed;
 
     // Expense categories for pie chart (grouped by description)
     const expenseCategoryMap = new Map();
@@ -235,9 +277,8 @@ router.get('/dashboard', requireAuth, async (req, res) => {
       }
     });
 
-    // Credit card summary
+    // Credit card summary for selected month
     const [creditCards] = await db.query('SELECT id, name, limit_amount, closing_day, due_day FROM credit_cards WHERE user_id = ?', [userId]);
-    const now = new Date();
     let creditCardSummary = {
       hasCards: false,
       currentInvoice: 0,
@@ -254,9 +295,9 @@ router.get('/dashboard', requireAuth, async (req, res) => {
       const [monthlyTotals] = await db.query(
         `SELECT card_id, COALESCE(SUM(amount), 0) AS total
          FROM card_transactions
-         WHERE card_id IN (?) AND YEAR(date) = ? AND MONTH(date) = ?
+         WHERE card_id IN (?) AND date BETWEEN ? AND ?
          GROUP BY card_id`,
-        [cardIds, now.getFullYear(), now.getMonth() + 1]
+        [cardIds, startDate, endDate]
       );
 
       const totalsByCard = new Map();
@@ -300,8 +341,12 @@ router.get('/dashboard', requireAuth, async (req, res) => {
     res.render('dashboard', {
       userName: req.session.userName,
       totalIncome: totalIncome.toFixed(2),
-      totalExpenses: totalExpenses.toFixed(2),
+      totalExpenses: totalExpensesWithFixed.toFixed(2),
+      totalFixedExpenses: totalFixedExpenses.toFixed(2),
       balance: balance.toFixed(2),
+      selectedMonth,
+      selectedMonthLabel,
+      monthOptions,
       transactionGroups,
       dashboardToast,
       highlightedTransactionId: Number.isNaN(highlightedTransactionId) ? null : highlightedTransactionId,
@@ -316,7 +361,11 @@ router.get('/dashboard', requireAuth, async (req, res) => {
       userName: req.session.userName || 'Usuario',
       totalIncome: '0.00',
       totalExpenses: '0.00',
+      totalFixedExpenses: '0.00',
       balance: '0.00',
+      selectedMonth: null,
+      selectedMonthLabel: '',
+      monthOptions: [],
       transactionGroups: [],
       dashboardToast: null,
       highlightedTransactionId: null,
