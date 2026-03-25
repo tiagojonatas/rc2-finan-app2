@@ -9,8 +9,7 @@ const DEFAULT_EXPENSE_CATEGORIES = [
   { name: 'Lazer', color: '#F59E0B' },
   { name: 'Saude', color: '#EF4444' },
   { name: 'Educacao', color: '#6366F1' },
-  { name: 'Impostos', color: '#EC4899' },
-  { name: 'Outros', color: '#6B7280' }
+  { name: 'Impostos', color: '#EC4899' }
 ];
 const DEFAULT_INCOME_CATEGORIES = [
   { name: 'Salario', color: '#14B8A6' },

@@ -9,7 +9,8 @@
     "init-db": "node init.js",
     "init-credit-cards": "node init-credit-cards.js",
     "init-fixed-expenses": "node init-fixed-expenses.js",
-    "init-categories": "node init-categories.js"
+    "init-categories": "node init-categories.js",
+    "init-transaction-fields": "node init-transaction-fields.js"
   },
   "dependencies": {
     "bcrypt": "^6.0.0",

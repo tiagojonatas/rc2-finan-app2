@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Dashboard - Sistema Financeiro</title>
+  <title>Visao Geral - RC2 Finance</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <script>
     tailwind.config = {
@@ -79,9 +79,28 @@
 </head>
 <body class="font-sans text-gray-900">
   <div class="container mx-auto px-6 py-8 max-w-5xl relative">
+    <div class="flex flex-wrap items-center justify-between gap-3 mb-6">
+      <div class="flex items-center gap-3">
+        <div class="w-10 h-10 rounded-2xl bg-gradient-to-br from-brand-purple to-brand-purple-dark text-white flex items-center justify-center font-bold soft-shadow">
+          RC
+        </div>
+        <p class="text-2xl font-extrabold tracking-tight text-brand-purple">RC2 Finance</p>
+      </div>
+      <div class="flex items-center gap-3">
+        <a href="/credit-cards" class="header-glass-btn hover:bg-brand-purple-100 text-brand-purple font-medium py-2 px-4 rounded-2xl transition-all duration-200 hover:scale-105">
+          Cartoes
+        </a>
+        <form action="/logout" method="POST">
+          <button type="submit" class="header-glass-btn hover:bg-brand-purple-50 text-gray-700 hover:text-brand-purple font-medium py-2 px-4 rounded-2xl transition-all duration-200 hover:scale-105">
+            Sair
+          </button>
+        </form>
+      </div>
+    </div>
+
     <div class="flex justify-between items-center mb-8">
       <div>
-        <h1 class="text-3xl font-bold text-gray-900">Dashboard</h1>
+        <h1 class="text-3xl font-bold text-gray-900">Visao Geral</h1>
         <p id="currentMonth" class="text-lg text-brand-purple mt-2 font-medium"></p>
       </div>
       <div class="flex flex-wrap items-center justify-end gap-3">
@@ -105,14 +124,6 @@
         <a href="/fixed-expenses" class="header-glass-btn hover:bg-brand-purple-100 text-brand-purple font-medium py-2 px-4 rounded-2xl transition-all duration-200 hover:scale-105">
           Fixas
         </a>
-        <a href="/credit-cards" class="header-glass-btn hover:bg-brand-purple-100 text-brand-purple font-medium py-2 px-4 rounded-2xl transition-all duration-200 hover:scale-105">
-          💳 Cartões
-        </a>
-        <form action="/logout" method="POST">
-          <button type="submit" class="header-glass-btn hover:bg-brand-purple-50 text-gray-700 hover:text-brand-purple font-medium py-2 px-4 rounded-2xl transition-all duration-200 hover:scale-105">
-            Sair
-          </button>
-        </form>
       </div>
     </div>
 
@@ -318,6 +329,14 @@
                             <span class="w-2 h-2 rounded-full" style="background-color: <%= transaction && transaction.category_color ? transaction.category_color : '#8A05BE' %>;"></span>
                             <%= transaction && transaction.category_name ? transaction.category_name : 'Sem categoria' %>
                           </span>
+                          <span class="inline-flex items-center rounded-full px-2.5 py-0.5 text-[11px] font-semibold border <%= transaction && transaction.payment_method === 'credit' ? 'bg-violet-50 text-violet-700 border-violet-200' : transaction && transaction.payment_method === 'debit' ? 'bg-sky-50 text-sky-700 border-sky-200' : 'bg-amber-50 text-amber-700 border-amber-200' %>">
+                            <%= transaction && transaction.payment_method === 'credit' ? 'Credito' : transaction && transaction.payment_method === 'debit' ? 'Debito' : 'Dinheiro' %>
+                          </span>
+                          <% if (transaction && Number(transaction.is_recurring || 0) === 1) { %>
+                            <span class="inline-flex items-center rounded-full px-2.5 py-0.5 text-[11px] font-semibold bg-brand-purple-50 text-brand-purple border border-brand-purple-200">
+                              Fixo
+                            </span>
+                          <% } %>
                         </div>
                         <p class="text-xs text-gray-400 mt-1">
                           <%= transaction && transaction.date ? formatDate(transaction.date) : '' %>
@@ -552,6 +571,7 @@
     </script>
   </div></body>
 </html>
+
 
 
 

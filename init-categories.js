@@ -7,8 +7,7 @@ const DEFAULT_EXPENSE_CATEGORIES = [
   { name: 'Lazer', color: '#F59E0B' },
   { name: 'Saude', color: '#EF4444' },
   { name: 'Educacao', color: '#6366F1' },
-  { name: 'Impostos', color: '#EC4899' },
-  { name: 'Outros', color: '#6B7280' }
+  { name: 'Impostos', color: '#EC4899' }
 ];
 const DEFAULT_INCOME_CATEGORIES = [
   { name: 'Salario', color: '#14B8A6' },
@@ -111,7 +110,7 @@ async function seedDefaultCategories() {
 async function backfillTransactionsCategory() {
   await db.query(`
     UPDATE transactions t
-    JOIN categories c ON c.user_id = t.user_id AND c.type = 'expense' AND c.name = 'Outros'
+    JOIN categories c ON c.user_id = t.user_id AND c.type = 'expense' AND c.name = 'Moradia'
     SET t.category_id = c.id
     WHERE t.type = 'expense' AND t.category_id IS NULL
   `);

@@ -11,7 +11,7 @@ function requireAuth(req, res, next) {
 
 async function getUserCategories(userId) {
   const [categories] = await db.query(
-    'SELECT id, name, type, color FROM categories WHERE user_id = ? ORDER BY type ASC, name ASC',
+    "SELECT id, name, type, color FROM categories WHERE user_id = ? AND name <> 'Outros' ORDER BY type ASC, name ASC",
     [userId]
   );
   return categories;
@@ -19,10 +19,20 @@ async function getUserCategories(userId) {
 
 async function isValidCategory(userId, categoryId, type) {
   const [rows] = await db.query(
-    'SELECT id FROM categories WHERE id = ? AND user_id = ? AND type = ? LIMIT 1',
+    "SELECT id FROM categories WHERE id = ? AND user_id = ? AND type = ? AND name <> 'Outros' LIMIT 1",
     [categoryId, userId, type]
   );
   return rows.length > 0;
+}
+
+function normalizePaymentMethod(paymentMethod) {
+  const validMethods = ['cash', 'debit', 'credit'];
+  return validMethods.includes(paymentMethod) ? paymentMethod : 'cash';
+}
+
+function normalizeRecurringFlag(recurringValue, transactionType) {
+  if (transactionType !== 'expense') return 0;
+  return recurringValue === 'on' || recurringValue === '1' || recurringValue === 1 || recurringValue === true ? 1 : 0;
 }
 
 router.get('/add', requireAuth, async (req, res) => {
@@ -36,7 +46,7 @@ router.get('/add', requireAuth, async (req, res) => {
       error: null,
       defaultType,
       categories,
-      formData: { type: defaultType }
+      formData: { type: defaultType, payment_method: 'cash', is_recurring: 0 }
     });
   } catch (error) {
     console.error(error);
@@ -44,16 +54,18 @@ router.get('/add', requireAuth, async (req, res) => {
       error: 'Erro ao carregar categorias. Execute: npm run init-categories',
       defaultType,
       categories: [],
-      formData: { type: defaultType }
+      formData: { type: defaultType, payment_method: 'cash', is_recurring: 0 }
     });
   }
 });
 
 router.post('/add', requireAuth, async (req, res) => {
-  const { description, amount, type, date, category_id } = req.body;
+  const { description, amount, type, date, category_id, payment_method, is_recurring } = req.body;
   const userId = req.session.userId;
   const defaultType = type === 'income' || type === 'expense' ? type : 'expense';
   const categoryId = parseInt(category_id, 10);
+  const normalizedPaymentMethod = normalizePaymentMethod(payment_method);
+  const normalizedRecurring = normalizeRecurringFlag(is_recurring, defaultType);
 
   try {
     const categories = await getUserCategories(userId);
@@ -78,8 +90,10 @@ router.post('/add', requireAuth, async (req, res) => {
     }
 
     const [result] = await db.query(
-      'INSERT INTO transactions (user_id, description, amount, type, date, category_id) VALUES (?, ?, ?, ?, ?, ?)',
-      [userId, description, parseFloat(amount), defaultType, date, categoryId]
+      `INSERT INTO transactions
+       (user_id, description, amount, type, date, category_id, payment_method, is_recurring)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+      [userId, description, parseFloat(amount), defaultType, date, categoryId, normalizedPaymentMethod, normalizedRecurring]
     );
 
     return res.redirect(`/dashboard?toast=created&tx=${result.insertId}`);
@@ -122,10 +136,12 @@ router.get('/edit/:id', requireAuth, async (req, res) => {
 
 router.post('/edit/:id', requireAuth, async (req, res) => {
   const transactionId = req.params.id;
-  const { description, amount, type, date, category_id } = req.body;
+  const { description, amount, type, date, category_id, payment_method, is_recurring } = req.body;
   const userId = req.session.userId;
   const normalizedType = type === 'income' || type === 'expense' ? type : 'expense';
   const categoryId = parseInt(category_id, 10);
+  const normalizedPaymentMethod = normalizePaymentMethod(payment_method);
+  const normalizedRecurring = normalizeRecurringFlag(is_recurring, normalizedType);
 
   try {
     const categories = await getUserCategories(userId);
@@ -133,7 +149,14 @@ router.post('/edit/:id', requireAuth, async (req, res) => {
     if (!category_id || Number.isNaN(categoryId)) {
       const [transactions] = await db.query('SELECT * FROM transactions WHERE id = ? AND user_id = ?', [transactionId, userId]);
       return res.render('edit-transaction', {
-        transaction: { ...(transactions[0] || {}), ...req.body, id: transactionId },
+        transaction: {
+          ...(transactions[0] || {}),
+          ...req.body,
+          id: transactionId,
+          type: normalizedType,
+          payment_method: normalizedPaymentMethod,
+          is_recurring: normalizedRecurring
+        },
         categories,
         error: 'Categoria e obrigatoria'
       });
@@ -143,15 +166,24 @@ router.post('/edit/:id', requireAuth, async (req, res) => {
     if (!validCategory) {
       const [transactions] = await db.query('SELECT * FROM transactions WHERE id = ? AND user_id = ?', [transactionId, userId]);
       return res.render('edit-transaction', {
-        transaction: { ...(transactions[0] || {}), ...req.body, id: transactionId },
+        transaction: {
+          ...(transactions[0] || {}),
+          ...req.body,
+          id: transactionId,
+          type: normalizedType,
+          payment_method: normalizedPaymentMethod,
+          is_recurring: normalizedRecurring
+        },
         categories,
         error: 'Categoria invalida para o tipo selecionado'
       });
     }
 
     await db.query(
-      'UPDATE transactions SET description = ?, amount = ?, type = ?, date = ?, category_id = ? WHERE id = ? AND user_id = ?',
-      [description, parseFloat(amount), normalizedType, date, categoryId, transactionId, userId]
+      `UPDATE transactions
+       SET description = ?, amount = ?, type = ?, date = ?, category_id = ?, payment_method = ?, is_recurring = ?
+       WHERE id = ? AND user_id = ?`,
+      [description, parseFloat(amount), normalizedType, date, categoryId, normalizedPaymentMethod, normalizedRecurring, transactionId, userId]
     );
 
     return res.redirect(`/dashboard?toast=updated&tx=${transactionId}`);

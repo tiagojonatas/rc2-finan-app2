@@ -20,6 +20,10 @@ function normalizeCategoryName(name) {
   return (name || '').trim();
 }
 
+function isBlockedCategoryName(name) {
+  return (name || '').trim().toLowerCase() === 'outros';
+}
+
 router.get('/', requireAuth, async (req, res) => {
   const userId = req.session.userId;
   try {
@@ -49,6 +53,9 @@ router.post('/add', requireAuth, async (req, res) => {
 
   if (!normalizedName) {
     return res.render('add-category', { error: 'Nome da categoria e obrigatorio' });
+  }
+  if (isBlockedCategoryName(normalizedName)) {
+    return res.render('add-category', { error: 'Categoria Outros nao e permitida' });
   }
 
   try {
@@ -123,6 +130,16 @@ router.post('/edit/:id', requireAuth, async (req, res) => {
           color: normalizedColor
         },
         error: 'Nome da categoria e obrigatorio'
+      });
+    }
+    if (isBlockedCategoryName(normalizedName)) {
+      return res.render('edit-category', {
+        category: {
+          ...category,
+          name: normalizedName,
+          color: normalizedColor
+        },
+        error: 'Categoria Outros nao e permitida'
       });
     }
 

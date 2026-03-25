@@ -30,6 +30,8 @@
   <% const safeCategories = Array.isArray(categories) ? categories : []; %>
   <% const safeFormData = formData || {}; %>
   <% const selectedType = safeFormData.type || defaultType || 'expense'; %>
+  <% const selectedPaymentMethod = safeFormData.payment_method || 'cash'; %>
+  <% const isRecurringChecked = String(safeFormData.is_recurring || '') === '1' || String(safeFormData.is_recurring || '') === 'on'; %>
   <div class="min-h-screen flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
     <div class="max-w-md w-full space-y-8">
       <div class="bg-white p-8 rounded-xl shadow-md border border-gray-100">
@@ -80,6 +82,28 @@
               </select>
             </div>
             <div>
+              <label for="payment_method" class="block text-sm font-medium text-gray-700">Forma de pagamento</label>
+              <select id="payment_method" name="payment_method" required
+                      class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-slate-500 focus:border-slate-500">
+                <option value="cash" <%= selectedPaymentMethod === 'cash' ? 'selected' : '' %>>Dinheiro</option>
+                <option value="debit" <%= selectedPaymentMethod === 'debit' ? 'selected' : '' %>>Debito</option>
+                <option value="credit" <%= selectedPaymentMethod === 'credit' ? 'selected' : '' %>>Credito</option>
+              </select>
+            </div>
+            <div id="recurringWrapper" class="rounded-lg border border-gray-200 bg-gray-50 px-3 py-2">
+              <label class="inline-flex items-center gap-2 text-sm text-gray-700">
+                <input
+                  id="is_recurring"
+                  name="is_recurring"
+                  type="checkbox"
+                  value="1"
+                  <%= isRecurringChecked ? 'checked' : '' %>
+                  class="h-4 w-4 rounded border-gray-300 text-slate-600 focus:ring-slate-500"
+                >
+                Despesa fixa
+              </label>
+            </div>
+            <div>
               <label for="date" class="block text-sm font-medium text-gray-700">Data</label>
               <input id="date" name="date" type="date" value="<%= safeFormData.date || '' %>" required
                      class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-slate-500 focus:border-slate-500">
@@ -104,6 +128,8 @@
     const amountInput = document.getElementById('amount');
     const typeSelect = document.getElementById('type');
     const categorySelect = document.getElementById('category_id');
+    const recurringWrapper = document.getElementById('recurringWrapper');
+    const recurringCheckbox = document.getElementById('is_recurring');
 
     function formatBRL(value) {
       return value.toLocaleString('pt-BR', {
@@ -138,10 +164,20 @@
       }
     }
 
+    function updateRecurringVisibility() {
+      const isExpense = typeSelect.value === 'expense';
+      recurringWrapper.style.display = isExpense ? '' : 'none';
+      if (!isExpense) {
+        recurringCheckbox.checked = false;
+      }
+    }
+
     initializeAmount();
     updateCategoryOptions();
+    updateRecurringVisibility();
 
     typeSelect.addEventListener('change', updateCategoryOptions);
+    typeSelect.addEventListener('change', updateRecurringVisibility);
 
     amountDisplay.addEventListener('input', function(event) {
       let value = event.target.value.replace(/\D/g, '');
