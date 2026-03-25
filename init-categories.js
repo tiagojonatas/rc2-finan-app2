@@ -10,6 +10,19 @@ const DEFAULT_EXPENSE_CATEGORIES = [
   { name: 'Impostos', color: '#EC4899' },
   { name: 'Outros', color: '#6B7280' }
 ];
+const DEFAULT_INCOME_CATEGORIES = [
+  { name: 'Salario', color: '#14B8A6' },
+  { name: 'Extra', color: '#22C55E' },
+  { name: 'Michele', color: '#06B6D4' },
+  { name: 'Forex', color: '#F59E0B' }
+];
+
+const LEGACY_INCOME_CATEGORY_RENAMES = [
+  { from: 'SALARIO', to: 'Salario' },
+  { from: 'EXTRA', to: 'Extra' },
+  { from: 'MICHELE', to: 'Michele' },
+  { from: 'FOREX', to: 'Forex' }
+];
 
 async function ensureCategoriesSchema() {
   await db.query(`
@@ -84,12 +97,14 @@ async function seedDefaultCategories() {
       );
     }
 
-    await db.query(
-      `INSERT INTO categories (user_id, name, type, color)
-       VALUES (?, 'Outros', 'income', '#14B8A6')
-       ON DUPLICATE KEY UPDATE color = VALUES(color)`,
-      [user.id]
-    );
+    for (const category of DEFAULT_INCOME_CATEGORIES) {
+      await db.query(
+        `INSERT INTO categories (user_id, name, type, color)
+         VALUES (?, ?, 'income', ?)
+         ON DUPLICATE KEY UPDATE color = VALUES(color)`,
+        [user.id, category.name, category.color]
+      );
+    }
   }
 }
 
@@ -103,7 +118,7 @@ async function backfillTransactionsCategory() {
 
   await db.query(`
     UPDATE transactions t
-    JOIN categories c ON c.user_id = t.user_id AND c.type = 'income' AND c.name = 'Outros'
+    JOIN categories c ON c.user_id = t.user_id AND c.type = 'income' AND c.name = 'Salario'
     SET t.category_id = c.id
     WHERE t.type = 'income' AND t.category_id IS NULL
   `);
@@ -116,10 +131,42 @@ async function backfillTransactionsCategory() {
   }
 }
 
+async function normalizeLegacyIncomeCategoryNames() {
+  for (const rename of LEGACY_INCOME_CATEGORY_RENAMES) {
+    const [legacyRows] = await db.query(
+      `SELECT id, user_id
+       FROM categories
+       WHERE type = 'income' AND BINARY name = ?`,
+      [rename.from]
+    );
+
+    for (const legacy of legacyRows) {
+      const [targetRows] = await db.query(
+        `SELECT id
+         FROM categories
+         WHERE user_id = ? AND type = 'income' AND BINARY name = ? AND id <> ?`,
+        [legacy.user_id, rename.to, legacy.id]
+      );
+
+      if (targetRows.length > 0) {
+        const targetId = targetRows[0].id;
+        await db.query(
+          'UPDATE transactions SET category_id = ? WHERE category_id = ?',
+          [targetId, legacy.id]
+        );
+        await db.query('DELETE FROM categories WHERE id = ?', [legacy.id]);
+      } else {
+        await db.query('UPDATE categories SET name = ? WHERE id = ?', [rename.to, legacy.id]);
+      }
+    }
+  }
+}
+
 async function initCategories() {
   try {
     await ensureCategoriesSchema();
     await ensureTransactionCategoryColumn();
+    await normalizeLegacyIncomeCategoryNames();
     await seedDefaultCategories();
     await backfillTransactionsCategory();
     console.log('Categories schema initialized successfully');

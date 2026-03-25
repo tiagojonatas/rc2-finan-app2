@@ -8,6 +8,18 @@ function requireAuth(req, res, next) {
   return res.redirect('/login');
 }
 
+function normalizeCategoryType(type) {
+  return type === 'income' ? 'income' : 'expense';
+}
+
+function normalizeCategoryColor(color) {
+  return /^#[0-9A-Fa-f]{6}$/.test(color || '') ? color : '#8A05BE';
+}
+
+function normalizeCategoryName(name) {
+  return (name || '').trim();
+}
+
 router.get('/', requireAuth, async (req, res) => {
   const userId = req.session.userId;
   try {
@@ -31,49 +43,157 @@ router.get('/add', requireAuth, (req, res) => {
 router.post('/add', requireAuth, async (req, res) => {
   const userId = req.session.userId;
   const { name, type, color } = req.body;
-  const normalizedType = type === 'income' ? 'income' : 'expense';
-  const normalizedColor = /^#[0-9A-Fa-f]{6}$/.test(color || '') ? color : '#8A05BE';
+  const normalizedType = normalizeCategoryType(type);
+  const normalizedColor = normalizeCategoryColor(color);
+  const normalizedName = normalizeCategoryName(name);
 
-  if (!name || !name.trim()) {
-    return res.render('add-category', { error: 'Nome da categoria é obrigatório' });
+  if (!normalizedName) {
+    return res.render('add-category', { error: 'Nome da categoria e obrigatorio' });
   }
 
   try {
     await db.query(
       'INSERT INTO categories (user_id, name, type, color) VALUES (?, ?, ?, ?)',
-      [userId, name.trim(), normalizedType, normalizedColor]
+      [userId, normalizedName, normalizedType, normalizedColor]
     );
-    res.redirect('/categories');
+    return res.redirect('/categories');
   } catch (error) {
     console.error(error);
     if (error.code === 'ER_DUP_ENTRY') {
-      return res.render('add-category', { error: 'Categoria já existe para este tipo' });
+      return res.render('add-category', { error: 'Categoria ja existe para este tipo' });
     }
     return res.render('add-category', { error: 'Erro ao cadastrar categoria' });
+  }
+});
+
+router.get('/edit/:id', requireAuth, async (req, res) => {
+  const userId = req.session.userId;
+  const categoryId = Number.parseInt(req.params.id, 10);
+
+  if (Number.isNaN(categoryId)) {
+    return res.redirect('/categories');
+  }
+
+  try {
+    const [rows] = await db.query(
+      'SELECT id, name, type, color FROM categories WHERE id = ? AND user_id = ? LIMIT 1',
+      [categoryId, userId]
+    );
+
+    if (!rows.length) {
+      return res.redirect('/categories');
+    }
+
+    return res.render('edit-category', { category: rows[0], error: null });
+  } catch (error) {
+    console.error(error);
+    return res.redirect('/categories');
+  }
+});
+
+router.post('/edit/:id', requireAuth, async (req, res) => {
+  const userId = req.session.userId;
+  const categoryId = Number.parseInt(req.params.id, 10);
+  const { name, color } = req.body;
+  const normalizedName = normalizeCategoryName(name);
+  const normalizedColor = normalizeCategoryColor(color);
+
+  if (Number.isNaN(categoryId)) {
+    return res.redirect('/categories');
+  }
+
+  let category = null;
+  try {
+    const [rows] = await db.query(
+      'SELECT id, name, type, color FROM categories WHERE id = ? AND user_id = ? LIMIT 1',
+      [categoryId, userId]
+    );
+
+    if (!rows.length) {
+      return res.redirect('/categories');
+    }
+
+    category = rows[0];
+
+    if (!normalizedName) {
+      return res.render('edit-category', {
+        category: {
+          ...category,
+          name: normalizedName,
+          color: normalizedColor
+        },
+        error: 'Nome da categoria e obrigatorio'
+      });
+    }
+
+    await db.query(
+      'UPDATE categories SET name = ?, color = ? WHERE id = ? AND user_id = ?',
+      [normalizedName, normalizedColor, categoryId, userId]
+    );
+
+    return res.redirect('/categories');
+  } catch (error) {
+    console.error(error);
+
+    if (error.code === 'ER_DUP_ENTRY') {
+      return res.render('edit-category', {
+        category: {
+          ...(category || { id: categoryId, type: 'expense' }),
+          name: normalizedName,
+          color: normalizedColor
+        },
+        error: 'Ja existe categoria com esse nome nesse tipo'
+      });
+    }
+
+    return res.render('edit-category', {
+      category: {
+        ...(category || { id: categoryId, type: 'expense' }),
+        name: normalizedName,
+        color: normalizedColor
+      },
+      error: 'Erro ao atualizar categoria'
+    });
   }
 });
 
 router.post('/delete/:id', requireAuth, async (req, res) => {
   const userId = req.session.userId;
   const categoryId = req.params.id;
+
   try {
-    const [countRows] = await db.query(
+    const [transactionCountRows] = await db.query(
       'SELECT COUNT(*) AS count FROM transactions WHERE user_id = ? AND category_id = ?',
       [userId, categoryId]
     );
-    if (countRows[0].count > 0) {
-      const [categories] = await db.query('SELECT * FROM categories WHERE user_id = ? ORDER BY type ASC, name ASC', [userId]);
+
+    let fixedExpenseCountRows = [{ count: 0 }];
+    try {
+      [fixedExpenseCountRows] = await db.query(
+        'SELECT COUNT(*) AS count FROM fixed_expenses WHERE user_id = ? AND category_id = ?',
+        [userId, categoryId]
+      );
+    } catch (fixedExpenseError) {
+      if (fixedExpenseError.code !== 'ER_NO_SUCH_TABLE') throw fixedExpenseError;
+    }
+
+    if (transactionCountRows[0].count > 0 || fixedExpenseCountRows[0].count > 0) {
+      const [categories] = await db.query(
+        'SELECT * FROM categories WHERE user_id = ? ORDER BY type ASC, name ASC',
+        [userId]
+      );
+
       return res.render('categories', {
         categories,
-        error: 'Nao foi possivel excluir: categoria em uso por transacoes'
+        error: 'Nao foi possivel excluir: categoria em uso por lancamentos'
       });
     }
 
     await db.query('DELETE FROM categories WHERE id = ? AND user_id = ?', [categoryId, userId]);
-    res.redirect('/categories');
+    return res.redirect('/categories');
   } catch (error) {
     console.error(error);
-    res.redirect('/categories');
+    return res.redirect('/categories');
   }
 });
 

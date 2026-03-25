@@ -12,6 +12,12 @@ const DEFAULT_EXPENSE_CATEGORIES = [
   { name: 'Impostos', color: '#EC4899' },
   { name: 'Outros', color: '#6B7280' }
 ];
+const DEFAULT_INCOME_CATEGORIES = [
+  { name: 'Salario', color: '#14B8A6' },
+  { name: 'Extra', color: '#22C55E' },
+  { name: 'Michele', color: '#06B6D4' },
+  { name: 'Forex', color: '#F59E0B' }
+];
 
 async function createDefaultCategoriesForUser(userId) {
   for (const category of DEFAULT_EXPENSE_CATEGORIES) {
@@ -23,12 +29,14 @@ async function createDefaultCategoriesForUser(userId) {
     );
   }
 
-  await db.query(
-    `INSERT INTO categories (user_id, name, type, color)
-     VALUES (?, 'Outros', 'income', '#14B8A6')
-     ON DUPLICATE KEY UPDATE color = VALUES(color)`,
-    [userId]
-  );
+  for (const category of DEFAULT_INCOME_CATEGORIES) {
+    await db.query(
+      `INSERT INTO categories (user_id, name, type, color)
+       VALUES (?, ?, 'income', ?)
+       ON DUPLICATE KEY UPDATE color = VALUES(color)`,
+      [userId, category.name, category.color]
+    );
+  }
 }
 
 function getLocalDateKey(date) {
