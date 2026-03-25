@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Admin Usuarios - RC2 Finance</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-slate-100 font-sans text-slate-900">
+  <div class="max-w-6xl mx-auto px-4 py-6">
+    <header class="bg-white border border-slate-200 rounded-2xl p-4 sm:p-5 shadow-sm mb-6">
+      <div class="flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <p class="text-xs uppercase tracking-wide text-[#8A05BE] font-semibold">RC2 Finance</p>
+          <h1 class="text-2xl font-bold">Gestao de Usuarios</h1>
+        </div>
+        <div class="flex flex-wrap items-center gap-2">
+          <a href="/admin" class="min-h-[44px] inline-flex items-center px-4 rounded-xl border border-slate-300 bg-white hover:bg-slate-50">Dashboard Admin</a>
+          <a href="/admin/users/add" class="min-h-[44px] inline-flex items-center px-4 rounded-xl bg-[#8A05BE] text-white font-medium hover:bg-[#6A047E]">Adicionar usuario</a>
+          <form action="/logout" method="POST">
+            <button type="submit" class="min-h-[44px] px-4 rounded-xl border border-slate-300 bg-white hover:bg-slate-50 text-slate-700">Sair</button>
+          </form>
+        </div>
+      </div>
+    </header>
+
+    <% if (success) { %>
+      <div class="mb-4 rounded-xl border border-emerald-200 bg-emerald-50 text-emerald-700 px-4 py-3"><%= success %></div>
+    <% } %>
+    <% if (error) { %>
+      <div class="mb-4 rounded-xl border border-rose-200 bg-rose-50 text-rose-700 px-4 py-3"><%= error %></div>
+    <% } %>
+
+    <section class="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden">
+      <div class="grid grid-cols-12 px-5 py-3 bg-slate-50 border-b border-slate-200 text-xs font-semibold uppercase tracking-wide text-slate-600">
+        <div class="col-span-4">Nome</div>
+        <div class="col-span-4">Email</div>
+        <div class="col-span-2">Perfil</div>
+        <div class="col-span-2 text-right">Acoes</div>
+      </div>
+
+      <% if (!users || users.length === 0) { %>
+        <div class="px-5 py-8 text-slate-500">Nenhum usuario cadastrado.</div>
+      <% } else { %>
+        <% users.forEach((user, index) => { %>
+          <div class="grid grid-cols-1 sm:grid-cols-12 gap-2 sm:gap-0 px-5 py-4 <%= index < users.length - 1 ? 'border-b border-slate-100' : '' %>">
+            <div class="sm:col-span-4">
+              <p class="font-semibold"><%= user.name %></p>
+            </div>
+            <div class="sm:col-span-4">
+              <p class="text-sm text-slate-600 break-all"><%= user.email %></p>
+            </div>
+            <div class="sm:col-span-2">
+              <span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold <%= user.role === 'admin' ? 'bg-violet-100 text-violet-700' : 'bg-slate-100 text-slate-700' %>">
+                <%= user.role === 'admin' ? 'ADMIN' : 'USER' %>
+              </span>
+            </div>
+            <div class="sm:col-span-2 flex sm:justify-end gap-2">
+              <a href="/admin/users/edit/<%= user.id %>" class="min-h-[44px] inline-flex items-center px-3 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 text-sm">Editar</a>
+              <form action="/admin/users/delete/<%= user.id %>" method="POST" onsubmit="return confirm('Excluir usuario?')">
+                <button type="submit" class="min-h-[44px] inline-flex items-center px-3 rounded-lg bg-rose-50 hover:bg-rose-100 text-rose-700 text-sm"
+                        <%= Number(currentUserId) === Number(user.id) ? 'disabled' : '' %>>
+                  Excluir
+                </button>
+              </form>
+            </div>
+          </div>
+        <% }); %>
+      <% } %>
+    </section>
+  </div>
+</body>
+</html>

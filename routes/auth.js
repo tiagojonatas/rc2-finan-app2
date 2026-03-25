@@ -94,10 +94,12 @@ router.get('/register', (req, res) => {
 // POST /register
 router.post('/register', async (req, res) => {
   const { name, email, password } = req.body;
+  const normalizedName = (name || '').trim();
+  const normalizedEmail = (email || '').trim().toLowerCase();
 
   try {
     // Check if user already exists
-    const [existingUser] = await db.query('SELECT id FROM users WHERE email = ?', [email]);
+    const [existingUser] = await db.query('SELECT id FROM users WHERE email = ?', [normalizedEmail]);
     if (existingUser.length > 0) {
       return res.render('register', { error: 'Email ja cadastrado' });
     }
@@ -106,7 +108,10 @@ router.post('/register', async (req, res) => {
     const hashedPassword = await bcrypt.hash(password, 10);
 
     // Insert user
-    const [result] = await db.query('INSERT INTO users (name, email, password_hash) VALUES (?, ?, ?)', [name, email, hashedPassword]);
+    const [result] = await db.query(
+      "INSERT INTO users (name, email, password_hash, role) VALUES (?, ?, ?, 'user')",
+      [normalizedName, normalizedEmail, hashedPassword]
+    );
     try {
       await createDefaultCategoriesForUser(result.insertId);
     } catch (categoryError) {
@@ -128,9 +133,10 @@ router.get('/login', (req, res) => {
 // POST /login
 router.post('/login', async (req, res) => {
   const { email, password } = req.body;
+  const normalizedEmail = (email || '').trim().toLowerCase();
 
   try {
-    const [users] = await db.query('SELECT id, name, password_hash FROM users WHERE email = ?', [email]);
+    const [users] = await db.query('SELECT id, name, password_hash, role FROM users WHERE email = ?', [normalizedEmail]);
     if (users.length === 0) {
       return res.render('login', { error: 'Email ou senha invalidos' });
     }
@@ -143,6 +149,10 @@ router.post('/login', async (req, res) => {
 
     req.session.userId = user.id;
     req.session.userName = user.name;
+    req.session.userRole = user.role || 'user';
+    if (req.session.userRole === 'admin') {
+      return res.redirect('/admin');
+    }
     res.redirect('/dashboard');
   } catch (error) {
     console.error(error);
@@ -163,6 +173,10 @@ router.post('/logout', (req, res) => {
 // GET /dashboard (protected)
 router.get('/dashboard', requireAuth, async (req, res) => {
   try {
+    if (req.session.userRole === 'admin') {
+      return res.redirect('/admin');
+    }
+
     const userId = req.session.userId;
     const toastType = req.query.toast;
     const highlightedTransactionId = Number.parseInt(req.query.tx, 10);

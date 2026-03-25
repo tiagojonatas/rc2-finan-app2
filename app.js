@@ -43,6 +43,16 @@ app.use(session({
   }
 }));
 
+function requireStandardUser(req, res, next) {
+  if (!req.session.userId) {
+    return res.redirect('/login');
+  }
+  if (req.session.userRole === 'admin') {
+    return res.redirect('/admin');
+  }
+  return next();
+}
+
 // Static
 app.use(express.static(path.join(__dirname, 'public')));
 
@@ -54,13 +64,15 @@ const creditCardRoutes = require('./routes/credit-cards');
 const fixedExpenseRoutes = require('./routes/fixed-expenses');
 const categoryRoutes = require('./routes/categories');
 const reportsRoutes = require('./routes/reports');
+const adminRoutes = require('./routes/admin');
 app.use('/', indexRoutes);
 app.use('/', authRoutes);
-app.use('/transactions', transactionRoutes);
-app.use('/credit-cards', creditCardRoutes);
-app.use('/fixed-expenses', fixedExpenseRoutes);
-app.use('/categories', categoryRoutes);
-app.use('/reports', reportsRoutes);
+app.use('/transactions', requireStandardUser, transactionRoutes);
+app.use('/credit-cards', requireStandardUser, creditCardRoutes);
+app.use('/fixed-expenses', requireStandardUser, fixedExpenseRoutes);
+app.use('/categories', requireStandardUser, categoryRoutes);
+app.use('/reports', requireStandardUser, reportsRoutes);
+app.use('/admin', adminRoutes);
 
 // Servidor
 const PORT = 3000;
