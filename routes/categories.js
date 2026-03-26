@@ -13,7 +13,7 @@ function normalizeCategoryType(type) {
 }
 
 function normalizeCategoryColor(color) {
-  return /^#[0-9A-Fa-f]{6}$/.test(color || '') ? color : '#8A05BE';
+  return /^#[0-9A-Fa-f]{6}$/.test(color || '') ? color : '#00C9A7';
 }
 
 function normalizeCategoryName(name) {

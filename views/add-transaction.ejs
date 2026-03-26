@@ -50,18 +50,18 @@
             <div>
               <label for="description" class="block text-sm font-medium text-gray-700">Descricao</label>
               <input id="description" name="description" type="text" value="<%= safeFormData.description || '' %>" required
-                     class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm placeholder-gray-400 focus:outline-none focus:ring-slate-500 focus:border-slate-500">
+                     class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#00C9A7]/30 focus:border-[#00C9A7]">
             </div>
             <div>
               <label for="amountDisplay" class="block text-sm font-medium text-gray-700">Valor (R$)</label>
               <input id="amountDisplay" type="text" inputmode="numeric" placeholder="0,00" required
-                     class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm placeholder-gray-400 focus:outline-none focus:ring-slate-500 focus:border-slate-500">
+                     class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#00C9A7]/30 focus:border-[#00C9A7]">
               <input id="amount" name="amount" type="hidden" value="<%= safeFormData.amount || '0.00' %>">
             </div>
             <div>
               <label for="type" class="block text-sm font-medium text-gray-700">Tipo</label>
               <select id="type" name="type" required
-                      class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-slate-500 focus:border-slate-500">
+                      class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-[#00C9A7]/30 focus:border-[#00C9A7]">
                 <option value="income" <%= selectedType === 'income' ? 'selected' : '' %>>Entrada</option>
                 <option value="expense" <%= selectedType === 'expense' ? 'selected' : '' %>>Despesa</option>
               </select>
@@ -69,7 +69,7 @@
             <div>
               <label for="category_id" class="block text-sm font-medium text-gray-700">Categoria</label>
               <select id="category_id" name="category_id" required
-                      class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-slate-500 focus:border-slate-500">
+                      class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-[#00C9A7]/30 focus:border-[#00C9A7]">
                 <% safeCategories.forEach(category => { %>
                   <option
                     value="<%= category.id %>"
@@ -84,7 +84,7 @@
             <div>
               <label for="payment_method" class="block text-sm font-medium text-gray-700">Forma de pagamento</label>
               <select id="payment_method" name="payment_method" required
-                      class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-slate-500 focus:border-slate-500">
+                      class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-[#00C9A7]/30 focus:border-[#00C9A7]">
                 <option value="cash" <%= selectedPaymentMethod === 'cash' ? 'selected' : '' %>>Dinheiro</option>
                 <option value="debit" <%= selectedPaymentMethod === 'debit' ? 'selected' : '' %>>Debito</option>
                 <option value="credit" <%= selectedPaymentMethod === 'credit' ? 'selected' : '' %>>Credito</option>
@@ -98,7 +98,7 @@
                   type="checkbox"
                   value="1"
                   <%= isRecurringChecked ? 'checked' : '' %>
-                  class="h-4 w-4 rounded border-gray-300 text-slate-600 focus:ring-slate-500"
+                  class="h-4 w-4 rounded border-gray-300 text-[#00C9A7] focus:ring-[#00C9A7]/40"
                 >
                 Despesa fixa
               </label>
@@ -106,15 +106,15 @@
             <div>
               <label for="date" class="block text-sm font-medium text-gray-700">Data</label>
               <input id="date" name="date" type="date" value="<%= safeFormData.date || '' %>" required
-                     class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-slate-500 focus:border-slate-500">
+                     class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-[#00C9A7]/30 focus:border-[#00C9A7]">
             </div>
           </div>
 
           <div class="flex space-x-3">
-            <button type="submit" class="flex-1 flex justify-center py-3 px-4 border border-transparent rounded-lg shadow-sm text-sm font-medium text-white bg-slate-600 hover:bg-slate-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-slate-500 transition duration-200">
+            <button type="submit" class="flex-1 flex justify-center py-3 px-4 border border-transparent rounded-lg shadow-sm text-sm font-medium text-white bg-[#00C9A7] hover:bg-[#00b295] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#00C9A7]/40 transition duration-200">
               Adicionar
             </button>
-            <a href="/dashboard" class="flex-1 flex justify-center py-3 px-4 border border-gray-300 rounded-lg shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-slate-500 transition duration-200">
+            <a href="/dashboard" class="flex-1 flex justify-center py-3 px-4 border border-gray-300 rounded-lg shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#00C9A7]/40 transition duration-200">
               Cancelar
             </a>
           </div>

@@ -8,17 +8,18 @@
 </head>
 <body class="bg-slate-100 font-sans text-slate-900">
   <div class="max-w-6xl mx-auto px-4 py-6">
-    <header class="bg-white border border-slate-200 rounded-2xl p-4 sm:p-5 shadow-sm mb-6">
+    <header class="bg-white border border-slate-200 rounded-xl p-4 sm:p-5 shadow-sm mb-6">
       <div class="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <p class="text-xs uppercase tracking-wide text-[#8A05BE] font-semibold">RC2 Finance</p>
-          <h1 class="text-2xl font-bold">Gestao de Usuarios</h1>
+          <img src="/brand/rc2-finance-horizontal.svg" alt="RC2 Finance" class="h-9 w-auto mb-1" />
+          <p class="text-xs text-slate-500">by RC2 Tecnologia</p>
+          <h1 class="text-2xl font-semibold text-slate-900 mt-1">Gestao de Usuarios</h1>
         </div>
         <div class="flex flex-wrap items-center gap-2">
-          <a href="/admin" class="min-h-[44px] inline-flex items-center px-4 rounded-xl border border-slate-300 bg-white hover:bg-slate-50">Dashboard Admin</a>
-          <a href="/admin/users/add" class="min-h-[44px] inline-flex items-center px-4 rounded-xl bg-[#8A05BE] text-white font-medium hover:bg-[#6A047E]">Adicionar usuario</a>
+          <a href="/admin" class="min-h-[44px] inline-flex items-center px-4 rounded-lg border border-slate-300 bg-white hover:bg-slate-50">Dashboard Admin</a>
+          <a href="/admin/users/add" class="min-h-[44px] inline-flex items-center px-4 rounded-lg bg-[#00C9A7] text-white font-medium hover:bg-[#00b295]">Adicionar usuario</a>
           <form action="/logout" method="POST">
-            <button type="submit" class="min-h-[44px] px-4 rounded-xl border border-slate-300 bg-white hover:bg-slate-50 text-slate-700">Sair</button>
+            <button type="submit" class="min-h-[44px] px-4 rounded-lg border border-slate-300 bg-white hover:bg-slate-50 text-slate-700">Sair</button>
           </form>
         </div>
       </div>
@@ -31,7 +32,7 @@
       <div class="mb-4 rounded-xl border border-rose-200 bg-rose-50 text-rose-700 px-4 py-3"><%= error %></div>
     <% } %>
 
-    <section class="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden">
+    <section class="bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden">
       <div class="grid grid-cols-12 px-5 py-3 bg-slate-50 border-b border-slate-200 text-xs font-semibold uppercase tracking-wide text-slate-600">
         <div class="col-span-4">Nome</div>
         <div class="col-span-4">Email</div>
@@ -51,7 +52,7 @@
               <p class="text-sm text-slate-600 break-all"><%= user.email %></p>
             </div>
             <div class="sm:col-span-2">
-              <span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold <%= user.role === 'admin' ? 'bg-violet-100 text-violet-700' : 'bg-slate-100 text-slate-700' %>">
+              <span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold <%= user.role === 'admin' ? 'bg-cyan-100 text-cyan-700' : 'bg-slate-100 text-slate-700' %>">
                 <%= user.role === 'admin' ? 'ADMIN' : 'USER' %>
               </span>
             </div>

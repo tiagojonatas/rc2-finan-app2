@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Novo Cartão - Sistema Financeiro</title>
+  <title>Novo CartÃ£o - Sistema Financeiro</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <script>
     tailwind.config = {
@@ -14,9 +14,9 @@
           },
           colors: {
             'custom-bg': '#f5f6fa',
-            'brand-purple': '#8A05BE',
-            'brand-purple-dark': '#6A047E',
-            'brand-purple-50': '#F8F0FF',
+            'brand-purple': '#00C9A7',
+            'brand-cyan-dark': '#2563EB',
+            'brand-cyan-50': '#111827',
           }
         }
       }
@@ -35,7 +35,7 @@
       <div class="bg-white p-8 rounded-xl shadow-md border border-gray-100">
         <div>
           <h2 class="mt-6 text-center text-3xl font-bold text-gray-900">
-            Novo Cartão
+            Novo CartÃ£o
           </h2>
         </div>
         <% if (error) { %>
@@ -46,35 +46,35 @@
         <form class="mt-8 space-y-6" action="/credit-cards/add" method="POST">
           <div class="space-y-4">
             <div>
-              <label for="name" class="block text-sm font-medium text-gray-700">Nome do Cartão</label>
-              <input id="name" name="name" type="text" placeholder="Ex: Cartão Principal" required
-                     class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm placeholder-gray-400 focus:outline-none focus:ring-slate-500 focus:border-slate-500">
+              <label for="name" class="block text-sm font-medium text-gray-700">Nome do CartÃ£o</label>
+              <input id="name" name="name" type="text" placeholder="Ex: CartÃ£o Principal" required
+                     class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#00C9A7]/30 focus:border-[#00C9A7]">
             </div>
             <div>
               <label for="limit_amount" class="block text-sm font-medium text-gray-700">Limite (R$)</label>
               <input id="limitDisplay" type="text" inputmode="numeric" placeholder="0,00" required
-                     class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm placeholder-gray-400 focus:outline-none focus:ring-slate-500 focus:border-slate-500">
+                     class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#00C9A7]/30 focus:border-[#00C9A7]">
               <input id="limit_amount" name="limit_amount" type="hidden" value="0.00">
             </div>
             <div class="grid grid-cols-2 gap-4">
               <div>
                 <label for="closing_day" class="block text-sm font-medium text-gray-700">Dia Fechamento</label>
                 <input id="closing_day" name="closing_day" type="number" min="1" max="31" placeholder="5" required
-                       class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-slate-500 focus:border-slate-500">
+                       class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-[#00C9A7]/30 focus:border-[#00C9A7]">
               </div>
               <div>
                 <label for="due_day" class="block text-sm font-medium text-gray-700">Dia Vencimento</label>
                 <input id="due_day" name="due_day" type="number" min="1" max="31" placeholder="15" required
-                       class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-slate-500 focus:border-slate-500">
+                       class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-[#00C9A7]/30 focus:border-[#00C9A7]">
               </div>
             </div>
           </div>
 
           <div class="flex space-x-3">
-            <button type="submit" class="flex-1 flex justify-center py-3 px-4 border border-transparent rounded-lg shadow-sm text-sm font-medium text-white bg-slate-600 hover:bg-slate-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-slate-500 transition duration-200">
-              Criar Cartão
+            <button type="submit" class="flex-1 flex justify-center py-3 px-4 border border-transparent rounded-lg shadow-sm text-sm font-medium text-white bg-[#00C9A7] hover:bg-[#00b295] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#00C9A7]/40 transition duration-200">
+              Criar CartÃ£o
             </button>
-            <a href="/credit-cards" class="flex-1 flex justify-center py-3 px-4 border border-gray-300 rounded-lg shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-slate-500 transition duration-200">
+            <a href="/credit-cards" class="flex-1 flex justify-center py-3 px-4 border border-gray-300 rounded-lg shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#00C9A7]/40 transition duration-200">
               Cancelar
             </a>
           </div>
@@ -84,7 +84,7 @@
   </div>
 
   <script>
-    // Máscara de moeda brasileira para input de limite
+    // MÃ¡scara de moeda brasileira para input de limite
     const limitDisplay = document.getElementById('limitDisplay');
     const limitInput = document.getElementById('limit_amount');
 
@@ -131,3 +131,5 @@
   </script>
 </body>
 </html>
+
+

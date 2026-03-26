@@ -3,40 +3,25 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Relatorios - Sistema Financeiro</title>
+  <title>Relatorios - RC2 Finance</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-  <script>
-    tailwind.config = {
-      theme: {
-        extend: {
-          fontFamily: { sans: ['Inter', 'system-ui', 'sans-serif'] },
-          colors: {
-            'brand-purple': '#8A05BE',
-            'brand-purple-dark': '#6A047E',
-            'brand-purple-50': '#F8F0FF',
-            'brand-purple-100': '#E9D5FF'
-          }
-        }
-      }
-    }
-  </script>
 </head>
-<body class="bg-slate-100 font-sans text-gray-900">
+<body class="bg-slate-50 font-sans text-slate-900">
   <% const safeMonthOptions = Array.isArray(monthOptions) ? monthOptions : []; %>
   <% const safeExpenseCategoryReport = Array.isArray(expenseCategoryReport) ? expenseCategoryReport : []; %>
   <% const safeMonthlyBalanceData = Array.isArray(monthlyBalanceData) ? monthlyBalanceData : []; %>
 
-  <div class="container mx-auto px-6 py-8 max-w-6xl">
-    <div class="flex flex-wrap items-center justify-between gap-3 mb-8">
+  <div class="container mx-auto px-4 sm:px-6 py-6 max-w-6xl">
+    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-8">
       <div>
-        <h1 class="text-3xl font-bold text-gray-900">Relatorios</h1>
-        <p class="text-sm text-gray-500 mt-1"><%= selectedMonthLabel || '' %></p>
+        <h1 class="text-2xl sm:text-3xl font-semibold text-slate-900">Relatorios</h1>
+        <p class="text-sm text-slate-500 mt-1"><%= selectedMonthLabel || '' %></p>
       </div>
-      <div class="flex flex-wrap items-center gap-3">
-        <form id="monthFilterForm" action="/reports" method="GET" class="bg-white border border-brand-purple-100 rounded-xl px-3 py-2 flex items-center gap-2">
-          <label for="monthFilter" class="text-xs font-semibold text-gray-600 uppercase tracking-wide">Periodo</label>
-          <select id="monthFilter" name="month" class="bg-transparent text-sm font-semibold text-brand-purple focus:outline-none">
+      <div class="flex items-center gap-2 sm:gap-3">
+        <form id="monthFilterForm" action="/reports" method="GET" class="bg-white border border-slate-200 rounded-lg px-3 py-2 flex items-center gap-2 shadow-sm">
+          <label for="monthFilter" class="text-xs font-semibold text-slate-500 uppercase tracking-wide">Periodo</label>
+          <select id="monthFilter" name="month" class="bg-transparent text-sm font-semibold text-slate-700 focus:outline-none">
             <% safeMonthOptions.forEach((monthKey) => { %>
               <% const [year, month] = monthKey.split('-').map(Number); %>
               <% const monthLabel = new Date(year, month - 1, 1).toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' }); %>
@@ -44,18 +29,18 @@
             <% }); %>
           </select>
         </form>
-        <a href="/dashboard" class="bg-white border border-gray-300 text-gray-700 py-2 px-4 rounded-xl hover:bg-gray-50">Dashboard</a>
+        <a href="/dashboard" class="min-h-[44px] inline-flex items-center bg-white border border-slate-300 text-slate-700 py-2 px-4 rounded-lg hover:bg-slate-100">Dashboard</a>
       </div>
     </div>
 
-    <div class="grid grid-cols-1 xl:grid-cols-2 gap-6 mb-8">
-      <div class="bg-white rounded-2xl border border-brand-purple-100 shadow-sm p-6">
+    <div class="grid grid-cols-1 xl:grid-cols-2 gap-6 mb-6">
+      <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-5">
         <div class="flex items-center justify-between mb-4">
-          <h2 class="text-lg font-bold text-gray-900">Gastos por Categoria</h2>
-          <span class="text-xs font-medium text-brand-purple bg-brand-purple-50 px-2 py-1 rounded-full">Pizza</span>
+          <h2 class="text-lg font-semibold text-slate-900">Gastos por categoria</h2>
+          <span class="text-xs font-medium text-cyan-700 bg-cyan-50 border border-cyan-100 px-2 py-1 rounded-full">Pizza</span>
         </div>
         <% if (safeExpenseCategoryReport.length === 0) { %>
-          <div class="h-72 flex items-center justify-center text-gray-500 text-sm">Sem despesas no periodo selecionado</div>
+          <div class="h-72 flex items-center justify-center text-slate-500 text-sm">Sem despesas no periodo</div>
         <% } else { %>
           <div class="h-72">
             <canvas id="expensePieChart"></canvas>
@@ -63,13 +48,13 @@
         <% } %>
       </div>
 
-      <div class="bg-white rounded-2xl border border-brand-purple-100 shadow-sm p-6">
+      <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-5">
         <div class="flex items-center justify-between mb-4">
-          <h2 class="text-lg font-bold text-gray-900">Evolucao de Saldo</h2>
-          <span class="text-xs font-medium text-brand-purple bg-brand-purple-50 px-2 py-1 rounded-full">Linha</span>
+          <h2 class="text-lg font-semibold text-slate-900">Evolucao de saldo</h2>
+          <span class="text-xs font-medium text-blue-700 bg-blue-50 border border-blue-100 px-2 py-1 rounded-full">Linha</span>
         </div>
         <% if (safeMonthlyBalanceData.length === 0) { %>
-          <div class="h-72 flex items-center justify-center text-gray-500 text-sm">Sem historico suficiente</div>
+          <div class="h-72 flex items-center justify-center text-slate-500 text-sm">Sem historico suficiente</div>
         <% } else { %>
           <div class="h-72">
             <canvas id="balanceLineChart"></canvas>
@@ -78,25 +63,25 @@
       </div>
     </div>
 
-    <div class="bg-white rounded-2xl border border-brand-purple-100 shadow-sm p-6">
+    <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-5">
       <div class="flex items-center justify-between mb-4">
-        <h2 class="text-lg font-bold text-gray-900">Ranking de Categorias</h2>
-        <span class="text-sm font-semibold text-gray-600">Total: <%= formatCurrency(totalExpenses) %></span>
+        <h2 class="text-lg font-semibold text-slate-900">Ranking de categorias</h2>
+        <span class="text-sm font-semibold text-slate-600">Total: <%= formatCurrency(totalExpenses) %></span>
       </div>
       <% if (safeExpenseCategoryReport.length === 0) { %>
-        <p class="text-sm text-gray-500">Nenhum gasto no periodo para montar ranking.</p>
+        <p class="text-sm text-slate-500">Nenhum gasto no periodo para montar ranking.</p>
       <% } else { %>
         <div class="space-y-2">
           <% safeExpenseCategoryReport.forEach((item, index) => { %>
-            <div class="flex items-center justify-between rounded-xl border border-gray-100 bg-slate-50 px-4 py-3">
+            <div class="flex items-center justify-between rounded-lg border border-slate-200 bg-slate-50 px-4 py-3">
               <div class="min-w-0">
-                <p class="text-sm font-semibold text-gray-800 truncate flex items-center gap-2">
+                <p class="text-sm font-semibold text-slate-800 truncate flex items-center gap-2">
                   <span class="inline-block w-2.5 h-2.5 rounded-full" style="background-color: <%= item.color %>;"></span>
                   <span><%= index + 1 %>. <%= item.name %></span>
                 </p>
-                <p class="text-xs text-gray-500"><%= item.percentage.toFixed(1) %>% do total</p>
+                <p class="text-xs text-slate-500"><%= item.percentage.toFixed(1) %>% do total</p>
               </div>
-              <p class="text-sm font-bold text-gray-900 ml-3"><%= formatCurrency(item.total) %></p>
+              <p class="text-sm font-semibold text-slate-900 ml-3"><%= formatCurrency(item.total) %></p>
             </div>
           <% }); %>
         </div>
@@ -125,10 +110,10 @@
             labels: expenseCategoryReportServer.map(function(item) { return item.name; }),
             datasets: [{
               data: expenseCategoryReportServer.map(function(item) { return Number(item.total) || 0; }),
-              backgroundColor: expenseCategoryReportServer.map(function(item) { return item.color || '#8A05BE'; }),
+              backgroundColor: expenseCategoryReportServer.map(function(item) { return item.color || '#00C9A7'; }),
               borderColor: '#ffffff',
               borderWidth: 2,
-              hoverOffset: 8
+              hoverOffset: 6
             }]
           },
           options: {
@@ -137,7 +122,7 @@
             plugins: {
               legend: {
                 position: 'bottom',
-                labels: { usePointStyle: true, boxWidth: 8, padding: 16 }
+                labels: { usePointStyle: true, boxWidth: 8, padding: 14 }
               },
               tooltip: {
                 callbacks: {
@@ -164,14 +149,15 @@
             datasets: [{
               label: 'Saldo',
               data: monthlyBalanceDataServer.map(function(item) { return Number(item.balance) || 0; }),
-              borderColor: '#8A05BE',
-              backgroundColor: 'rgba(138, 5, 190, 0.12)',
-              pointBackgroundColor: monthlyBalanceDataServer.map(function(item) { return (Number(item.balance) || 0) < 0 ? '#ef4444' : '#8A05BE'; }),
+              borderColor: '#00C9A7',
+              backgroundColor: 'rgba(0, 201, 167, 0.12)',
+              pointBackgroundColor: monthlyBalanceDataServer.map(function(item) { return (Number(item.balance) || 0) < 0 ? '#ef4444' : '#00C9A7'; }),
               pointBorderColor: '#ffffff',
-              pointBorderWidth: 2,
-              pointRadius: 4,
+              pointBorderWidth: 1,
+              pointRadius: 3,
+              borderWidth: 2,
               fill: true,
-              tension: 0.35
+              tension: 0.3
             }]
           },
           options: {

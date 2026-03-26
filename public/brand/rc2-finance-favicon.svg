@@ -1,0 +1,13 @@
+﻿<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-labelledby="title desc">
+  <title id="title">RC2 Finance Favicon</title>
+  <desc id="desc">Favicon RC2 flat.</desc>
+  <defs>
+    <linearGradient id="rc2Gradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#22C55E"/>
+      <stop offset="55%" stop-color="#14B8A6"/>
+      <stop offset="100%" stop-color="#0EA5E9"/>
+    </linearGradient>
+  </defs>
+  <rect x="2.5" y="2.5" width="59" height="59" rx="14" fill="none" stroke="url(#rc2Gradient)" stroke-width="3"/>
+  <text x="32" y="41" text-anchor="middle" fill="url(#rc2Gradient)" font-family="Georgia, 'Times New Roman', serif" font-size="24" font-weight="700" letter-spacing="-1">RC2</text>
+</svg>

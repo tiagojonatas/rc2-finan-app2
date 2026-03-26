@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="pt-BR">
 <head>
   <meta charset="UTF-8" />
@@ -19,7 +19,7 @@
       <form action="/categories/edit/<%= category.id %>" method="POST" class="space-y-4">
         <div>
           <label for="name" class="block text-sm font-medium text-gray-700 mb-1">Nome</label>
-          <input id="name" name="name" type="text" value="<%= category.name %>" required class="w-full rounded-xl border border-gray-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-purple-300 focus:border-[#8A05BE]" />
+          <input id="name" name="name" type="text" value="<%= category.name %>" required class="w-full rounded-xl border border-gray-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-cyan-300 focus:border-[#00C9A7]" />
         </div>
 
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -31,12 +31,12 @@
           </div>
           <div>
             <label for="color" class="block text-sm font-medium text-gray-700 mb-1">Cor</label>
-            <input id="color" name="color" type="color" value="<%= category.color || '#8A05BE' %>" class="w-full h-10 rounded-xl border border-gray-300 px-1 py-1" />
+            <input id="color" name="color" type="color" value="<%= category.color || '#00C9A7' %>" class="w-full h-10 rounded-xl border border-gray-300 px-1 py-1" />
           </div>
         </div>
 
         <div class="pt-2 flex gap-3">
-          <button type="submit" class="bg-[#8A05BE] hover:bg-[#6A047E] text-white py-2 px-5 rounded-xl">Salvar</button>
+          <button type="submit" class="bg-[#00C9A7] hover:bg-[#2563EB] text-white py-2 px-5 rounded-xl">Salvar</button>
           <a href="/categories" class="bg-white border border-gray-300 text-gray-700 py-2 px-5 rounded-xl hover:bg-gray-50">Cancelar</a>
         </div>
       </form>
@@ -44,3 +44,4 @@
   </div>
 </body>
 </html>
+

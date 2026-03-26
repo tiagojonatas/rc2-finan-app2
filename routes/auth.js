@@ -1,4 +1,4 @@
-const express = require('express');
+﻿const express = require('express');
 const bcrypt = require('bcrypt');
 const db = require('../db');
 const router = express.Router();
@@ -276,7 +276,7 @@ router.get('/dashboard', requireAuth, async (req, res) => {
     transactions.forEach((transaction) => {
       if (transaction.type !== 'expense') return;
       const categoryName = (transaction.category_name || 'Outros').trim() || 'Outros';
-      const categoryColor = transaction.category_color || '#8A05BE';
+      const categoryColor = transaction.category_color || '#00C9A7';
       const current = expenseCategoryMap.get(categoryName) || { total: 0, color: categoryColor };
       current.total += parseFloat(transaction.amount || 0);
       if (!current.color && categoryColor) current.color = categoryColor;
@@ -287,7 +287,7 @@ router.get('/dashboard', requireAuth, async (req, res) => {
       .map(([name, info]) => ({
         name,
         total: info.total,
-        color: info.color || '#8A05BE',
+        color: info.color || '#00C9A7',
         percentage: totalExpenses > 0 ? (info.total / totalExpenses) * 100 : 0
       }))
       .sort((a, b) => b.total - a.total);
@@ -486,3 +486,4 @@ router.get('/dashboard', requireAuth, async (req, res) => {
 });
 
 module.exports = router;
+

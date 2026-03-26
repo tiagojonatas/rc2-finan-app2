@@ -1,4 +1,4 @@
-const express = require('express');
+﻿const express = require('express');
 const db = require('../db');
 
 const router = express.Router();
@@ -60,7 +60,7 @@ router.get('/', requireAuth, async (req, res) => {
       const amount = parseFloat(transaction.amount || 0);
       totalExpenses += amount;
       const categoryName = (transaction.category_name || 'Outros').trim() || 'Outros';
-      const categoryColor = transaction.category_color || '#8A05BE';
+      const categoryColor = transaction.category_color || '#00C9A7';
       const current = expenseCategoryMap.get(categoryName) || { total: 0, color: categoryColor };
       current.total += amount;
       if (!current.color && categoryColor) current.color = categoryColor;
@@ -71,7 +71,7 @@ router.get('/', requireAuth, async (req, res) => {
       .map(([name, info]) => ({
         name,
         total: info.total,
-        color: info.color || '#8A05BE',
+        color: info.color || '#00C9A7',
         percentage: totalExpenses > 0 ? (info.total / totalExpenses) * 100 : 0
       }))
       .sort((a, b) => b.total - a.total);
@@ -119,3 +119,4 @@ router.get('/', requireAuth, async (req, res) => {
 });
 
 module.exports = router;
+

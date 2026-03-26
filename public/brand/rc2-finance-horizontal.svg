@@ -1,0 +1,25 @@
+﻿<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 320" role="img" aria-labelledby="title desc">
+  <title id="title">RC2 Finance Logo Horizontal</title>
+  <desc id="desc">Logo RC2 Finance flat, sem fundo, inspirada na marca original.</desc>
+  <defs>
+    <linearGradient id="rc2Gradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#22C55E"/>
+      <stop offset="55%" stop-color="#14B8A6"/>
+      <stop offset="100%" stop-color="#0EA5E9"/>
+    </linearGradient>
+  </defs>
+
+  <g fill="none" stroke="url(#rc2Gradient)" stroke-width="12" stroke-linecap="round">
+    <path d="M26 92H84"/>
+    <path d="M16 124H74"/>
+    <circle cx="88" cy="124" r="7" fill="url(#rc2Gradient)" stroke="none"/>
+  </g>
+
+  <text x="92" y="175" fill="url(#rc2Gradient)" font-family="Georgia, 'Times New Roman', serif" font-size="180" font-weight="700" letter-spacing="-3">
+    RC2
+  </text>
+
+  <text x="532" y="154" fill="#0F172A" font-family="Sora, Poppins, Montserrat, Arial, sans-serif" font-size="74" font-weight="700" letter-spacing="0.2">
+    Finance
+  </text>
+</svg>
