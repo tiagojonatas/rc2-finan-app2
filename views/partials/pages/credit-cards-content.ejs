@@ -1,0 +1,72 @@
+<div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-8">
+  <div>
+    <h1 class="text-2xl sm:text-3xl font-semibold text-white">Meus Cartoes</h1>
+    <p class="text-sm text-gray-400 mt-1">Gerencie limites, vencimentos e compras.</p>
+  </div>
+  <a href="/credit-cards/add" class="min-h-[44px] inline-flex items-center bg-[#00C9A7] hover:bg-[#009e83] text-white font-medium py-2 px-4 rounded-lg transition-all duration-200">
+    + Novo cartao
+  </a>
+</div>
+
+<% if (error) { %>
+  <div class="mb-6 rounded-xl border border-rose-800 bg-rose-900/30 text-rose-300 px-4 py-3"><%= error %></div>
+<% } %>
+
+<% if (success) { %>
+  <div class="mb-6 rounded-xl border border-emerald-800 bg-emerald-900/30 text-emerald-300 px-4 py-3"><%= success %></div>
+<% } %>
+
+<% if (cards.length === 0) { %>
+  <div class="text-center py-14 bg-gray-900 rounded-xl border border-gray-800 shadow-md">
+    <h3 class="text-lg font-semibold text-white mb-2">Nenhum cartao cadastrado</h3>
+    <p class="text-gray-400 mb-5">Adicione seu primeiro cartao para acompanhar despesas e limite.</p>
+    <a href="/credit-cards/add" class="inline-flex min-h-[44px] items-center bg-[#00C9A7] hover:bg-[#009e83] text-white font-medium py-2 px-5 rounded-lg transition-all duration-200">
+      Adicionar cartao
+    </a>
+  </div>
+<% } else { %>
+  <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
+    <% cards.forEach(card => { %>
+      <div class="bg-gray-900 rounded-xl border border-gray-800 shadow-md hover:shadow-lg transition-shadow overflow-hidden">
+        <div class="p-5 border-b border-gray-800">
+          <div class="flex items-start justify-between gap-3 mb-4">
+            <div>
+              <p class="text-xs uppercase tracking-wide text-gray-400 mb-1">Cartao de credito</p>
+              <h3 class="text-xl font-semibold text-white"><%= card.name %></h3>
+            </div>
+            <span class="inline-flex items-center rounded-full bg-emerald-900/40 text-emerald-300 text-xs px-2.5 py-1 border border-emerald-700">Ativo</span>
+          </div>
+          <p class="text-xs text-gray-400 mb-1">Limite total</p>
+          <p class="text-2xl font-semibold text-white"><%= formatCurrency(card.limit_amount) %></p>
+          <div class="mt-4 grid grid-cols-2 gap-3 text-sm">
+            <div class="rounded-lg bg-gray-950 border border-gray-800 px-3 py-2">
+              <p class="text-gray-400 text-xs">Fechamento</p>
+              <p class="font-semibold text-gray-200">Dia <%= card.closing_day %></p>
+            </div>
+            <div class="rounded-lg bg-gray-950 border border-gray-800 px-3 py-2">
+              <p class="text-gray-400 text-xs">Vencimento</p>
+              <p class="font-semibold text-gray-200">Dia <%= card.due_day %></p>
+            </div>
+          </div>
+        </div>
+
+        <div class="p-4 flex flex-wrap gap-2">
+          <a href="/credit-cards/<%= card.id %>/transactions" class="min-h-[44px] inline-flex items-center justify-center px-3 py-2 rounded-lg bg-gray-950 hover:bg-gray-800 text-gray-300 text-sm font-medium border border-gray-700">
+            Transacoes
+          </a>
+          <a href="/credit-cards/<%= card.id %>/add-transaction" class="min-h-[44px] inline-flex items-center justify-center px-3 py-2 rounded-lg bg-emerald-900/40 hover:bg-emerald-900/60 text-emerald-300 text-sm font-medium border border-emerald-800">
+            + Compra
+          </a>
+          <a href="/credit-cards/edit/<%= card.id %>" class="min-h-[44px] inline-flex items-center justify-center px-3 py-2 rounded-lg bg-sky-900/30 hover:bg-sky-900/50 text-sky-300 text-sm font-medium border border-sky-800">
+            Editar
+          </a>
+          <form action="/credit-cards/delete/<%= card.id %>" method="POST" class="inline" onsubmit="return confirm('Tem certeza que deseja excluir este cartao?');">
+            <button type="submit" class="min-h-[44px] px-3 py-2 rounded-lg bg-rose-900/30 hover:bg-rose-900/50 text-rose-300 text-sm font-medium border border-rose-800">
+              Excluir
+            </button>
+          </form>
+        </div>
+      </div>
+    <% }); %>
+  </div>
+<% } %>

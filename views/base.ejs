@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title><%= typeof pageTitle !== 'undefined' ? pageTitle : 'RC2 Finance' %></title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <% if (typeof includeChartJs !== 'undefined' && includeChartJs) { %>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <% } %>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Inter', 'system-ui', 'sans-serif']
+          },
+          colors: {
+            brand: {
+              500: '#00C9A7',
+              600: '#009e83'
+            },
+            'brand-purple': '#00C9A7',
+            'brand-cyan-light': '#3A86FF',
+            'brand-cyan-dark': '#009e83',
+            'brand-cyan-50': '#ecfeff',
+            'brand-cyan-100': '#cffafe',
+            'brand-cyan-200': '#a5f3fc'
+          }
+        }
+      }
+    };
+  </script>
+  <style>
+    body {
+      background: linear-gradient(135deg, #0f172a 0%, #111827 55%, #020617 100%);
+      min-height: 100vh;
+    }
+    .glass-card {
+      background: #111827;
+      color: #ffffff;
+      border: 1px solid #1f2937;
+      border-radius: 0.75rem;
+      padding: 1.5rem;
+      box-shadow: 0 4px 14px rgba(0, 0, 0, 0.28);
+    }
+    .glass-card:hover {
+      box-shadow: 0 10px 24px rgba(0, 0, 0, 0.34);
+    }
+    .toast-enter {
+      opacity: 0;
+      transform: translateY(8px) scale(0.98);
+    }
+    .toast-show {
+      opacity: 1;
+      transform: translateY(0) scale(1);
+    }
+    .tx-highlight {
+      animation: txPulse 1.1s ease-out;
+    }
+    @keyframes txPulse {
+      0% { background-color: rgba(0, 201, 167, 0.18); }
+      100% { background-color: transparent; }
+    }
+  </style>
+</head>
+<body class="font-sans text-gray-200">
+  <% const activePath = typeof currentPath !== 'undefined' ? currentPath : ''; %>
+  <% const hasHeader = !(typeof hideHeader !== 'undefined' && hideHeader); %>
+  <% const navClass = (path) => activePath === path
+    ? 'bg-brand-500/20 text-brand-500 border border-brand-500/40'
+    : 'bg-gray-900 text-gray-300 border border-gray-700 hover:bg-gray-800'; %>
+
+  <% if (hasHeader) { %>
+    <header class="border-b border-gray-800 bg-gray-950/80 backdrop-blur supports-[backdrop-filter]:bg-gray-950/60">
+      <div class="max-w-6xl mx-auto px-4 py-3 flex items-center justify-between gap-3">
+        <div class="flex items-center gap-3">
+          <img src="/brand/rc2-finance-horizontal.svg" alt="RC2 Finance" class="h-9 sm:h-10 w-auto" />
+          <p class="text-xs text-gray-400 hidden sm:block">by RC2 Tecnologia</p>
+        </div>
+        <nav class="hidden md:flex items-center gap-2">
+          <a href="/dashboard" class="min-h-[40px] inline-flex items-center rounded-lg px-3 py-2 text-sm transition-all duration-200 <%= navClass('/dashboard') %>">Visao Geral</a>
+          <a href="/credit-cards" class="min-h-[40px] inline-flex items-center rounded-lg px-3 py-2 text-sm transition-all duration-200 <%= navClass('/credit-cards') %>">Cartoes</a>
+          <a href="/reports" class="min-h-[40px] inline-flex items-center rounded-lg px-3 py-2 text-sm transition-all duration-200 <%= navClass('/reports') %>">Relatorios</a>
+          <a href="/categories" class="min-h-[40px] inline-flex items-center rounded-lg px-3 py-2 text-sm transition-all duration-200 <%= navClass('/categories') %>">Categorias</a>
+          <a href="/fixed-expenses" class="min-h-[40px] inline-flex items-center rounded-lg px-3 py-2 text-sm transition-all duration-200 <%= navClass('/fixed-expenses') %>">Fixas</a>
+        </nav>
+        <form action="/logout" method="POST">
+          <button type="submit" class="min-h-[40px] inline-flex items-center rounded-lg px-3 py-2 text-sm bg-gray-900 text-gray-300 border border-gray-700 hover:bg-gray-800 transition-all duration-200">
+            Sair
+          </button>
+        </form>
+      </div>
+    </header>
+  <% } %>
+
+  <main class="max-w-6xl mx-auto px-4 py-6 <%= typeof mainClass !== 'undefined' ? mainClass : 'space-y-6' %>">
+    <%- include(contentPartial) %>
+  </main>
+</body>
+</html>

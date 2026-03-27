@@ -1,0 +1,42 @@
+<div class="flex flex-wrap items-center justify-between gap-3 mb-8">
+  <h1 class="text-3xl font-bold text-white">Categorias</h1>
+  <a href="/categories/add" class="bg-[#00C9A7] hover:bg-[#009e83] text-white py-2 px-4 rounded-xl transition-all duration-200 min-h-[44px] inline-flex items-center">+ Nova categoria</a>
+</div>
+
+<% if (error) { %>
+  <div class="mb-4 rounded-xl border border-rose-800 bg-rose-900/30 text-rose-300 px-4 py-3"><%= error %></div>
+<% } %>
+
+<div class="bg-gray-900 rounded-2xl border border-gray-800 overflow-hidden shadow-md">
+  <div class="grid grid-cols-12 px-5 py-3 bg-gray-950 border-b border-gray-800 text-xs font-semibold uppercase tracking-wide text-gray-400">
+    <div class="col-span-5">Nome</div>
+    <div class="col-span-3">Tipo</div>
+    <div class="col-span-2 text-center">Cor</div>
+    <div class="col-span-2 text-right">Acoes</div>
+  </div>
+  <% if (!categories || categories.length === 0) { %>
+    <div class="p-8 text-center text-gray-400">Nenhuma categoria cadastrada</div>
+  <% } %>
+  <% categories.forEach((category, index) => { %>
+    <div class="grid grid-cols-12 items-center px-5 py-4 <%= index < categories.length - 1 ? 'border-b border-gray-800' : '' %>">
+      <div class="col-span-5 font-semibold text-gray-100"><%= category.name %></div>
+      <div class="col-span-3">
+        <span class="inline-flex px-2 py-1 rounded-full text-xs font-semibold <%= category.type === 'income' ? 'bg-emerald-900/40 text-emerald-300 border border-emerald-800' : 'bg-rose-900/40 text-rose-300 border border-rose-800' %>">
+          <%= category.type === 'income' ? 'Entrada' : 'Despesa' %>
+        </span>
+      </div>
+      <div class="col-span-2 flex justify-center">
+        <span class="inline-flex items-center gap-2 text-xs font-semibold text-gray-300">
+          <span class="w-4 h-4 rounded-full border border-gray-700 shadow-sm" style="background-color: <%= category.color %>;"></span>
+          <%= category.color %>
+        </span>
+      </div>
+      <div class="col-span-2 flex justify-end gap-2">
+        <a href="/categories/edit/<%= category.id %>" class="text-xs px-3 py-1.5 rounded-lg bg-gray-950 hover:bg-gray-800 text-gray-300 border border-gray-700">Editar</a>
+        <form action="/categories/delete/<%= category.id %>" method="POST" onsubmit="return confirm('Excluir categoria?');">
+          <button type="submit" class="text-xs px-3 py-1.5 rounded-lg bg-rose-900/30 hover:bg-rose-900/50 text-rose-300 border border-rose-800">Excluir</button>
+        </form>
+      </div>
+    </div>
+  <% }); %>
+</div>

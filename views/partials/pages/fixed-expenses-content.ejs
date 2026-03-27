@@ -1,0 +1,57 @@
+<div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-8">
+  <div>
+    <h1 class="text-2xl sm:text-3xl font-semibold text-white">Despesas Fixas</h1>
+    <p class="text-sm text-gray-400 mt-1">Gerencie recorrencias mensais sem duplicar transacoes.</p>
+  </div>
+  <a href="/fixed-expenses/add" class="min-h-[44px] inline-flex items-center bg-[#00C9A7] hover:bg-[#009e83] text-white py-2 px-4 rounded-lg transition-all duration-200">+ Nova fixa</a>
+</div>
+
+<% if (error) { %>
+  <div class="mb-4 rounded-xl border border-rose-800 bg-rose-900/30 text-rose-300 px-4 py-3"><%= error %></div>
+<% } %>
+
+<% if (success) { %>
+  <div class="mb-4 rounded-xl border border-emerald-800 bg-emerald-900/30 text-emerald-300 px-4 py-3"><%= success %></div>
+<% } %>
+
+<% if (!expenses || expenses.length === 0) { %>
+  <div class="rounded-xl border border-gray-800 bg-gray-900 p-10 text-center shadow-md">
+    <h2 class="text-xl font-semibold text-white mb-2">Nenhuma despesa fixa cadastrada</h2>
+    <p class="text-gray-400 mb-6">Cadastre suas recorrencias para prever melhor o orcamento.</p>
+    <a href="/fixed-expenses/add" class="inline-flex min-h-[44px] items-center bg-[#00C9A7] hover:bg-[#009e83] text-white py-2 px-5 rounded-lg transition-all duration-200">Cadastrar agora</a>
+  </div>
+<% } else { %>
+  <div class="bg-gray-900 rounded-xl border border-gray-800 overflow-hidden shadow-md">
+    <div class="hidden md:grid grid-cols-12 gap-2 px-5 py-3 bg-gray-950 border-b border-gray-800 text-xs font-semibold uppercase tracking-wide text-gray-400">
+      <div class="col-span-4">Descricao</div>
+      <div class="col-span-2 text-right">Valor</div>
+      <div class="col-span-2 text-center">Vencimento</div>
+      <div class="col-span-2 text-center">Status</div>
+      <div class="col-span-2 text-right">Acoes</div>
+    </div>
+
+    <% expenses.forEach((expense, index) => { %>
+      <div class="grid grid-cols-1 md:grid-cols-12 gap-2 items-start md:items-center px-5 py-4 <%= index < expenses.length - 1 ? 'border-b border-gray-800' : '' %> hover:bg-gray-950 transition-all duration-200">
+        <div class="md:col-span-4">
+          <p class="font-semibold text-gray-100"><%= expense.description %></p>
+          <p class="text-xs text-gray-400">Categoria ID: <%= expense.category_id || '-' %></p>
+        </div>
+        <div class="md:col-span-2 md:text-right font-semibold text-gray-100"><%= formatCurrency(expense.amount) %></div>
+        <div class="md:col-span-2 md:text-center text-gray-300">Dia <%= expense.due_day %></div>
+        <div class="md:col-span-2 md:text-center">
+          <% if (expense.is_active) { %>
+            <span class="inline-flex px-2 py-1 rounded-full text-xs font-semibold bg-emerald-900/40 text-emerald-300 border border-emerald-800">Ativa</span>
+          <% } else { %>
+            <span class="inline-flex px-2 py-1 rounded-full text-xs font-semibold bg-gray-950 text-gray-400 border border-gray-700">Inativa</span>
+          <% } %>
+        </div>
+        <div class="md:col-span-2 flex md:justify-end gap-2">
+          <a href="/fixed-expenses/edit/<%= expense.id %>" class="min-h-[36px] inline-flex items-center text-xs px-3 py-1.5 rounded-lg bg-gray-950 hover:bg-gray-800 text-gray-300 border border-gray-700">Editar</a>
+          <form action="/fixed-expenses/delete/<%= expense.id %>" method="POST" onsubmit="return confirm('Excluir esta despesa fixa?');">
+            <button type="submit" class="min-h-[36px] text-xs px-3 py-1.5 rounded-lg bg-rose-900/30 hover:bg-rose-900/50 text-rose-300 border border-rose-800">Excluir</button>
+          </form>
+        </div>
+      </div>
+    <% }); %>
+  </div>
+<% } %>
