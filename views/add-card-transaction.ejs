@@ -37,7 +37,7 @@
           <h2 class="mt-6 text-center text-2xl font-bold text-gray-900">
             Novo Gasto
           </h2>
-          <p class="text-center text-gray-600 mt-2 text-sm">CartÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â£o: <span class="font-semibold text-brand-purple"><%= card.name %></span></p>
+          <p class="text-center text-gray-600 mt-2 text-sm">Cartao: <span class="font-semibold text-brand-purple"><%= card.name %></span></p>
         </div>
         <% if (error) { %>
           <div class="mt-4 bg-rose-50 border border-rose-200 text-rose-700 px-4 py-3 rounded-lg">
@@ -47,7 +47,7 @@
         <form class="mt-8 space-y-6" action="/credit-cards/<%= card.id %>/add-transaction" method="POST">
           <div class="space-y-4">
             <div>
-              <label for="description" class="block text-sm font-medium text-gray-700">DescriÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â§ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â£o</label>
+              <label for="description" class="block text-sm font-medium text-gray-700">Descricao</label>
               <input id="description" name="description" type="text" placeholder="Ex: Restaurante" required
                      class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#00C9A7]/30 focus:border-[#00C9A7]">
             </div>
@@ -78,7 +78,7 @@
   </div>
 
   <script>
-    // MÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¡scara de moeda brasileira para input de valor
+    // Mascara de moeda brasileira para input de valor
     const amountDisplay = document.getElementById('amountDisplay');
     const amountInput = document.getElementById('amount');
     const dateInput = document.getElementById('date');

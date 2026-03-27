@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Visao Geral - RC2 Finance</title>
   <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <script>
     tailwind.config = {
       theme: {
@@ -120,6 +121,26 @@
       </div>
     </div>
 
+    <!-- Smart Insight -->
+    <% const insight = (typeof financialInsight !== 'undefined' && financialInsight) ? financialInsight : { isHealthy: true, message: 'Voce esta dentro do seu planejamento', expenseVariationPercent: 0, expenseVariationDirection: 'stable', previousMonthLabel: '' }; %>
+    <div class="bg-[#111827] text-white rounded-xl p-6 shadow-md border <%= insight.isHealthy ? 'border-emerald-800' : 'border-rose-800' %>">
+      <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+        <div>
+          <p class="text-xs uppercase tracking-wide <%= insight.isHealthy ? 'text-emerald-300' : 'text-rose-300' %>">Insight automatico</p>
+          <p class="text-base sm:text-lg font-semibold mt-1">
+            <%= insight.message %> <%= insight.isHealthy ? '✔' : '⚠' %>
+          </p>
+        </div>
+        <div class="text-sm">
+          <p class="text-gray-400">Vs. <%= insight.previousMonthLabel || 'mes anterior' %></p>
+          <p class="font-semibold <%= insight.expenseVariationDirection === 'up' ? 'text-rose-300' : insight.expenseVariationDirection === 'down' ? 'text-emerald-300' : 'text-gray-300' %>">
+            <% if (insight.expenseVariationDirection === 'up') { %>+<% } %><%= Math.abs(insight.expenseVariationPercent || 0).toFixed(1) %>%
+            em gastos
+          </p>
+        </div>
+      </div>
+    </div>
+
     <!-- Monthly Summary -->
     <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
       <div class="bg-[#111827] text-white rounded-xl p-6 shadow-md border border-gray-800">
@@ -188,21 +209,32 @@
         <% } else { %>
           <div class="p-6">
             <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-              <div class="rounded-lg border <%= summary.isRisk ? 'border-rose-700 bg-rose-900/30' : 'border-gray-800 bg-[#111827]' %> p-4">
-                <p class="text-xs uppercase tracking-wide mb-1 <%= summary.isRisk ? 'text-rose-600' : 'text-brand-purple' %>">Fatura Atual</p>
-                <p class="text-2xl font-bold <%= summary.isRisk ? 'text-rose-700' : 'text-white' %>"><%= formatCurrency(summary.currentInvoice) %></p>
+              <div class="rounded-lg border border-gray-800 bg-[#111827] p-4">
+                <p class="text-xs uppercase tracking-wide mb-1 text-gray-400">Limite total</p>
+                <p class="text-xl font-bold text-white"><%= formatCurrency(summary.totalLimit) %></p>
               </div>
 
               <div class="rounded-lg border border-gray-800 bg-[#111827] p-4">
+                <p class="text-xs uppercase tracking-wide mb-1 text-gray-400">Valor usado</p>
+                <p class="text-xl font-bold <%= summary.isRisk ? 'text-rose-300' : 'text-white' %>"><%= formatCurrency(summary.currentInvoice) %></p>
+              </div>
+
+              <div class="rounded-lg border border-gray-800 bg-[#111827] p-4">
+                <p class="text-xs uppercase tracking-wide mb-1 text-gray-400">Disponivel</p>
+                <p class="text-xl font-bold text-emerald-300"><%= formatCurrency(summary.availableLimit) %></p>
+              </div>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+              <div class="rounded-lg border border-gray-800 bg-[#111827] p-4">
                 <p class="text-xs uppercase tracking-wide mb-1 text-gray-400">Fechamento</p>
-                <p class="text-xl font-bold text-white">
+                <p class="text-lg font-bold text-white">
                   <%= summary.nextClosingDate ? formatDate(summary.nextClosingDate) : '-' %>
                 </p>
               </div>
-
               <div class="rounded-lg border border-gray-800 bg-[#111827] p-4">
                 <p class="text-xs uppercase tracking-wide mb-1 text-gray-400">Vencimento</p>
-                <p class="text-xl font-bold text-white">
+                <p class="text-lg font-bold text-white">
                   <%= summary.nextDueDate ? formatDate(summary.nextDueDate) : '-' %>
                 </p>
               </div>
@@ -344,6 +376,46 @@
       <% } %>
     </div>
 
+    <!-- Expense Categories -->
+    <% const safeExpenseCategories = Array.isArray(expenseCategoryReport) ? expenseCategoryReport : []; %>
+    <div class="bg-[#111827] text-white rounded-xl p-6 shadow-md border border-gray-800">
+      <div class="flex items-center justify-between mb-5">
+        <h2 class="text-xl font-semibold text-white">Gastos por categoria</h2>
+        <span class="text-xs text-gray-400">Mes atual</span>
+      </div>
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div class="rounded-xl border border-gray-800 p-4 bg-[#0f172a] min-h-[260px] flex items-center justify-center">
+          <% if (safeExpenseCategories.length > 0) { %>
+            <canvas id="expenseCategoryChart" class="max-h-[280px]"></canvas>
+          <% } else { %>
+            <p class="text-sm text-gray-400">Sem despesas para exibir no grafico.</p>
+          <% } %>
+        </div>
+        <div class="rounded-xl border border-gray-800 p-4 bg-[#0f172a]">
+          <h3 class="text-sm font-semibold text-gray-300 uppercase tracking-wide mb-3">Principais categorias</h3>
+          <% if (safeExpenseCategories.length === 0) { %>
+            <p class="text-sm text-gray-400">Nenhuma categoria com gasto no periodo.</p>
+          <% } else { %>
+            <div class="space-y-2">
+              <% safeExpenseCategories.slice(0, 6).forEach((item, idx) => { %>
+                <div class="flex items-center justify-between rounded-lg border border-gray-800 px-3 py-2 bg-[#111827]">
+                  <div class="flex items-center gap-2 min-w-0">
+                    <span class="text-xs text-gray-500 w-5"><%= idx + 1 %></span>
+                    <span class="w-2.5 h-2.5 rounded-full" style="background-color: <%= item.color || '#00C9A7' %>;"></span>
+                    <p class="text-sm text-gray-200 truncate"><%= item.name %></p>
+                  </div>
+                  <div class="text-right ml-2">
+                    <p class="text-sm font-semibold text-white"><%= formatCurrency(item.total || 0) %></p>
+                    <p class="text-xs text-gray-400"><%= (item.percentage || 0).toFixed(1) %>%</p>
+                  </div>
+                </div>
+              <% }); %>
+            </div>
+          <% } %>
+        </div>
+      </div>
+    </div>
+
     <!-- Floating Action Menu -->
     <div class="fixed bottom-5 right-4 sm:bottom-6 sm:right-6 z-50 flex flex-col items-end gap-3">
       <div id="actionMenu"
@@ -398,7 +470,7 @@
     </div>
 
     <script>
-      // Mostrar mÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Â ÃƒÂ¢Ã¢â€šÂ¬Ã¢â€žÂ¢ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â‚¬Å¾Ã‚Â¢ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€¦Ã‚Â¡ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Âªs atual no dashboard
+      // Mostrar mes atual no dashboard
       document.addEventListener('DOMContentLoaded', function() {
         const currentMonthElement = document.getElementById('currentMonth');
         const selectedMonthLabel = <%- JSON.stringify(typeof selectedMonthLabel !== 'undefined' ? selectedMonthLabel : '') %>;
@@ -447,6 +519,52 @@
           cleanUrl.searchParams.delete('toast');
           cleanUrl.searchParams.delete('tx');
           window.history.replaceState({}, '', cleanUrl.pathname + cleanUrl.search + cleanUrl.hash);
+        }
+
+        const expenseCategoryChartEl = document.getElementById('expenseCategoryChart');
+        if (expenseCategoryChartEl && typeof Chart !== 'undefined') {
+          const expenseCategoryData = <%- JSON.stringify((Array.isArray(expenseCategoryReport) ? expenseCategoryReport : []).map((item) => ({
+            name: item.name,
+            total: Number(item.total || 0),
+            color: item.color || '#00C9A7'
+          }))) %>;
+
+          if (expenseCategoryData.length > 0) {
+            new Chart(expenseCategoryChartEl, {
+              type: 'pie',
+              data: {
+                labels: expenseCategoryData.map((item) => item.name),
+                datasets: [{
+                  data: expenseCategoryData.map((item) => item.total),
+                  backgroundColor: expenseCategoryData.map((item) => item.color),
+                  borderColor: '#111827',
+                  borderWidth: 2
+                }]
+              },
+              options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                  legend: {
+                    position: 'bottom',
+                    labels: {
+                      color: '#d1d5db',
+                      boxWidth: 12,
+                      padding: 12
+                    }
+                  },
+                  tooltip: {
+                    callbacks: {
+                      label: function(context) {
+                        const value = Number(context.raw || 0);
+                        return `${context.label}: ${value.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}`;
+                      }
+                    }
+                  }
+                }
+              }
+            });
+          }
         }
 
         const actionFab = document.getElementById('actionFab');

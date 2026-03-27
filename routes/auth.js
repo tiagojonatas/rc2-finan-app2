@@ -271,6 +271,48 @@ router.get('/dashboard', requireAuth, async (req, res) => {
     const totalExpensesWithFixed = totalExpenses + totalFixedExpenses;
     const balance = totalIncome - totalExpensesWithFixed;
 
+    // Insight block: current month behavior + variation vs previous month
+    const previousMonthDate = new Date(selectedYear, selectedMonthNumber - 2, 1);
+    const previousMonthKey = getMonthKey(previousMonthDate);
+    const previousStartDate = `${previousMonthKey}-01`;
+    const previousEndDate = new Date(
+      previousMonthDate.getFullYear(),
+      previousMonthDate.getMonth() + 1,
+      0
+    ).toISOString().split('T')[0];
+
+    const [previousTotals] = await db.query(
+      `SELECT
+         COALESCE(SUM(CASE WHEN type = 'income' THEN amount ELSE 0 END), 0) AS income,
+         COALESCE(SUM(CASE WHEN type = 'expense' THEN amount ELSE 0 END), 0) AS expense
+       FROM transactions
+       WHERE user_id = ? AND date BETWEEN ? AND ?`,
+      [userId, previousStartDate, previousEndDate]
+    );
+    const previousIncome = parseFloat((previousTotals[0] && previousTotals[0].income) || 0);
+    const previousExpenses = parseFloat((previousTotals[0] && previousTotals[0].expense) || 0);
+    const expenseDelta = totalExpenses - previousExpenses;
+    let expenseVariationPercent = 0;
+    if (previousExpenses > 0) {
+      expenseVariationPercent = (expenseDelta / previousExpenses) * 100;
+    } else if (totalExpenses > 0) {
+      expenseVariationPercent = 100;
+    }
+    const financialInsight = {
+      isHealthy: totalExpensesWithFixed <= totalIncome,
+      message: totalExpensesWithFixed <= totalIncome
+        ? 'Voce esta dentro do seu planejamento'
+        : 'Atencao: voce esta gastando mais do que ganha',
+      currentExpenses: totalExpensesWithFixed,
+      previousExpenses,
+      expenseVariationPercent,
+      expenseVariationDirection: expenseDelta > 0 ? 'up' : (expenseDelta < 0 ? 'down' : 'stable'),
+      previousMonthLabel: new Date(previousMonthDate.getFullYear(), previousMonthDate.getMonth(), 1).toLocaleDateString('pt-BR', {
+        month: 'long',
+        year: 'numeric'
+      })
+    };
+
     // Expense report by category (sum + percentage + ranking)
     const expenseCategoryMap = new Map();
     transactions.forEach((transaction) => {
@@ -374,6 +416,7 @@ router.get('/dashboard', requireAuth, async (req, res) => {
       hasCards: false,
       currentInvoice: 0,
       totalLimit: 0,
+      availableLimit: 0,
       usedPercent: 0,
       progressPercent: 0,
       isRisk: false,
@@ -420,6 +463,7 @@ router.get('/dashboard', requireAuth, async (req, res) => {
         hasCards: true,
         currentInvoice,
         totalLimit,
+        availableLimit: Math.max(totalLimit - currentInvoice, 0),
         usedPercent,
         progressPercent: Math.min(100, usedPercent),
         isRisk: usedPercent >= 80,
@@ -436,6 +480,7 @@ router.get('/dashboard', requireAuth, async (req, res) => {
       totalFixedExpenses: totalFixedExpenses.toFixed(2),
       monthlyProjection,
       balance: balance.toFixed(2),
+      financialInsight,
       selectedMonth,
       selectedMonthLabel,
       monthOptions,
@@ -472,6 +517,7 @@ router.get('/dashboard', requireAuth, async (req, res) => {
         hasCards: false,
         currentInvoice: 0,
         totalLimit: 0,
+        availableLimit: 0,
         usedPercent: 0,
         progressPercent: 0,
         isRisk: false,
@@ -479,6 +525,15 @@ router.get('/dashboard', requireAuth, async (req, res) => {
         nextDueDate: null
       },
       dashboardCards: [],
+      financialInsight: {
+        isHealthy: true,
+        message: 'Voce esta dentro do seu planejamento',
+        currentExpenses: 0,
+        previousExpenses: 0,
+        expenseVariationPercent: 0,
+        expenseVariationDirection: 'stable',
+        previousMonthLabel: ''
+      },
       expenseCategoryReport: [],
       monthlyBalanceData: []
     });
