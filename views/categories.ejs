@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="pt-BR">
 <head>
   <meta charset="UTF-8" />
@@ -6,13 +6,13 @@
   <title>Categorias - Sistema Financeiro</title>
   <script src="https://cdn.tailwindcss.com"></script>
 </head>
-<body class="bg-slate-100 font-sans">
+<body class="bg-[#f8fafc] font-sans">
   <div class="container mx-auto px-6 py-6 max-w-5xl">
     <div class="flex flex-wrap items-center justify-between gap-3 mb-8">
       <h1 class="text-3xl font-bold text-gray-900">Categorias</h1>
       <div class="flex gap-3">
         <a href="/dashboard" class="bg-white border border-gray-300 text-gray-700 py-2 px-4 rounded-xl hover:bg-gray-50">Dashboard</a>
-        <a href="/categories/add" class="bg-[#00C9A7] hover:bg-[#2563EB] text-white py-2 px-4 rounded-xl">+ Nova categoria</a>
+        <a href="/categories/add" class="bg-[#00C9A7] hover:bg-[#009e83] text-white py-2 px-4 rounded-xl">+ Nova categoria</a>
       </div>
     </div>
 
@@ -21,7 +21,7 @@
     <% } %>
 
     <div class="bg-white rounded-2xl border border-gray-200 overflow-hidden shadow-sm">
-      <div class="grid grid-cols-12 px-5 py-3 bg-slate-50 border-b border-gray-200 text-xs font-semibold uppercase tracking-wide text-gray-600">
+      <div class="grid grid-cols-12 px-5 py-3 bg-[#f8fafc] border-b border-gray-200 text-xs font-semibold uppercase tracking-wide text-gray-600">
         <div class="col-span-5">Nome</div>
         <div class="col-span-3">Tipo</div>
         <div class="col-span-2 text-center">Cor</div>
@@ -45,7 +45,7 @@
             </span>
           </div>
           <div class="col-span-2 flex justify-end gap-2">
-            <a href="/categories/edit/<%= category.id %>" class="text-xs px-3 py-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700">Editar</a>
+            <a href="/categories/edit/<%= category.id %>" class="text-xs px-3 py-1.5 rounded-lg bg-[#f8fafc] hover:bg-slate-200 text-slate-700">Editar</a>
             <form action="/categories/delete/<%= category.id %>" method="POST" onsubmit="return confirm('Excluir categoria?');">
               <button type="submit" class="text-xs px-3 py-1.5 rounded-lg bg-rose-50 hover:bg-rose-100 text-rose-700">Excluir</button>
             </form>

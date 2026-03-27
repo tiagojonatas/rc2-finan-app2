@@ -6,29 +6,29 @@
   <title>Transacoes do Cartao - RC2 Finance</title>
   <script src="https://cdn.tailwindcss.com"></script>
 </head>
-<body class="bg-slate-50 font-sans text-slate-900">
+<body class="bg-[#f8fafc] font-sans text-slate-900">
   <div class="container mx-auto px-4 sm:px-6 py-6 max-w-6xl">
     <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-6">
       <div>
         <a href="/credit-cards" class="text-sm text-[#00C9A7] hover:text-[#00b295] font-medium">Voltar para cartoes</a>
         <h1 class="text-2xl sm:text-3xl font-semibold text-slate-900 mt-1"><%= card.name %></h1>
       </div>
-      <a href="/credit-cards/<%= card.id %>/add-transaction" class="min-h-[44px] inline-flex items-center bg-[#00C9A7] hover:bg-[#00b295] text-white font-medium py-2 px-4 rounded-lg transition-colors">
+      <a href="/credit-cards/<%= card.id %>/add-transaction" class="min-h-[44px] inline-flex items-center bg-[#00C9A7] hover:bg-[#009e83] text-white font-medium py-2 px-4 rounded-lg transition-all duration-200">
         + Novo gasto
       </a>
     </div>
 
     <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-5 mb-6">
       <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
-        <div class="rounded-lg border border-slate-200 bg-slate-50 p-3">
+        <div class="rounded-lg border border-slate-200 bg-[#f8fafc] p-3">
           <p class="text-xs text-slate-500 mb-1">Limite total</p>
           <p class="text-xl font-semibold text-slate-900"><%= formatCurrency(card.limit_amount) %></p>
         </div>
-        <div class="rounded-lg border border-slate-200 bg-slate-50 p-3">
+        <div class="rounded-lg border border-slate-200 bg-[#f8fafc] p-3">
           <p class="text-xs text-slate-500 mb-1">Gasto no mes</p>
           <p class="text-xl font-semibold text-rose-600"><%= formatCurrency(totalThisMonth) %></p>
         </div>
-        <div class="rounded-lg border border-slate-200 bg-slate-50 p-3">
+        <div class="rounded-lg border border-slate-200 bg-[#f8fafc] p-3">
           <p class="text-xs text-slate-500 mb-1">Disponivel</p>
           <p class="text-xl font-semibold <%= availableLimit < 0 ? 'text-rose-600' : 'text-emerald-600' %>"><%= formatCurrency(availableLimit) %></p>
         </div>
@@ -53,7 +53,7 @@
         <div class="overflow-x-auto">
           <table class="w-full min-w-[720px]">
             <thead>
-              <tr class="border-b border-slate-200 bg-slate-50">
+              <tr class="border-b border-slate-200 bg-[#f8fafc]">
                 <th class="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-600">Descricao</th>
                 <th class="px-5 py-3 text-right text-xs font-semibold uppercase tracking-wide text-slate-600">Valor</th>
                 <th class="px-5 py-3 text-center text-xs font-semibold uppercase tracking-wide text-slate-600">Data</th>
@@ -62,7 +62,7 @@
             </thead>
             <tbody>
               <% transactions.forEach(transaction => { %>
-                <tr class="border-b border-slate-100 last:border-b-0 hover:bg-slate-50 transition-colors">
+                <tr class="border-b border-slate-100 last:border-b-0 hover:bg-[#f8fafc] transition-all duration-200">
                   <td class="px-5 py-4 text-sm font-medium text-slate-800"><%= transaction.description %></td>
                   <td class="px-5 py-4 text-right text-sm font-semibold text-rose-600"><%= formatCurrency(transaction.amount) %></td>
                   <td class="px-5 py-4 text-center text-sm text-slate-600"><%= formatDate(transaction.date) %></td>

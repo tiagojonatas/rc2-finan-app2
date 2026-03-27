@@ -6,7 +6,7 @@
   <title>Despesas Fixas - RC2 Finance</title>
   <script src="https://cdn.tailwindcss.com"></script>
 </head>
-<body class="bg-slate-50 font-sans text-slate-900">
+<body class="bg-[#f8fafc] font-sans text-slate-900">
   <div class="container mx-auto px-4 sm:px-6 py-6 max-w-6xl">
     <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-8">
       <div>
@@ -14,8 +14,8 @@
         <p class="text-sm text-slate-500 mt-1">Gerencie recorrencias mensais sem duplicar transacoes.</p>
       </div>
       <div class="flex gap-2 sm:gap-3">
-        <a href="/dashboard" class="min-h-[44px] inline-flex items-center bg-white border border-slate-300 text-slate-700 py-2 px-4 rounded-lg hover:bg-slate-100 transition-colors">Dashboard</a>
-        <a href="/fixed-expenses/add" class="min-h-[44px] inline-flex items-center bg-[#00C9A7] hover:bg-[#00b295] text-white py-2 px-4 rounded-lg transition-colors">+ Nova fixa</a>
+        <a href="/dashboard" class="min-h-[44px] inline-flex items-center bg-white border border-slate-300 text-slate-700 py-2 px-4 rounded-lg hover:bg-[#f8fafc] transition-all duration-200">Dashboard</a>
+        <a href="/fixed-expenses/add" class="min-h-[44px] inline-flex items-center bg-[#00C9A7] hover:bg-[#009e83] text-white py-2 px-4 rounded-lg transition-all duration-200">+ Nova fixa</a>
       </div>
     </div>
 
@@ -31,11 +31,11 @@
       <div class="rounded-xl border border-slate-200 bg-white p-10 text-center shadow-sm">
         <h2 class="text-xl font-semibold text-slate-900 mb-2">Nenhuma despesa fixa cadastrada</h2>
         <p class="text-slate-600 mb-6">Cadastre suas recorrencias para prever melhor o orcamento.</p>
-        <a href="/fixed-expenses/add" class="inline-flex min-h-[44px] items-center bg-[#00C9A7] hover:bg-[#00b295] text-white py-2 px-5 rounded-lg transition-colors">Cadastrar agora</a>
+        <a href="/fixed-expenses/add" class="inline-flex min-h-[44px] items-center bg-[#00C9A7] hover:bg-[#009e83] text-white py-2 px-5 rounded-lg transition-all duration-200">Cadastrar agora</a>
       </div>
     <% } else { %>
       <div class="bg-white rounded-xl border border-slate-200 overflow-hidden shadow-sm">
-        <div class="hidden md:grid grid-cols-12 gap-2 px-5 py-3 bg-slate-50 border-b border-slate-200 text-xs font-semibold uppercase tracking-wide text-slate-600">
+        <div class="hidden md:grid grid-cols-12 gap-2 px-5 py-3 bg-[#f8fafc] border-b border-slate-200 text-xs font-semibold uppercase tracking-wide text-slate-600">
           <div class="col-span-4">Descricao</div>
           <div class="col-span-2 text-right">Valor</div>
           <div class="col-span-2 text-center">Vencimento</div>
@@ -44,7 +44,7 @@
         </div>
 
         <% expenses.forEach((expense, index) => { %>
-          <div class="grid grid-cols-1 md:grid-cols-12 gap-2 items-start md:items-center px-5 py-4 <%= index < expenses.length - 1 ? 'border-b border-slate-100' : '' %> hover:bg-slate-50 transition-colors">
+          <div class="grid grid-cols-1 md:grid-cols-12 gap-2 items-start md:items-center px-5 py-4 <%= index < expenses.length - 1 ? 'border-b border-slate-100' : '' %> hover:bg-[#f8fafc] transition-all duration-200">
             <div class="md:col-span-4">
               <p class="font-semibold text-slate-900"><%= expense.description %></p>
               <p class="text-xs text-slate-500">Categoria ID: <%= expense.category_id || '-' %></p>
@@ -55,11 +55,11 @@
               <% if (expense.is_active) { %>
                 <span class="inline-flex px-2 py-1 rounded-full text-xs font-semibold bg-emerald-100 text-emerald-700">Ativa</span>
               <% } else { %>
-                <span class="inline-flex px-2 py-1 rounded-full text-xs font-semibold bg-slate-100 text-slate-600">Inativa</span>
+                <span class="inline-flex px-2 py-1 rounded-full text-xs font-semibold bg-[#f8fafc] text-slate-600">Inativa</span>
               <% } %>
             </div>
             <div class="md:col-span-2 flex md:justify-end gap-2">
-              <a href="/fixed-expenses/edit/<%= expense.id %>" class="min-h-[36px] inline-flex items-center text-xs px-3 py-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700">Editar</a>
+              <a href="/fixed-expenses/edit/<%= expense.id %>" class="min-h-[36px] inline-flex items-center text-xs px-3 py-1.5 rounded-lg bg-[#f8fafc] hover:bg-slate-200 text-slate-700">Editar</a>
               <form action="/fixed-expenses/delete/<%= expense.id %>" method="POST" onsubmit="return confirm('Excluir esta despesa fixa?');">
                 <button type="submit" class="min-h-[36px] text-xs px-3 py-1.5 rounded-lg bg-rose-50 hover:bg-rose-100 text-rose-700">Excluir</button>
               </form>

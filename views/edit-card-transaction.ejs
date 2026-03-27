@@ -13,10 +13,10 @@
             'sans': ['Inter', 'system-ui', 'sans-serif'],
           },
           colors: {
-            'custom-bg': '#f5f6fa',
+            'custom-bg': '#f8fafc',
             'brand-purple': '#00C9A7',
-            'brand-cyan-dark': '#2563EB',
-            'brand-cyan-50': '#111827',
+            'brand-cyan-dark': '#009e83',
+            'brand-cyan-50': '#f0fdfa',
           }
         }
       }
@@ -24,7 +24,7 @@
   </script>
   <style>
     body {
-      background-color: #f5f6fa;
+      background-color: #f8fafc;
       font-family: 'Inter', system-ui, sans-serif;
     }
   </style>
@@ -37,7 +37,7 @@
           <h2 class="mt-6 text-center text-2xl font-bold text-gray-900">
             Editar Gasto
           </h2>
-          <p class="text-center text-gray-600 mt-2 text-sm">CartÃ£o: <span class="font-semibold text-brand-purple"><%= card.name %></span></p>
+          <p class="text-center text-gray-600 mt-2 text-sm">CartÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â£o: <span class="font-semibold text-brand-purple"><%= card.name %></span></p>
         </div>
         <% if (error) { %>
           <div class="mt-4 bg-rose-50 border border-rose-200 text-rose-700 px-4 py-3 rounded-lg">
@@ -47,7 +47,7 @@
         <form class="mt-8 space-y-6" action="/credit-cards/<%= card.id %>/edit-transaction/<%= transaction.id %>" method="POST">
           <div class="space-y-4">
             <div>
-              <label for="description" class="block text-sm font-medium text-gray-700">DescriÃ§Ã£o</label>
+              <label for="description" class="block text-sm font-medium text-gray-700">DescriÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â§ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â£o</label>
               <input id="description" name="description" type="text" value="<%= transaction.description %>" required
                      class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#00C9A7]/30 focus:border-[#00C9A7]">
             </div>
@@ -65,10 +65,10 @@
           </div>
 
           <div class="flex space-x-3">
-            <button type="submit" class="flex-1 flex justify-center py-3 px-4 border border-transparent rounded-lg shadow-sm text-sm font-medium text-white bg-[#00C9A7] hover:bg-[#00b295] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#00C9A7]/40 transition duration-200">
+            <button type="submit" class="flex-1 flex justify-center py-3 px-4 border border-transparent rounded-lg shadow-sm text-sm font-medium text-white bg-[#00C9A7] hover:bg-[#009e83] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#00C9A7]/40 transition-all duration-200">
               Salvar
             </button>
-            <a href="/credit-cards/<%= card.id %>/transactions" class="flex-1 flex justify-center py-3 px-4 border border-gray-300 rounded-lg shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#00C9A7]/40 transition duration-200">
+            <a href="/credit-cards/<%= card.id %>/transactions" class="flex-1 flex justify-center py-3 px-4 border border-gray-300 rounded-lg shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#00C9A7]/40 transition-all duration-200">
               Cancelar
             </a>
           </div>
@@ -78,7 +78,7 @@
   </div>
 
   <script>
-    // MÃ¡scara de moeda brasileira para input de valor
+    // MÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¡scara de moeda brasileira para input de valor
     const amountDisplay = document.getElementById('amountDisplay');
     const amountInput = document.getElementById('amount');
 

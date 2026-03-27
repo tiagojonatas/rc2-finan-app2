@@ -16,7 +16,7 @@
             'custom-bg': '#0F172A',
             'brand-purple': '#00C9A7',
             'brand-cyan-light': '#3A86FF',
-            'brand-cyan-dark': '#2563EB',
+            'brand-cyan-dark': '#009e83',
             'brand-cyan-50': '#ecfeff',
             'brand-cyan-100': '#cffafe',
             'brand-cyan-200': '#a5f3fc',
@@ -74,11 +74,11 @@
         <p class="text-xs text-slate-500 hidden sm:block">by RC2 Tecnologia</p>
       </div>
       <div class="flex items-center gap-2 sm:gap-3">
-        <a href="/credit-cards" class="header-glass-btn min-h-[44px] hover:bg-gray-100 text-brand-purple font-medium py-2 px-3 sm:px-4 rounded-xl transition-all duration-150 hover:scale-105 inline-flex items-center justify-center">
+        <a href="/credit-cards" class="header-glass-btn min-h-[44px] hover:bg-gray-100 text-brand-purple font-medium py-2 px-3 sm:px-4 rounded-xl transition-all duration-200 hover:scale-105 inline-flex items-center justify-center">
           Cartoes
         </a>
         <form action="/logout" method="POST">
-          <button type="submit" class="header-glass-btn min-h-[44px] hover:bg-gray-100 text-gray-700 hover:text-brand-purple font-medium py-2 px-3 sm:px-4 rounded-xl transition-all duration-150 hover:scale-105">
+          <button type="submit" class="header-glass-btn min-h-[44px] hover:bg-gray-100 text-gray-700 hover:text-brand-purple font-medium py-2 px-3 sm:px-4 rounded-xl transition-all duration-200 hover:scale-105">
             Sair
           </button>
         </form>
@@ -102,13 +102,13 @@
             <% }); %>
           </select>
         </form>
-        <a href="/reports" class="header-glass-btn min-h-[44px] hover:bg-gray-100 text-brand-purple font-medium py-2 px-4 rounded-xl transition-all duration-150 hover:scale-105 inline-flex items-center justify-center">
+        <a href="/reports" class="header-glass-btn min-h-[44px] hover:bg-gray-100 text-brand-purple font-medium py-2 px-4 rounded-xl transition-all duration-200 hover:scale-105 inline-flex items-center justify-center">
           Relatorios
         </a>
-        <a href="/categories" class="header-glass-btn min-h-[44px] hover:bg-gray-100 text-brand-purple font-medium py-2 px-4 rounded-xl transition-all duration-150 hover:scale-105 inline-flex items-center justify-center">
+        <a href="/categories" class="header-glass-btn min-h-[44px] hover:bg-gray-100 text-brand-purple font-medium py-2 px-4 rounded-xl transition-all duration-200 hover:scale-105 inline-flex items-center justify-center">
           Categorias
         </a>
-        <a href="/fixed-expenses" class="header-glass-btn min-h-[44px] hover:bg-gray-100 text-brand-purple font-medium py-2 px-4 rounded-xl transition-all duration-150 hover:scale-105 inline-flex items-center justify-center">
+        <a href="/fixed-expenses" class="header-glass-btn min-h-[44px] hover:bg-gray-100 text-brand-purple font-medium py-2 px-4 rounded-xl transition-all duration-200 hover:scale-105 inline-flex items-center justify-center">
           Fixas
         </a>
       </div>
@@ -116,13 +116,13 @@
 
     <% if (typeof dashboardToast !== 'undefined' && dashboardToast) { %>
       <div id="dashboardToast"
-           class="toast-enter transition-all duration-150 mb-6 glass-card soft-shadow rounded-xl border border-emerald-200/80 px-4 py-3">
+           class="toast-enter transition-all duration-200 mb-6 glass-card soft-shadow rounded-xl border border-emerald-200/80 px-4 py-3">
         <p class="text-sm font-semibold text-emerald-700"><%= dashboardToast %></p>
       </div>
     <% } %>
 
     <!-- Featured Balance Section -->
-    <div class="glass-card rounded-xl border border-gray-200 p-6 sm:p-8 md:p-10 transition-all duration-150 relative overflow-hidden">
+    <div class="glass-card rounded-xl border border-gray-200 p-6 sm:p-8 md:p-10 transition-all duration-200 relative overflow-hidden">
       <div class="absolute inset-x-0 top-0 h-10 bg-brand-cyan-50/70 pointer-events-none"></div>
       <div class="text-center relative z-10">
         <p class="text-sm font-medium text-gray-500 mb-3 uppercase tracking-wide">Seu saldo atual</p>
@@ -194,7 +194,7 @@
         <% if (!summary.hasCards) { %>
           <div class="px-6 py-8 text-center">
             <p class="text-gray-700 mb-4">Voce ainda nao possui cartao cadastrado.</p>
-            <a href="/credit-cards/add" class="inline-block bg-brand-purple hover:bg-brand-cyan-dark text-white font-medium py-2 px-5 rounded-lg shadow-sm transition-all duration-150">
+            <a href="/credit-cards/add" class="inline-block bg-brand-purple hover:bg-brand-cyan-dark text-white font-medium py-2 px-5 rounded-lg shadow-sm transition-all duration-200">
               + Adicionar Cartao
             </a>
           </div>
@@ -289,7 +289,7 @@
               <% if (group && group.transactions && Array.isArray(group.transactions) && group.transactions.length > 0) { %>
                 <% group.transactions.forEach((transaction, index) => { %>
                   <div data-transaction-id="<%= transaction && transaction.id ? transaction.id : '' %>"
-                       class="group px-4 sm:px-5 py-4 sm:py-5 transition-all duration-150 hover:bg-gray-50 <%= index < group.transactions.length - 1 ? 'border-b border-gray-100' : '' %>">
+                       class="group px-4 sm:px-5 py-4 sm:py-5 transition-all duration-200 hover:bg-gray-50 <%= index < group.transactions.length - 1 ? 'border-b border-gray-100' : '' %>">
                     <div class="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4">
                       <div class="flex-shrink-0 w-10 h-10 sm:w-11 sm:h-11 rounded-full flex items-center justify-center <%= transaction && transaction.type === 'income' ? 'bg-emerald-50 text-emerald-600' : 'bg-rose-50 text-rose-600' %>">
                         <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" viewBox="0 0 20 20" fill="currentColor">
@@ -360,18 +360,18 @@
     <!-- Floating Action Menu -->
     <div class="fixed bottom-5 right-4 sm:bottom-6 sm:right-6 z-50 flex flex-col items-end gap-3">
       <div id="actionMenu"
-           class="origin-bottom-right opacity-0 scale-95 pointer-events-none transition-all duration-150 ease-out flex flex-col gap-2">
+           class="origin-bottom-right opacity-0 scale-95 pointer-events-none transition-all duration-200 ease-out flex flex-col gap-2">
         <a href="/transactions/add?type=income"
-           class="glass-card min-h-[44px] border border-gray-200 text-gray-700 rounded-lg px-4 py-2 text-sm font-semibold hover:bg-gray-50 transition-colors inline-flex items-center">
+           class="glass-card min-h-[44px] border border-gray-200 text-gray-700 rounded-lg px-4 py-2 text-sm font-semibold hover:bg-gray-50 transition-all duration-200 inline-flex items-center">
           Nova receita
         </a>
         <a href="/transactions/add?type=expense"
-           class="glass-card min-h-[44px] border border-gray-200 text-gray-700 rounded-lg px-4 py-2 text-sm font-semibold hover:bg-gray-50 transition-colors inline-flex items-center">
+           class="glass-card min-h-[44px] border border-gray-200 text-gray-700 rounded-lg px-4 py-2 text-sm font-semibold hover:bg-gray-50 transition-all duration-200 inline-flex items-center">
           Nova despesa
         </a>
         <button id="openCardPurchaseModal"
            type="button"
-           class="glass-card min-h-[44px] border border-gray-200 text-gray-700 rounded-lg px-4 py-2 text-sm font-semibold hover:bg-gray-50 transition-colors text-left">
+           class="glass-card min-h-[44px] border border-gray-200 text-gray-700 rounded-lg px-4 py-2 text-sm font-semibold hover:bg-gray-50 transition-all duration-200 text-left">
           Nova compra no cartao
         </button>
       </div>
@@ -379,29 +379,29 @@
       <button id="actionFab"
               type="button"
               aria-label="Abrir menu de acoes"
-              class="w-14 h-14 sm:w-16 sm:h-16 min-h-[44px] bg-[#00C9A7] hover:bg-[#00b295] rounded-full shadow-lg flex items-center justify-center text-white text-3xl font-bold transition-all duration-150 hover:scale-105">
+              class="w-14 h-14 sm:w-16 sm:h-16 min-h-[44px] bg-[#00C9A7] hover:bg-[#009e83] rounded-full shadow-lg flex items-center justify-center text-white text-3xl font-bold transition-all duration-200 hover:scale-105">
         +
       </button>
     </div>
 
     <% const safeDashboardCards = Array.isArray(dashboardCards) ? dashboardCards : []; %>
     <div id="cardPurchaseModal" class="fixed inset-0 z-[60] hidden items-center justify-center p-4">
-      <div id="cardPurchaseBackdrop" class="absolute inset-0 bg-black/30 opacity-0 transition-opacity duration-150"></div>
-      <div id="cardPurchasePanel" class="glass-card relative w-full max-w-md rounded-xl border border-gray-200 p-6 opacity-0 scale-95 transition-all duration-150">
+      <div id="cardPurchaseBackdrop" class="absolute inset-0 bg-black/30 opacity-0 transition-opacity duration-200"></div>
+      <div id="cardPurchasePanel" class="glass-card relative w-full max-w-md rounded-xl border border-gray-200 p-6 opacity-0 scale-95 transition-all duration-200">
         <div class="flex items-center justify-between mb-4">
           <h3 class="text-lg font-semibold text-gray-900">Nova compra no cartao</h3>
           <button id="closeCardPurchaseModal" type="button" class="text-gray-500 hover:text-gray-700 text-xl leading-none">&times;</button>
         </div>
         <% if (safeDashboardCards.length === 0) { %>
           <p class="text-sm text-gray-600 mb-4">Voce ainda nao tem cartoes cadastrados.</p>
-          <a href="/credit-cards/add" class="inline-block bg-brand-purple hover:bg-brand-cyan-dark text-white font-medium py-2 px-4 rounded-lg shadow-sm transition-all duration-150">
+          <a href="/credit-cards/add" class="inline-block bg-brand-purple hover:bg-brand-cyan-dark text-white font-medium py-2 px-4 rounded-lg shadow-sm transition-all duration-200">
             Adicionar cartao
           </a>
         <% } else { %>
           <div class="flex flex-col gap-2 max-h-64 overflow-auto pr-1">
             <% safeDashboardCards.forEach((card) => { %>
               <a href="/credit-cards/<%= card.id %>/add-transaction"
-                 class="w-full rounded-xl border border-gray-200 bg-white hover:bg-gray-50 text-gray-800 px-4 py-3 text-sm font-semibold transition-colors">
+                 class="w-full rounded-xl border border-gray-200 bg-white hover:bg-gray-50 text-gray-800 px-4 py-3 text-sm font-semibold transition-all duration-200">
                 <%= card.name %>
               </a>
             <% }); %>
@@ -411,7 +411,7 @@
     </div>
 
     <script>
-      // Mostrar mÃƒÆ’Ã‚Âªs atual no dashboard
+      // Mostrar mÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Â ÃƒÂ¢Ã¢â€šÂ¬Ã¢â€žÂ¢ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Âªs atual no dashboard
       document.addEventListener('DOMContentLoaded', function() {
         const currentMonthElement = document.getElementById('currentMonth');
         const selectedMonthLabel = <%- JSON.stringify(typeof selectedMonthLabel !== 'undefined' ? selectedMonthLabel : '') %>;
@@ -557,6 +557,7 @@
     </script>
   </div></body>
 </html>
+
 
 
 

@@ -6,7 +6,7 @@
   <title>Meus Cartoes - RC2 Finance</title>
   <script src="https://cdn.tailwindcss.com"></script>
 </head>
-<body class="bg-slate-50 font-sans text-slate-900">
+<body class="bg-[#f8fafc] font-sans text-slate-900">
   <div class="container mx-auto px-4 sm:px-6 py-6 max-w-6xl">
     <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-8">
       <div>
@@ -14,10 +14,10 @@
         <p class="text-sm text-slate-500 mt-1">Gerencie limites, vencimentos e compras.</p>
       </div>
       <div class="flex gap-2 sm:gap-3">
-        <a href="/dashboard" class="min-h-[44px] inline-flex items-center bg-white border border-slate-300 text-slate-700 font-medium py-2 px-4 rounded-lg hover:bg-slate-100 transition-colors">
+        <a href="/dashboard" class="min-h-[44px] inline-flex items-center bg-white border border-slate-300 text-slate-700 font-medium py-2 px-4 rounded-lg hover:bg-[#f8fafc] transition-all duration-200">
           Voltar
         </a>
-        <a href="/credit-cards/add" class="min-h-[44px] inline-flex items-center bg-[#00C9A7] hover:bg-[#00b295] text-white font-medium py-2 px-4 rounded-lg transition-colors">
+        <a href="/credit-cards/add" class="min-h-[44px] inline-flex items-center bg-[#00C9A7] hover:bg-[#009e83] text-white font-medium py-2 px-4 rounded-lg transition-all duration-200">
           + Novo cartao
         </a>
       </div>
@@ -35,7 +35,7 @@
       <div class="text-center py-14 bg-white rounded-xl border border-slate-200 shadow-sm">
         <h3 class="text-lg font-semibold text-slate-900 mb-2">Nenhum cartao cadastrado</h3>
         <p class="text-slate-600 mb-5">Adicione seu primeiro cartao para acompanhar despesas e limite.</p>
-        <a href="/credit-cards/add" class="inline-flex min-h-[44px] items-center bg-[#00C9A7] hover:bg-[#00b295] text-white font-medium py-2 px-5 rounded-lg transition-colors">
+        <a href="/credit-cards/add" class="inline-flex min-h-[44px] items-center bg-[#00C9A7] hover:bg-[#009e83] text-white font-medium py-2 px-5 rounded-lg transition-all duration-200">
           Adicionar cartao
         </a>
       </div>
@@ -54,11 +54,11 @@
               <p class="text-xs text-slate-500 mb-1">Limite total</p>
               <p class="text-2xl font-semibold text-slate-900"><%= formatCurrency(card.limit_amount) %></p>
               <div class="mt-4 grid grid-cols-2 gap-3 text-sm">
-                <div class="rounded-lg bg-slate-50 border border-slate-200 px-3 py-2">
+                <div class="rounded-lg bg-[#f8fafc] border border-slate-200 px-3 py-2">
                   <p class="text-slate-500 text-xs">Fechamento</p>
                   <p class="font-semibold text-slate-900">Dia <%= card.closing_day %></p>
                 </div>
-                <div class="rounded-lg bg-slate-50 border border-slate-200 px-3 py-2">
+                <div class="rounded-lg bg-[#f8fafc] border border-slate-200 px-3 py-2">
                   <p class="text-slate-500 text-xs">Vencimento</p>
                   <p class="font-semibold text-slate-900">Dia <%= card.due_day %></p>
                 </div>
@@ -66,7 +66,7 @@
             </div>
 
             <div class="p-4 flex flex-wrap gap-2">
-              <a href="/credit-cards/<%= card.id %>/transactions" class="min-h-[44px] inline-flex items-center justify-center px-3 py-2 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 text-sm font-medium">
+              <a href="/credit-cards/<%= card.id %>/transactions" class="min-h-[44px] inline-flex items-center justify-center px-3 py-2 rounded-lg bg-[#f8fafc] hover:bg-slate-200 text-slate-700 text-sm font-medium">
                 Transacoes
               </a>
               <a href="/credit-cards/<%= card.id %>/add-transaction" class="min-h-[44px] inline-flex items-center justify-center px-3 py-2 rounded-lg bg-cyan-50 hover:bg-cyan-100 text-cyan-700 text-sm font-medium border border-cyan-100">

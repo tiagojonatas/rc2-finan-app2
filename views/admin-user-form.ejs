@@ -6,7 +6,7 @@
   <title><%= mode === 'edit' ? 'Editar Usuario' : 'Novo Usuario' %> - Admin</title>
   <script src="https://cdn.tailwindcss.com"></script>
 </head>
-<body class="bg-slate-100 font-sans text-slate-900">
+<body class="bg-[#f8fafc] font-sans text-slate-900">
   <div class="max-w-xl mx-auto px-4 py-8">
     <div class="bg-white border border-slate-200 rounded-xl shadow-sm p-6 sm:p-7">
       <img src="/brand/rc2-finance-horizontal.svg" alt="RC2 Finance" class="h-9 w-auto mb-1" />
@@ -42,10 +42,10 @@
         </div>
 
         <div class="pt-2 flex flex-wrap gap-2">
-          <button type="submit" class="min-h-[44px] px-4 rounded-xl bg-[#00C9A7] text-white font-medium hover:bg-[#00b295]">
+          <button type="submit" class="min-h-[44px] px-4 rounded-xl bg-[#00C9A7] text-white font-medium hover:bg-[#009e83]">
             <%= mode === 'edit' ? 'Salvar alteracoes' : 'Criar usuario' %>
           </button>
-          <a href="/admin/users" class="min-h-[44px] inline-flex items-center px-4 rounded-xl border border-slate-300 bg-white hover:bg-slate-50 text-slate-700">
+          <a href="/admin/users" class="min-h-[44px] inline-flex items-center px-4 rounded-xl border border-slate-300 bg-white hover:bg-[#f8fafc] text-slate-700">
             Cancelar
           </a>
         </div>
