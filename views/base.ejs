@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title><%= typeof pageTitle !== 'undefined' ? pageTitle : 'RC2 Finance' %></title>
+  <title><%= typeof title !== 'undefined' ? title : (typeof pageTitle !== 'undefined' ? pageTitle : 'RC2 Finance') %></title>
   <script src="https://cdn.tailwindcss.com"></script>
   <% if (typeof includeChartJs !== 'undefined' && includeChartJs) { %>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -94,8 +94,9 @@
     </header>
   <% } %>
 
+  <% const contentPath = typeof content !== 'undefined' ? content : contentPartial; %>
   <main class="max-w-6xl mx-auto px-4 py-6 <%= typeof mainClass !== 'undefined' ? mainClass : 'space-y-6' %>">
-    <%- include(contentPartial) %>
+    <%- include(contentPath) %>
   </main>
 </body>
 </html>

@@ -3,6 +3,22 @@ const db = require('../db');
 
 const router = express.Router();
 
+function renderWithBase(res, options = {}) {
+  const {
+    title = 'Categorias - RC2 Finance',
+    content = 'partials/pages/categories-content',
+    currentPath = '/categories',
+    data = {}
+  } = options;
+
+  return res.render('base', {
+    title,
+    content,
+    currentPath,
+    ...data
+  });
+}
+
 function requireAuth(req, res, next) {
   if (req.session.userId) return next();
   return res.redirect('/login');
@@ -33,15 +49,30 @@ router.get('/', requireAuth, async (req, res) => {
        ORDER BY type ASC, name ASC`,
       [userId]
     );
-    res.render('categories', { categories, error: null });
+    renderWithBase(res, {
+      title: 'Categorias - RC2 Finance',
+      content: 'partials/pages/categories-content',
+      currentPath: '/categories',
+      data: { categories, error: null }
+    });
   } catch (error) {
     console.error(error);
-    res.render('categories', { categories: [], error: 'Erro ao carregar categorias' });
+    renderWithBase(res, {
+      title: 'Categorias - RC2 Finance',
+      content: 'partials/pages/categories-content',
+      currentPath: '/categories',
+      data: { categories: [], error: 'Erro ao carregar categorias' }
+    });
   }
 });
 
 router.get('/add', requireAuth, (req, res) => {
-  res.render('add-category', { error: null });
+  renderWithBase(res, {
+    title: 'Nova Categoria - RC2 Finance',
+    content: 'partials/pages/add-category-content',
+    currentPath: '/categories',
+    data: { error: null }
+  });
 });
 
 router.post('/add', requireAuth, async (req, res) => {
@@ -52,10 +83,20 @@ router.post('/add', requireAuth, async (req, res) => {
   const normalizedName = normalizeCategoryName(name);
 
   if (!normalizedName) {
-    return res.render('add-category', { error: 'Nome da categoria e obrigatorio' });
+    return renderWithBase(res, {
+      title: 'Nova Categoria - RC2 Finance',
+      content: 'partials/pages/add-category-content',
+      currentPath: '/categories',
+      data: { error: 'Nome da categoria e obrigatorio' }
+    });
   }
   if (isBlockedCategoryName(normalizedName)) {
-    return res.render('add-category', { error: 'Categoria Outros nao e permitida' });
+    return renderWithBase(res, {
+      title: 'Nova Categoria - RC2 Finance',
+      content: 'partials/pages/add-category-content',
+      currentPath: '/categories',
+      data: { error: 'Categoria Outros nao e permitida' }
+    });
   }
 
   try {
@@ -67,9 +108,19 @@ router.post('/add', requireAuth, async (req, res) => {
   } catch (error) {
     console.error(error);
     if (error.code === 'ER_DUP_ENTRY') {
-      return res.render('add-category', { error: 'Categoria ja existe para este tipo' });
+      return renderWithBase(res, {
+        title: 'Nova Categoria - RC2 Finance',
+        content: 'partials/pages/add-category-content',
+        currentPath: '/categories',
+        data: { error: 'Categoria ja existe para este tipo' }
+      });
     }
-    return res.render('add-category', { error: 'Erro ao cadastrar categoria' });
+    return renderWithBase(res, {
+      title: 'Nova Categoria - RC2 Finance',
+      content: 'partials/pages/add-category-content',
+      currentPath: '/categories',
+      data: { error: 'Erro ao cadastrar categoria' }
+    });
   }
 });
 
@@ -91,7 +142,12 @@ router.get('/edit/:id', requireAuth, async (req, res) => {
       return res.redirect('/categories');
     }
 
-    return res.render('edit-category', { category: rows[0], error: null });
+    return renderWithBase(res, {
+      title: 'Editar Categoria - RC2 Finance',
+      content: 'partials/pages/edit-category-content',
+      currentPath: '/categories',
+      data: { category: rows[0], error: null }
+    });
   } catch (error) {
     console.error(error);
     return res.redirect('/categories');
@@ -123,23 +179,33 @@ router.post('/edit/:id', requireAuth, async (req, res) => {
     category = rows[0];
 
     if (!normalizedName) {
-      return res.render('edit-category', {
-        category: {
-          ...category,
-          name: normalizedName,
-          color: normalizedColor
-        },
-        error: 'Nome da categoria e obrigatorio'
+      return renderWithBase(res, {
+        title: 'Editar Categoria - RC2 Finance',
+        content: 'partials/pages/edit-category-content',
+        currentPath: '/categories',
+        data: {
+          category: {
+            ...category,
+            name: normalizedName,
+            color: normalizedColor
+          },
+          error: 'Nome da categoria e obrigatorio'
+        }
       });
     }
     if (isBlockedCategoryName(normalizedName)) {
-      return res.render('edit-category', {
-        category: {
-          ...category,
-          name: normalizedName,
-          color: normalizedColor
-        },
-        error: 'Categoria Outros nao e permitida'
+      return renderWithBase(res, {
+        title: 'Editar Categoria - RC2 Finance',
+        content: 'partials/pages/edit-category-content',
+        currentPath: '/categories',
+        data: {
+          category: {
+            ...category,
+            name: normalizedName,
+            color: normalizedColor
+          },
+          error: 'Categoria Outros nao e permitida'
+        }
       });
     }
 
@@ -153,23 +219,33 @@ router.post('/edit/:id', requireAuth, async (req, res) => {
     console.error(error);
 
     if (error.code === 'ER_DUP_ENTRY') {
-      return res.render('edit-category', {
+      return renderWithBase(res, {
+        title: 'Editar Categoria - RC2 Finance',
+        content: 'partials/pages/edit-category-content',
+        currentPath: '/categories',
+        data: {
+          category: {
+            ...(category || { id: categoryId, type: 'expense' }),
+            name: normalizedName,
+            color: normalizedColor
+          },
+          error: 'Ja existe categoria com esse nome nesse tipo'
+        }
+      });
+    }
+
+    return renderWithBase(res, {
+      title: 'Editar Categoria - RC2 Finance',
+      content: 'partials/pages/edit-category-content',
+      currentPath: '/categories',
+      data: {
         category: {
           ...(category || { id: categoryId, type: 'expense' }),
           name: normalizedName,
           color: normalizedColor
         },
-        error: 'Ja existe categoria com esse nome nesse tipo'
-      });
-    }
-
-    return res.render('edit-category', {
-      category: {
-        ...(category || { id: categoryId, type: 'expense' }),
-        name: normalizedName,
-        color: normalizedColor
-      },
-      error: 'Erro ao atualizar categoria'
+        error: 'Erro ao atualizar categoria'
+      }
     });
   }
 });
@@ -200,9 +276,14 @@ router.post('/delete/:id', requireAuth, async (req, res) => {
         [userId]
       );
 
-      return res.render('categories', {
-        categories,
-        error: 'Nao foi possivel excluir: categoria em uso por lancamentos'
+      return renderWithBase(res, {
+        title: 'Categorias - RC2 Finance',
+        content: 'partials/pages/categories-content',
+        currentPath: '/categories',
+        data: {
+          categories,
+          error: 'Nao foi possivel excluir: categoria em uso por lancamentos'
+        }
       });
     }
 

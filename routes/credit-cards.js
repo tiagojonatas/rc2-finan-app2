@@ -2,6 +2,22 @@ const express = require('express');
 const db = require('../db');
 const router = express.Router();
 
+function renderWithBase(res, options = {}) {
+  const {
+    title = 'Cartoes - RC2 Finance',
+    content = 'partials/pages/credit-cards-content',
+    currentPath = '/credit-cards',
+    data = {}
+  } = options;
+
+  return res.render('base', {
+    title,
+    content,
+    currentPath,
+    ...data
+  });
+}
+
 // Middleware to check if user is authenticated
 function requireAuth(req, res, next) {
   if (req.session.userId) {
@@ -17,16 +33,31 @@ router.get('/', requireAuth, async (req, res) => {
 
   try {
     const [cards] = await db.query('SELECT * FROM credit_cards WHERE user_id = ? ORDER BY created_at DESC', [userId]);
-    res.render('credit-cards', { cards, error: null, success: null });
+    renderWithBase(res, {
+      title: 'Meus Cartoes - RC2 Finance',
+      content: 'partials/pages/credit-cards-content',
+      currentPath: '/credit-cards',
+      data: { cards, error: null, success: null }
+    });
   } catch (error) {
     console.error(error);
-    res.render('credit-cards', { cards: [], error: 'Erro ao carregar cartoes', success: null });
+    renderWithBase(res, {
+      title: 'Meus Cartoes - RC2 Finance',
+      content: 'partials/pages/credit-cards-content',
+      currentPath: '/credit-cards',
+      data: { cards: [], error: 'Erro ao carregar cartoes', success: null }
+    });
   }
 });
 
 // GET /credit-cards/add - Show add credit card form
 router.get('/add', requireAuth, (req, res) => {
-  res.render('add-credit-card', { error: null });
+  renderWithBase(res, {
+    title: 'Novo Cartao - RC2 Finance',
+    content: 'partials/pages/add-credit-card-content',
+    currentPath: '/credit-cards',
+    data: { error: null }
+  });
 });
 
 // POST /credit-cards/add - Add new credit card
@@ -38,7 +69,12 @@ router.post('/add', requireAuth, async (req, res) => {
   const dueDay = parseInt(due_day, 10);
 
   if (closingDay < 1 || closingDay > 31 || dueDay < 1 || dueDay > 31) {
-    return res.render('add-credit-card', { error: 'Dias de fechamento e vencimento devem estar entre 1 e 31' });
+    return renderWithBase(res, {
+      title: 'Novo Cartao - RC2 Finance',
+      content: 'partials/pages/add-credit-card-content',
+      currentPath: '/credit-cards',
+      data: { error: 'Dias de fechamento e vencimento devem estar entre 1 e 31' }
+    });
   }
 
   try {
@@ -47,7 +83,12 @@ router.post('/add', requireAuth, async (req, res) => {
     res.redirect('/credit-cards');
   } catch (error) {
     console.error(error);
-    res.render('add-credit-card', { error: 'Erro ao adicionar cartao' });
+    renderWithBase(res, {
+      title: 'Novo Cartao - RC2 Finance',
+      content: 'partials/pages/add-credit-card-content',
+      currentPath: '/credit-cards',
+      data: { error: 'Erro ao adicionar cartao' }
+    });
   }
 });
 
@@ -60,7 +101,12 @@ async function renderEditCardForm(req, res) {
     if (cards.length === 0) {
       return res.redirect('/credit-cards');
     }
-    res.render('edit-credit-card', { card: cards[0], error: null });
+    renderWithBase(res, {
+      title: 'Editar Cartao - RC2 Finance',
+      content: 'partials/pages/edit-credit-card-content',
+      currentPath: '/credit-cards',
+      data: { card: cards[0], error: null }
+    });
   } catch (error) {
     console.error(error);
     res.redirect('/credit-cards');
@@ -84,7 +130,12 @@ router.post('/edit/:id', requireAuth, async (req, res) => {
 
   if (closingDay < 1 || closingDay > 31 || dueDay < 1 || dueDay > 31) {
     const [cards] = await db.query('SELECT * FROM credit_cards WHERE id = ? AND user_id = ?', [cardId, userId]);
-    return res.render('edit-credit-card', { card: cards[0], error: 'Dias devem estar entre 1 e 31' });
+    return renderWithBase(res, {
+      title: 'Editar Cartao - RC2 Finance',
+      content: 'partials/pages/edit-credit-card-content',
+      currentPath: '/credit-cards',
+      data: { card: cards[0], error: 'Dias devem estar entre 1 e 31' }
+    });
   }
 
   try {
@@ -94,7 +145,12 @@ router.post('/edit/:id', requireAuth, async (req, res) => {
   } catch (error) {
     console.error(error);
     const [cards] = await db.query('SELECT * FROM credit_cards WHERE id = ? AND user_id = ?', [cardId, userId]);
-    res.render('edit-credit-card', { card: cards[0], error: 'Erro ao editar cartao' });
+    renderWithBase(res, {
+      title: 'Editar Cartao - RC2 Finance',
+      content: 'partials/pages/edit-credit-card-content',
+      currentPath: '/credit-cards',
+      data: { card: cards[0], error: 'Erro ao editar cartao' }
+    });
   }
 });
 

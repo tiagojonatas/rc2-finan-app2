@@ -1,0 +1,104 @@
+<div class="min-h-[calc(100vh-10rem)] flex items-center justify-center py-8">
+  <div class="max-w-md w-full">
+    <div class="bg-gray-900 p-8 rounded-xl shadow-md border border-gray-800">
+      <h2 class="text-center text-3xl font-bold text-white">Editar Cartao</h2>
+
+      <% if (error) { %>
+        <div class="mt-4 bg-rose-900/30 border border-rose-800 text-rose-300 px-4 py-3 rounded-lg">
+          <%= error %>
+        </div>
+      <% } %>
+
+      <form class="mt-8 space-y-6" action="/credit-cards/edit/<%= card.id %>" method="POST">
+        <div class="space-y-4">
+          <div>
+            <label for="name" class="block text-sm font-medium text-gray-300">Nome do Cartao</label>
+            <input id="name" name="name" type="text" value="<%= card.name %>" required
+                   class="mt-1 block w-full px-3 py-2 border border-gray-700 bg-gray-950 text-gray-100 rounded-lg shadow-sm placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-[#00C9A7]/40 focus:border-[#00C9A7]">
+          </div>
+          <div>
+            <label for="limit_amount" class="block text-sm font-medium text-gray-300">Limite (R$)</label>
+            <input id="limitDisplay" type="text" inputmode="numeric" placeholder="0,00" required
+                   class="mt-1 block w-full px-3 py-2 border border-gray-700 bg-gray-950 text-gray-100 rounded-lg shadow-sm placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-[#00C9A7]/40 focus:border-[#00C9A7]">
+            <input id="limit_amount" name="limit_amount" type="hidden" value="<%= card.limit_amount %>">
+          </div>
+          <div class="grid grid-cols-2 gap-4">
+            <div>
+              <label for="closing_day" class="block text-sm font-medium text-gray-300">Dia Fechamento</label>
+              <input id="closing_day" name="closing_day" type="number" min="1" max="31" value="<%= card.closing_day %>" required
+                     class="mt-1 block w-full px-3 py-2 border border-gray-700 bg-gray-950 text-gray-100 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-[#00C9A7]/40 focus:border-[#00C9A7]">
+            </div>
+            <div>
+              <label for="due_day" class="block text-sm font-medium text-gray-300">Dia Vencimento</label>
+              <input id="due_day" name="due_day" type="number" min="1" max="31" value="<%= card.due_day %>" required
+                     class="mt-1 block w-full px-3 py-2 border border-gray-700 bg-gray-950 text-gray-100 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-[#00C9A7]/40 focus:border-[#00C9A7]">
+            </div>
+          </div>
+        </div>
+
+        <div class="flex space-x-3">
+          <button type="submit" class="flex-1 flex justify-center py-3 px-4 border border-transparent rounded-lg shadow-sm text-sm font-medium text-white bg-[#00C9A7] hover:bg-[#009e83] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#00C9A7]/40 transition-all duration-200">
+            Salvar
+          </button>
+          <a href="/credit-cards" class="flex-1 flex justify-center py-3 px-4 border border-gray-700 rounded-lg shadow-sm text-sm font-medium text-gray-300 bg-gray-950 hover:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#00C9A7]/40 transition-all duration-200">
+            Cancelar
+          </a>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<script>
+  const limitDisplay = document.getElementById('limitDisplay');
+  const limitInput = document.getElementById('limit_amount');
+
+  function formatBRL(value) {
+    return value.toLocaleString('pt-BR', {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2
+    });
+  }
+
+  document.addEventListener('DOMContentLoaded', function() {
+    const initialValue = limitInput.value;
+    if (initialValue) {
+      const formatted = formatBRL(parseFloat(initialValue));
+      limitDisplay.value = formatted;
+    }
+  });
+
+  limitDisplay.addEventListener('input', function(event) {
+    let value = event.target.value.replace(/\D/g, '');
+
+    if (value === '') {
+      limitDisplay.value = '';
+      limitInput.value = '0.00';
+      return;
+    }
+
+    const numValue = parseInt(value, 10) / 100;
+    const formatted = formatBRL(numValue);
+
+    limitDisplay.value = formatted;
+    limitInput.value = numValue.toFixed(2);
+  });
+
+  limitDisplay.addEventListener('keypress', function(event) {
+    const char = String.fromCharCode(event.which);
+    if (!/[0-9]/.test(char)) {
+      event.preventDefault();
+    }
+  });
+
+  limitDisplay.addEventListener('paste', function(event) {
+    event.preventDefault();
+    const pastedText = (event.clipboardData || window.clipboardData).getData('text');
+    const numericOnly = pastedText.replace(/\D/g, '');
+
+    if (numericOnly) {
+      limitDisplay.value = numericOnly;
+      limitDisplay.dispatchEvent(new Event('input'));
+    }
+  });
+</script>
