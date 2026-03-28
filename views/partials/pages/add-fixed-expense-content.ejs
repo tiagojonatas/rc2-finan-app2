@@ -1,46 +1,45 @@
-<div class="min-h-[calc(100vh-10rem)] flex items-center justify-center py-8">
-  <div class="w-full max-w-xl bg-gray-900 rounded-2xl border border-gray-800 shadow-md p-8">
-    <h1 class="text-2xl font-bold text-white mb-2">Nova Despesa Fixa</h1>
-    <p class="text-gray-400 mb-6">Cadastre uma despesa recorrente mensal.</p>
+<div class="max-w-xl mx-auto mt-10">
+  <div class="bg-slate-900 border border-slate-800 rounded-xl p-6 shadow-sm">
+    <h2 class="text-xl font-semibold text-white mb-6">Nova Despesa Fixa</h2>
 
     <% if (error) { %>
-      <div class="mb-4 rounded-xl border border-rose-800 bg-rose-900/30 text-rose-300 px-4 py-3"><%= error %></div>
+      <div class="mb-4 text-red-400 text-sm"><%= error %></div>
     <% } %>
 
     <form action="/fixed-expenses/add" method="POST" class="space-y-4">
       <div>
-        <label for="description" class="block text-sm font-medium text-gray-300 mb-1">Descricao</label>
-        <input id="description" name="description" type="text" required class="w-full rounded-xl border border-gray-700 bg-gray-950 text-gray-100 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[#00C9A7]/40 focus:border-[#00C9A7]" />
+        <label for="description" class="text-sm text-slate-400">Descricao</label>
+        <input id="description" name="description" type="text" required class="w-full mt-1 bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-emerald-500" />
       </div>
 
       <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div>
-          <label for="amount" class="block text-sm font-medium text-gray-300 mb-1">Valor (R$)</label>
-          <input id="amount" name="amount" type="number" step="0.01" min="0" required class="w-full rounded-xl border border-gray-700 bg-gray-950 text-gray-100 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[#00C9A7]/40 focus:border-[#00C9A7]" />
+          <label for="amount" class="text-sm text-slate-400">Valor (R$)</label>
+          <input id="amount" name="amount" type="number" step="0.01" min="0" required class="w-full mt-1 bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-emerald-500" />
         </div>
         <div>
-          <label for="due_day" class="block text-sm font-medium text-gray-300 mb-1">Dia do vencimento</label>
-          <input id="due_day" name="due_day" type="number" min="1" max="31" required class="w-full rounded-xl border border-gray-700 bg-gray-950 text-gray-100 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[#00C9A7]/40 focus:border-[#00C9A7]" />
+          <label for="due_day" class="text-sm text-slate-400">Dia do vencimento</label>
+          <input id="due_day" name="due_day" type="number" min="1" max="31" required class="w-full mt-1 bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-emerald-500" />
         </div>
       </div>
 
       <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div>
-          <label for="category_id" class="block text-sm font-medium text-gray-300 mb-1">Categoria ID (opcional)</label>
-          <input id="category_id" name="category_id" type="number" min="1" class="w-full rounded-xl border border-gray-700 bg-gray-950 text-gray-100 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[#00C9A7]/40 focus:border-[#00C9A7]" />
+          <label for="category_id" class="text-sm text-slate-400">Categoria ID (opcional)</label>
+          <input id="category_id" name="category_id" type="number" min="1" class="w-full mt-1 bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-emerald-500" />
         </div>
         <div>
-          <label for="is_active" class="block text-sm font-medium text-gray-300 mb-1">Status</label>
-          <select id="is_active" name="is_active" class="w-full rounded-xl border border-gray-700 bg-gray-950 text-gray-100 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[#00C9A7]/40 focus:border-[#00C9A7]">
+          <label for="is_active" class="text-sm text-slate-400">Status</label>
+          <select id="is_active" name="is_active" class="w-full mt-1 bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-emerald-500">
             <option value="1">Ativa</option>
             <option value="0">Inativa</option>
           </select>
         </div>
       </div>
 
-      <div class="pt-2 flex gap-3">
-        <button type="submit" class="bg-[#00C9A7] hover:bg-[#009e83] text-white py-2 px-5 rounded-xl transition-all duration-200">Salvar</button>
-        <a href="/fixed-expenses" class="bg-gray-950 border border-gray-700 text-gray-300 py-2 px-5 rounded-xl hover:bg-gray-800 transition-all duration-200">Cancelar</a>
+      <div class="flex gap-2 pt-4">
+        <button type="submit" class="bg-emerald-500 hover:bg-emerald-600 text-white px-4 py-2 rounded-lg">Salvar</button>
+        <a href="/fixed-expenses" class="px-4 py-2 border border-slate-700 rounded-lg text-slate-300">Cancelar</a>
       </div>
     </form>
   </div>

@@ -1,34 +1,33 @@
-<div class="min-h-[calc(100vh-10rem)] flex items-center justify-center py-8">
-  <div class="w-full max-w-lg bg-gray-900 rounded-2xl border border-gray-800 shadow-md p-8">
-    <h1 class="text-2xl font-bold text-white mb-2">Nova Categoria</h1>
-    <p class="text-gray-400 mb-6">Crie categorias para organizar suas transacoes.</p>
+<div class="max-w-xl mx-auto mt-10">
+  <div class="bg-slate-900 border border-slate-800 rounded-xl p-6 shadow-sm">
+    <h2 class="text-xl font-semibold text-white mb-6">Nova Categoria</h2>
 
     <% if (error) { %>
-      <div class="mb-4 rounded-xl border border-rose-800 bg-rose-900/30 text-rose-300 px-4 py-3"><%= error %></div>
+      <div class="mb-4 text-red-400 text-sm"><%= error %></div>
     <% } %>
 
     <form action="/categories/add" method="POST" class="space-y-4">
       <div>
-        <label for="name" class="block text-sm font-medium text-gray-300 mb-1">Nome</label>
-        <input id="name" name="name" type="text" required class="w-full rounded-xl border border-gray-700 bg-gray-950 text-gray-100 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[#00C9A7]/40 focus:border-[#00C9A7]" />
+        <label for="name" class="text-sm text-slate-400">Nome</label>
+        <input id="name" name="name" type="text" required class="w-full mt-1 bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-emerald-500" />
       </div>
       <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div>
-          <label for="type" class="block text-sm font-medium text-gray-300 mb-1">Tipo</label>
-          <select id="type" name="type" class="w-full rounded-xl border border-gray-700 bg-gray-950 text-gray-100 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[#00C9A7]/40 focus:border-[#00C9A7]">
+          <label for="type" class="text-sm text-slate-400">Tipo</label>
+          <select id="type" name="type" class="w-full mt-1 bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-emerald-500">
             <option value="expense">Despesa</option>
             <option value="income">Entrada</option>
           </select>
         </div>
         <div>
-          <label for="color" class="block text-sm font-medium text-gray-300 mb-1">Cor</label>
-          <input id="color" name="color" type="color" value="#00C9A7" class="w-full h-10 rounded-xl border border-gray-700 px-1 py-1 bg-gray-950" />
+          <label for="color" class="text-sm text-slate-400">Cor</label>
+          <input id="color" name="color" type="color" value="#00C9A7" class="w-full mt-1 bg-slate-800 border border-slate-700 rounded-lg px-2 py-2 h-10" />
         </div>
       </div>
 
-      <div class="pt-2 flex gap-3">
-        <button type="submit" class="bg-[#00C9A7] hover:bg-[#009e83] text-white py-2 px-5 rounded-xl transition-all duration-200">Salvar</button>
-        <a href="/categories" class="bg-gray-950 border border-gray-700 text-gray-300 py-2 px-5 rounded-xl hover:bg-gray-800 transition-all duration-200">Cancelar</a>
+      <div class="flex gap-2 pt-4">
+        <button type="submit" class="bg-emerald-500 hover:bg-emerald-600 text-white px-4 py-2 rounded-lg">Salvar</button>
+        <a href="/categories" class="px-4 py-2 border border-slate-700 rounded-lg text-slate-300">Cancelar</a>
       </div>
     </form>
   </div>
