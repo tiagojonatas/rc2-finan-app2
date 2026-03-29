@@ -1,34 +1,36 @@
-<div class="max-w-xl mx-auto mt-10">
-  <div class="bg-slate-900 border border-slate-800 rounded-xl p-6 shadow-sm">
-    <h2 class="text-xl font-semibold text-white mb-6">Nova Categoria</h2>
+<div class="flex justify-center items-start min-h-[70vh] pt-10">
+  <div class="w-full max-w-2xl">
+  <div class="bg-slate-900/80 backdrop-blur border border-slate-800 rounded-2xl p-8 shadow-lg">
+    <h2 class="text-2xl font-semibold text-white mb-6">Nova Categoria</h2>
 
     <% if (error) { %>
-      <div class="mb-4 text-red-400 text-sm"><%= error %></div>
+      <div class="mb-4 text-red-400 text-sm bg-red-500/10 border border-red-500/20 p-3 rounded-lg"><%= error %></div>
     <% } %>
 
-    <form action="/categories/add" method="POST" class="space-y-4">
+    <form action="/categories/add" method="POST" class="space-y-5">
       <div>
         <label for="name" class="text-sm text-slate-400">Nome</label>
-        <input id="name" name="name" type="text" required class="w-full mt-1 bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-emerald-500" />
+        <input id="name" name="name" type="text" required class="w-full mt-1 bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-emerald-500 transition" />
       </div>
-      <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div>
           <label for="type" class="text-sm text-slate-400">Tipo</label>
-          <select id="type" name="type" class="w-full mt-1 bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-emerald-500">
+          <select id="type" name="type" class="w-full mt-1 bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-emerald-500 transition">
             <option value="expense">Despesa</option>
             <option value="income">Entrada</option>
           </select>
         </div>
         <div>
           <label for="color" class="text-sm text-slate-400">Cor</label>
-          <input id="color" name="color" type="color" value="#00C9A7" class="w-full mt-1 bg-slate-800 border border-slate-700 rounded-lg px-2 py-2 h-10" />
+          <input id="color" name="color" type="color" value="#00C9A7" class="w-full mt-1 bg-slate-800 border border-slate-700 rounded-lg px-2 py-2 h-10 transition" />
         </div>
       </div>
 
-      <div class="flex gap-2 pt-4">
-        <button type="submit" class="bg-emerald-500 hover:bg-emerald-600 text-white px-4 py-2 rounded-lg">Salvar</button>
-        <a href="/categories" class="px-4 py-2 border border-slate-700 rounded-lg text-slate-300">Cancelar</a>
+      <div class="flex gap-4 mt-6">
+        <button type="submit" class="bg-emerald-500 hover:bg-emerald-600 px-5 py-2 rounded-lg font-medium transition">Salvar</button>
+        <a href="/categories" class="px-5 py-2 border border-slate-700 rounded-lg text-slate-300 hover:bg-slate-800 transition">Cancelar</a>
       </div>
     </form>
+  </div>
   </div>
 </div>

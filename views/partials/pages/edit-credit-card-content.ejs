@@ -1,37 +1,39 @@
-<div class="max-w-xl mx-auto mt-10">
-  <div class="bg-slate-900 border border-slate-800 rounded-xl p-6 shadow-sm">
-    <h2 class="text-xl font-semibold text-white mb-6">Editar Cartao</h2>
+<div class="flex justify-center items-start min-h-[70vh] pt-10">
+  <div class="w-full max-w-2xl">
+  <div class="bg-slate-900/80 backdrop-blur border border-slate-800 rounded-2xl p-8 shadow-lg">
+    <h2 class="text-2xl font-semibold text-white mb-6">Editar Cartao</h2>
 
     <% if (error) { %>
-      <div class="mb-4 text-red-400 text-sm"><%= error %></div>
+      <div class="mb-4 text-red-400 text-sm bg-red-500/10 border border-red-500/20 p-3 rounded-lg"><%= error %></div>
     <% } %>
 
-    <form action="/credit-cards/edit/<%= card.id %>" method="POST" class="space-y-4">
+    <form action="/credit-cards/edit/<%= card.id %>" method="POST" class="space-y-5">
       <div>
         <label for="name" class="text-sm text-slate-400">Nome do Cartao</label>
-        <input id="name" name="name" type="text" value="<%= card.name %>" required class="w-full mt-1 bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-emerald-500">
+        <input id="name" name="name" type="text" value="<%= card.name %>" required class="w-full mt-1 bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-emerald-500 transition">
       </div>
       <div>
         <label for="limit_amount" class="text-sm text-slate-400">Limite (R$)</label>
-        <input id="limitDisplay" type="text" inputmode="numeric" placeholder="0,00" required class="w-full mt-1 bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-emerald-500">
+        <input id="limitDisplay" type="text" inputmode="numeric" placeholder="0,00" required class="w-full mt-1 bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-emerald-500 transition">
         <input id="limit_amount" name="limit_amount" type="hidden" value="<%= card.limit_amount %>">
       </div>
-      <div class="grid grid-cols-2 gap-4">
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div>
           <label for="closing_day" class="text-sm text-slate-400">Dia Fechamento</label>
-          <input id="closing_day" name="closing_day" type="number" min="1" max="31" value="<%= card.closing_day %>" required class="w-full mt-1 bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-emerald-500">
+          <input id="closing_day" name="closing_day" type="number" min="1" max="31" value="<%= card.closing_day %>" required class="w-full mt-1 bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-emerald-500 transition">
         </div>
         <div>
           <label for="due_day" class="text-sm text-slate-400">Dia Vencimento</label>
-          <input id="due_day" name="due_day" type="number" min="1" max="31" value="<%= card.due_day %>" required class="w-full mt-1 bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-emerald-500">
+          <input id="due_day" name="due_day" type="number" min="1" max="31" value="<%= card.due_day %>" required class="w-full mt-1 bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-emerald-500 transition">
         </div>
       </div>
 
-      <div class="flex gap-2 pt-4">
-        <button type="submit" class="bg-emerald-500 hover:bg-emerald-600 text-white px-4 py-2 rounded-lg">Salvar</button>
-        <a href="/credit-cards" class="px-4 py-2 border border-slate-700 rounded-lg text-slate-300">Cancelar</a>
+      <div class="flex gap-4 mt-6">
+        <button type="submit" class="bg-emerald-500 hover:bg-emerald-600 px-5 py-2 rounded-lg font-medium transition">Salvar</button>
+        <a href="/credit-cards" class="px-5 py-2 border border-slate-700 rounded-lg text-slate-300 hover:bg-slate-800 transition">Cancelar</a>
       </div>
     </form>
+  </div>
   </div>
 </div>
 
