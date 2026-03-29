@@ -132,7 +132,7 @@ router.post('/register', async (req, res) => {
 
 // GET /login
 router.get('/login', (req, res) => {
-  res.render('login', { error: null });
+  res.render('login', { error: null, email: '' });
 });
 
 // POST /login
@@ -143,13 +143,13 @@ router.post('/login', async (req, res) => {
   try {
     const [users] = await db.query('SELECT id, name, password_hash, role FROM users WHERE email = ?', [normalizedEmail]);
     if (users.length === 0) {
-      return res.render('login', { error: 'Email ou senha invalidos' });
+      return res.render('login', { error: 'Email ou senha invalidos', email: (email || '').trim() });
     }
 
     const user = users[0];
     const isValidPassword = await bcrypt.compare(password, user.password_hash);
     if (!isValidPassword) {
-      return res.render('login', { error: 'Email ou senha invalidos' });
+      return res.render('login', { error: 'Email ou senha invalidos', email: (email || '').trim() });
     }
 
     req.session.userId = user.id;
@@ -166,7 +166,7 @@ router.post('/login', async (req, res) => {
     res.redirect('/dashboard');
   } catch (error) {
     console.error(error);
-    res.render('login', { error: 'Erro ao fazer login' });
+    res.render('login', { error: 'Erro ao fazer login', email: (email || '').trim() });
   }
 });
 
