@@ -3,6 +3,22 @@ const db = require('../db');
 const { parseCurrencyInput, isValidPositiveAmount } = require('../utils/currency');
 const router = express.Router();
 
+function renderWithBase(res, options = {}) {
+  const {
+    title = 'Transacoes - RC2 Finance',
+    content = 'partials/pages/add-transaction-content',
+    currentPath = '/dashboard',
+    data = {}
+  } = options;
+
+  return res.render('base', {
+    title,
+    content,
+    currentPath,
+    ...data
+  });
+}
+
 function requireAuth(req, res, next) {
   if (req.session.userId) {
     return next();
@@ -43,19 +59,29 @@ router.get('/add', requireAuth, async (req, res) => {
 
   try {
     const categories = await getUserCategories(userId);
-    return res.render('add-transaction', {
-      error: null,
-      defaultType,
-      categories,
-      formData: { type: defaultType, payment_method: 'cash', is_recurring: 0 }
+    return renderWithBase(res, {
+      title: 'Nova Transacao - RC2 Finance',
+      content: 'partials/pages/add-transaction-content',
+      currentPath: '/dashboard',
+      data: {
+        error: null,
+        defaultType,
+        categories,
+        formData: { type: defaultType, payment_method: 'cash', is_recurring: 0 }
+      }
     });
   } catch (error) {
     console.error(error);
-    return res.render('add-transaction', {
-      error: 'Erro ao carregar categorias. Execute: npm run init-categories',
-      defaultType,
-      categories: [],
-      formData: { type: defaultType, payment_method: 'cash', is_recurring: 0 }
+    return renderWithBase(res, {
+      title: 'Nova Transacao - RC2 Finance',
+      content: 'partials/pages/add-transaction-content',
+      currentPath: '/dashboard',
+      data: {
+        error: 'Erro ao carregar categorias. Execute: npm run init-categories',
+        defaultType,
+        categories: [],
+        formData: { type: defaultType, payment_method: 'cash', is_recurring: 0 }
+      }
     });
   }
 });
@@ -73,30 +99,45 @@ router.post('/add', requireAuth, async (req, res) => {
     const categories = await getUserCategories(userId);
 
     if (!category_id || Number.isNaN(categoryId)) {
-      return res.render('add-transaction', {
-        error: 'Categoria e obrigatoria',
-        defaultType,
-        categories,
-        formData: req.body
+      return renderWithBase(res, {
+        title: 'Nova Transacao - RC2 Finance',
+        content: 'partials/pages/add-transaction-content',
+        currentPath: '/dashboard',
+        data: {
+          error: 'Categoria e obrigatoria',
+          defaultType,
+          categories,
+          formData: req.body
+        }
       });
     }
 
     if (!isValidPositiveAmount(parsedAmount)) {
-      return res.render('add-transaction', {
-        error: 'Informe um valor valido maior que zero',
-        defaultType,
-        categories,
-        formData: req.body
+      return renderWithBase(res, {
+        title: 'Nova Transacao - RC2 Finance',
+        content: 'partials/pages/add-transaction-content',
+        currentPath: '/dashboard',
+        data: {
+          error: 'Informe um valor valido maior que zero',
+          defaultType,
+          categories,
+          formData: req.body
+        }
       });
     }
 
     const validCategory = await isValidCategory(userId, categoryId, defaultType);
     if (!validCategory) {
-      return res.render('add-transaction', {
-        error: 'Categoria invalida para o tipo selecionado',
-        defaultType,
-        categories,
-        formData: req.body
+      return renderWithBase(res, {
+        title: 'Nova Transacao - RC2 Finance',
+        content: 'partials/pages/add-transaction-content',
+        currentPath: '/dashboard',
+        data: {
+          error: 'Categoria invalida para o tipo selecionado',
+          defaultType,
+          categories,
+          formData: req.body
+        }
       });
     }
 
@@ -111,11 +152,16 @@ router.post('/add', requireAuth, async (req, res) => {
   } catch (error) {
     console.error(error);
     const categories = await getUserCategories(userId).catch(() => []);
-    return res.render('add-transaction', {
-      error: 'Erro ao adicionar transacao',
-      defaultType,
-      categories,
-      formData: req.body
+    return renderWithBase(res, {
+      title: 'Nova Transacao - RC2 Finance',
+      content: 'partials/pages/add-transaction-content',
+      currentPath: '/dashboard',
+      data: {
+        error: 'Erro ao adicionar transacao',
+        defaultType,
+        categories,
+        formData: req.body
+      }
     });
   }
 });
@@ -134,10 +180,15 @@ router.get('/edit/:id', requireAuth, async (req, res) => {
     }
 
     const categories = await getUserCategories(userId);
-    return res.render('edit-transaction', {
-      transaction: transactions[0],
-      categories,
-      error: null
+    return renderWithBase(res, {
+      title: 'Editar Transacao - RC2 Finance',
+      content: 'partials/pages/edit-transaction-content',
+      currentPath: '/dashboard',
+      data: {
+        transaction: transactions[0],
+        categories,
+        error: null
+      }
     });
   } catch (error) {
     console.error(error);
@@ -160,50 +211,65 @@ router.post('/edit/:id', requireAuth, async (req, res) => {
 
     if (!category_id || Number.isNaN(categoryId)) {
       const [transactions] = await db.query('SELECT * FROM transactions WHERE id = ? AND user_id = ?', [transactionId, userId]);
-      return res.render('edit-transaction', {
-        transaction: {
-          ...(transactions[0] || {}),
-          ...req.body,
-          id: transactionId,
-          type: normalizedType,
-          payment_method: normalizedPaymentMethod,
-          is_recurring: normalizedRecurring
-        },
-        categories,
-        error: 'Categoria e obrigatoria'
+      return renderWithBase(res, {
+        title: 'Editar Transacao - RC2 Finance',
+        content: 'partials/pages/edit-transaction-content',
+        currentPath: '/dashboard',
+        data: {
+          transaction: {
+            ...(transactions[0] || {}),
+            ...req.body,
+            id: transactionId,
+            type: normalizedType,
+            payment_method: normalizedPaymentMethod,
+            is_recurring: normalizedRecurring
+          },
+          categories,
+          error: 'Categoria e obrigatoria'
+        }
       });
     }
 
     if (!isValidPositiveAmount(parsedAmount)) {
       const [transactions] = await db.query('SELECT * FROM transactions WHERE id = ? AND user_id = ?', [transactionId, userId]);
-      return res.render('edit-transaction', {
-        transaction: {
-          ...(transactions[0] || {}),
-          ...req.body,
-          id: transactionId,
-          type: normalizedType,
-          payment_method: normalizedPaymentMethod,
-          is_recurring: normalizedRecurring
-        },
-        categories,
-        error: 'Informe um valor valido maior que zero'
+      return renderWithBase(res, {
+        title: 'Editar Transacao - RC2 Finance',
+        content: 'partials/pages/edit-transaction-content',
+        currentPath: '/dashboard',
+        data: {
+          transaction: {
+            ...(transactions[0] || {}),
+            ...req.body,
+            id: transactionId,
+            type: normalizedType,
+            payment_method: normalizedPaymentMethod,
+            is_recurring: normalizedRecurring
+          },
+          categories,
+          error: 'Informe um valor valido maior que zero'
+        }
       });
     }
 
     const validCategory = await isValidCategory(userId, categoryId, normalizedType);
     if (!validCategory) {
       const [transactions] = await db.query('SELECT * FROM transactions WHERE id = ? AND user_id = ?', [transactionId, userId]);
-      return res.render('edit-transaction', {
-        transaction: {
-          ...(transactions[0] || {}),
-          ...req.body,
-          id: transactionId,
-          type: normalizedType,
-          payment_method: normalizedPaymentMethod,
-          is_recurring: normalizedRecurring
-        },
-        categories,
-        error: 'Categoria invalida para o tipo selecionado'
+      return renderWithBase(res, {
+        title: 'Editar Transacao - RC2 Finance',
+        content: 'partials/pages/edit-transaction-content',
+        currentPath: '/dashboard',
+        data: {
+          transaction: {
+            ...(transactions[0] || {}),
+            ...req.body,
+            id: transactionId,
+            type: normalizedType,
+            payment_method: normalizedPaymentMethod,
+            is_recurring: normalizedRecurring
+          },
+          categories,
+          error: 'Categoria invalida para o tipo selecionado'
+        }
       });
     }
 
@@ -219,10 +285,15 @@ router.post('/edit/:id', requireAuth, async (req, res) => {
     console.error(error);
     const [transactions] = await db.query('SELECT * FROM transactions WHERE id = ? AND user_id = ?', [transactionId, userId]);
     const categories = await getUserCategories(userId).catch(() => []);
-    return res.render('edit-transaction', {
-      transaction: transactions[0],
-      categories,
-      error: 'Erro ao editar transacao'
+    return renderWithBase(res, {
+      title: 'Editar Transacao - RC2 Finance',
+      content: 'partials/pages/edit-transaction-content',
+      currentPath: '/dashboard',
+      data: {
+        transaction: transactions[0],
+        categories,
+        error: 'Erro ao editar transacao'
+      }
     });
   }
 });

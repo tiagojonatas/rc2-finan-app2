@@ -1,0 +1,150 @@
+<% const safeCategories = Array.isArray(categories) ? categories : []; %>
+<% const safeFormData = formData || {}; %>
+<% const selectedType = safeFormData.type || defaultType || 'expense'; %>
+<% const selectedPaymentMethod = safeFormData.payment_method || 'cash'; %>
+<% const isRecurringChecked = String(safeFormData.is_recurring || '') === '1' || String(safeFormData.is_recurring || '') === 'on'; %>
+
+<div class="flex justify-center items-start min-h-[70vh] pt-10">
+  <div class="w-full max-w-2xl">
+    <div class="bg-slate-900/80 backdrop-blur border border-slate-800 rounded-2xl p-8 shadow-lg">
+      <h2 class="text-2xl font-semibold text-white mb-6">Nova Transacao</h2>
+
+      <% if (error) { %>
+        <div class="mb-4 text-red-400 text-sm bg-red-500/10 border border-red-500/20 p-3 rounded-lg"><%= error %></div>
+      <% } %>
+
+      <form action="/transactions/add" method="POST" class="space-y-5">
+        <div>
+          <label for="description" class="text-sm text-slate-400">Descricao</label>
+          <input id="description" name="description" type="text" value="<%= safeFormData.description || '' %>" required class="w-full mt-1 bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-emerald-500 transition" />
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <label for="amountDisplay" class="text-sm text-slate-400">Valor (R$)</label>
+            <input id="amountDisplay" type="text" inputmode="numeric" placeholder="0,00" required class="w-full mt-1 bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-emerald-500 transition" />
+            <input id="amount" name="amount" type="hidden" value="<%= safeFormData.amount || '0.00' %>" />
+          </div>
+          <div>
+            <label for="date" class="text-sm text-slate-400">Data</label>
+            <input id="date" name="date" type="date" value="<%= safeFormData.date || '' %>" required class="w-full mt-1 bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-emerald-500 transition" />
+          </div>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <label for="type" class="text-sm text-slate-400">Tipo</label>
+            <select id="type" name="type" required class="w-full mt-1 bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-emerald-500 transition">
+              <option value="income" <%= selectedType === 'income' ? 'selected' : '' %>>Entrada</option>
+              <option value="expense" <%= selectedType === 'expense' ? 'selected' : '' %>>Despesa</option>
+            </select>
+          </div>
+          <div>
+            <label for="payment_method" class="text-sm text-slate-400">Forma de pagamento</label>
+            <select id="payment_method" name="payment_method" required class="w-full mt-1 bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-emerald-500 transition">
+              <option value="cash" <%= selectedPaymentMethod === 'cash' ? 'selected' : '' %>>Dinheiro</option>
+              <option value="debit" <%= selectedPaymentMethod === 'debit' ? 'selected' : '' %>>Debito</option>
+              <option value="credit" <%= selectedPaymentMethod === 'credit' ? 'selected' : '' %>>Credito</option>
+            </select>
+          </div>
+        </div>
+
+        <div>
+          <label for="category_id" class="text-sm text-slate-400">Categoria</label>
+          <select id="category_id" name="category_id" required class="w-full mt-1 bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-emerald-500 transition">
+            <% safeCategories.forEach((category) => { %>
+              <option value="<%= category.id %>" data-type="<%= category.type %>" <%= String(safeFormData.category_id || '') === String(category.id) ? 'selected' : '' %>>
+                <%= category.name %>
+              </option>
+            <% }); %>
+          </select>
+        </div>
+
+        <div id="recurringWrapper" class="rounded-lg border border-slate-700 bg-slate-800/50 px-3 py-2">
+          <label class="inline-flex items-center gap-2 text-sm text-slate-300">
+            <input id="is_recurring" name="is_recurring" type="checkbox" value="1" <%= isRecurringChecked ? 'checked' : '' %> class="h-4 w-4 rounded border-slate-600 text-emerald-500 focus:ring-emerald-500/40" />
+            Despesa fixa
+          </label>
+        </div>
+
+        <div class="flex gap-4 mt-6">
+          <button type="submit" class="bg-emerald-500 hover:bg-emerald-600 px-5 py-2 rounded-lg font-medium transition">Salvar</button>
+          <a href="/dashboard" class="px-5 py-2 border border-slate-700 rounded-lg text-slate-300 hover:bg-slate-800 transition">Cancelar</a>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<script>
+  (function initAddTransactionForm() {
+    const amountDisplay = document.getElementById('amountDisplay');
+    const amountInput = document.getElementById('amount');
+    const typeSelect = document.getElementById('type');
+    const categorySelect = document.getElementById('category_id');
+    const recurringWrapper = document.getElementById('recurringWrapper');
+    const recurringCheckbox = document.getElementById('is_recurring');
+
+    if (!amountDisplay || !amountInput || !typeSelect || !categorySelect || !recurringWrapper || !recurringCheckbox) return;
+
+    function formatBRL(value) {
+      return value.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    }
+
+    function initializeAmount() {
+      const currentValue = parseFloat((amountInput.value || '0').toString().replace(',', '.')) || 0;
+      amountDisplay.value = formatBRL(currentValue);
+    }
+
+    function updateCategoryOptions() {
+      const selected = typeSelect.value;
+      const options = Array.from(categorySelect.options);
+      let visibleSelected = false;
+
+      options.forEach((option) => {
+        const isVisible = option.dataset.type === selected;
+        option.hidden = !isVisible;
+        if (isVisible && option.selected) visibleSelected = true;
+      });
+
+      if (!visibleSelected) {
+        const firstVisible = options.find((option) => !option.hidden);
+        if (firstVisible) firstVisible.selected = true;
+      }
+    }
+
+    function updateRecurringVisibility() {
+      const isExpense = typeSelect.value === 'expense';
+      recurringWrapper.style.display = isExpense ? '' : 'none';
+      if (!isExpense) recurringCheckbox.checked = false;
+    }
+
+    amountDisplay.addEventListener('input', function(event) {
+      const digits = event.target.value.replace(/\D/g, '');
+      if (!digits) {
+        amountDisplay.value = '';
+        amountInput.value = '0.00';
+        return;
+      }
+      const numValue = parseInt(digits, 10) / 100;
+      amountDisplay.value = formatBRL(numValue);
+      amountInput.value = numValue.toFixed(2);
+    });
+
+    amountDisplay.addEventListener('paste', function(event) {
+      event.preventDefault();
+      const pasted = (event.clipboardData || window.clipboardData).getData('text') || '';
+      const digits = pasted.replace(/\D/g, '');
+      if (digits) {
+        amountDisplay.value = digits;
+        amountDisplay.dispatchEvent(new Event('input'));
+      }
+    });
+
+    initializeAmount();
+    updateCategoryOptions();
+    updateRecurringVisibility();
+    typeSelect.addEventListener('change', updateCategoryOptions);
+    typeSelect.addEventListener('change', updateRecurringVisibility);
+  })();
+</script>
