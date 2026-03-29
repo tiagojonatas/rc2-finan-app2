@@ -43,6 +43,25 @@ app.use(session({
   }
 }));
 
+app.use((req, res, next) => {
+  const sessionUser = req.session && req.session.user ? req.session.user : null;
+  const fallbackUser = req.session && req.session.userId
+    ? {
+      id: req.session.userId,
+      name: req.session.userName || '',
+      role: req.session.userRole || 'user'
+    }
+    : null;
+
+  res.locals.user = sessionUser || fallbackUser;
+  res.locals.currentDate = new Date().toLocaleDateString('pt-BR', {
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric'
+  });
+  next();
+});
+
 function requireStandardUser(req, res, next) {
   if (!req.session.userId) {
     return res.redirect('/login');

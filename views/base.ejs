@@ -67,6 +67,8 @@
 <body class="bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 font-sans text-gray-200">
   <% const activePath = typeof currentPath !== 'undefined' ? currentPath : ''; %>
   <% const hasHeader = !(typeof hideHeader !== 'undefined' && hideHeader); %>
+  <% const userDisplayName = user && (user.name || user.nome) ? (user.name || user.nome) : ''; %>
+  <% const userInitial = userDisplayName ? userDisplayName.charAt(0).toUpperCase() : 'U'; %>
   <% const navClass = (path) => activePath === path
     ? 'bg-brand-500/20 text-brand-500 border border-brand-500/40'
     : 'bg-gray-900 text-gray-300 border border-gray-700 hover:bg-gray-800'; %>
@@ -85,11 +87,24 @@
           <a href="/categories" class="min-h-[40px] inline-flex items-center rounded-lg px-3 py-2 text-sm transition-all duration-200 <%= navClass('/categories') %>">Categorias</a>
           <a href="/fixed-expenses" class="min-h-[40px] inline-flex items-center rounded-lg px-3 py-2 text-sm transition-all duration-200 <%= navClass('/fixed-expenses') %>">Fixas</a>
         </nav>
-        <form action="/logout" method="POST">
-          <button type="submit" class="min-h-[40px] inline-flex items-center rounded-lg px-3 py-2 text-sm bg-gray-900 text-gray-300 border border-gray-700 hover:bg-gray-800 transition-all duration-200">
-            Sair
-          </button>
-        </form>
+        <div class="flex items-center gap-3 sm:gap-4">
+          <% if (userDisplayName) { %>
+            <div class="hidden sm:flex items-center gap-3 text-sm text-slate-300">
+              <div class="text-slate-400"><%= currentDate %></div>
+              <div class="flex items-center gap-2">
+                <div class="w-8 h-8 rounded-full bg-emerald-500/90 text-white font-semibold flex items-center justify-center">
+                  <%= userInitial %>
+                </div>
+                <span class="text-white font-medium"><%= userDisplayName %></span>
+              </div>
+            </div>
+          <% } %>
+          <form action="/logout" method="POST">
+            <button type="submit" class="min-h-[40px] inline-flex items-center rounded-lg px-3 py-2 text-sm bg-gray-900 text-gray-300 border border-gray-700 hover:bg-gray-800 transition-all duration-200">
+              Sair
+            </button>
+          </form>
+        </div>
       </div>
     </header>
   <% } %>
