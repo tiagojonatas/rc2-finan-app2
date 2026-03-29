@@ -33,7 +33,7 @@
   </script>
   <style>
     body {
-      background: linear-gradient(135deg, #0f172a 0%, #111827 55%, #020617 100%);
+      background: linear-gradient(to bottom right, #020617, #0f172a, #020617);
       min-height: 100vh;
     }
     .glass-card {
@@ -64,7 +64,7 @@
     }
   </style>
 </head>
-<body class="font-sans text-gray-200">
+<body class="bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 font-sans text-gray-200">
   <% const activePath = typeof currentPath !== 'undefined' ? currentPath : ''; %>
   <% const hasHeader = !(typeof hideHeader !== 'undefined' && hideHeader); %>
   <% const navClass = (path) => activePath === path
@@ -72,11 +72,11 @@
     : 'bg-gray-900 text-gray-300 border border-gray-700 hover:bg-gray-800'; %>
 
   <% if (hasHeader) { %>
-    <header class="border-b border-gray-800 bg-gray-950/80 backdrop-blur supports-[backdrop-filter]:bg-gray-950/60">
-      <div class="max-w-6xl mx-auto px-4 py-3 flex items-center justify-between gap-3">
+    <header class="bg-slate-900/80 backdrop-blur border-b border-slate-800">
+      <div class="max-w-7xl mx-auto px-6 py-3 flex items-center justify-between gap-3">
         <div class="flex items-center gap-3">
           <img src="/brand/rc2-finance-horizontal.svg" alt="RC2 Finance" class="h-9 sm:h-10 w-auto" />
-          <p class="text-xs text-gray-400 hidden sm:block">by RC2 Tecnologia</p>
+          <p class="text-xs text-emerald-400 font-semibold tracking-wide hidden sm:block">by RC2 Tecnologia</p>
         </div>
         <nav class="hidden md:flex items-center gap-2">
           <a href="/dashboard" class="min-h-[40px] inline-flex items-center rounded-lg px-3 py-2 text-sm transition-all duration-200 <%= navClass('/dashboard') %>">Visao Geral</a>
@@ -98,5 +98,109 @@
   <main class="max-w-6xl mx-auto px-4 py-6 <%= typeof mainClass !== 'undefined' ? mainClass : 'space-y-6' %>">
     <%- include(contentPath) %>
   </main>
+
+  <div id="confirmModal" class="fixed inset-0 z-[90] hidden items-center justify-center p-4">
+    <div id="confirmBackdrop" class="absolute inset-0 bg-black/50 opacity-0 transition-opacity duration-200"></div>
+    <div id="confirmPanel" class="relative w-full max-w-sm rounded-2xl border border-slate-700 bg-slate-900 p-5 shadow-2xl opacity-0 scale-95 transition-all duration-200">
+      <h3 id="confirmTitle" class="text-lg font-semibold text-white tracking-tight">Confirmar acao</h3>
+      <p id="confirmMessage" class="mt-2 text-sm text-slate-300">Tem certeza que deseja continuar?</p>
+      <div class="mt-5 flex items-center justify-end gap-2">
+        <button id="confirmCancel" type="button" class="min-h-[40px] px-4 py-2 rounded-lg border border-slate-700 bg-slate-800 text-slate-300 hover:bg-slate-700 transition-all duration-200">
+          Cancelar
+        </button>
+        <button id="confirmSubmit" type="button" class="min-h-[40px] px-4 py-2 rounded-lg bg-rose-500 text-white hover:bg-rose-600 transition-all duration-200">
+          Excluir
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    document.addEventListener('DOMContentLoaded', function() {
+      const confirmModal = document.getElementById('confirmModal');
+      const confirmBackdrop = document.getElementById('confirmBackdrop');
+      const confirmPanel = document.getElementById('confirmPanel');
+      const confirmTitle = document.getElementById('confirmTitle');
+      const confirmMessage = document.getElementById('confirmMessage');
+      const confirmCancel = document.getElementById('confirmCancel');
+      const confirmSubmit = document.getElementById('confirmSubmit');
+      let pendingForm = null;
+      let isConfirmOpen = false;
+
+      function setConfirmState(open) {
+        isConfirmOpen = open;
+        if (!confirmModal || !confirmBackdrop || !confirmPanel) return;
+
+        if (open) {
+          confirmModal.classList.remove('hidden');
+          confirmModal.classList.add('flex');
+          requestAnimationFrame(function() {
+            confirmBackdrop.classList.remove('opacity-0');
+            confirmBackdrop.classList.add('opacity-100');
+            confirmPanel.classList.remove('opacity-0', 'scale-95');
+            confirmPanel.classList.add('opacity-100', 'scale-100');
+          });
+        } else {
+          confirmBackdrop.classList.add('opacity-0');
+          confirmBackdrop.classList.remove('opacity-100');
+          confirmPanel.classList.add('opacity-0', 'scale-95');
+          confirmPanel.classList.remove('opacity-100', 'scale-100');
+          setTimeout(function() {
+            if (!isConfirmOpen) {
+              confirmModal.classList.add('hidden');
+              confirmModal.classList.remove('flex');
+            }
+          }, 200);
+        }
+      }
+
+      function openConfirmFor(form) {
+        pendingForm = form;
+        if (confirmTitle) {
+          confirmTitle.textContent = form.getAttribute('data-confirm-title') || 'Confirmar acao';
+        }
+        if (confirmMessage) {
+          confirmMessage.textContent = form.getAttribute('data-confirm-message') || 'Tem certeza que deseja continuar?';
+        }
+        setConfirmState(true);
+      }
+
+      function closeConfirm() {
+        setConfirmState(false);
+        pendingForm = null;
+      }
+
+      document.querySelectorAll('form[data-confirm-message]').forEach(function(form) {
+        form.addEventListener('submit', function(event) {
+          event.preventDefault();
+          openConfirmFor(form);
+        });
+      });
+
+      if (confirmCancel) {
+        confirmCancel.addEventListener('click', closeConfirm);
+      }
+      if (confirmBackdrop) {
+        confirmBackdrop.addEventListener('click', closeConfirm);
+      }
+      if (confirmSubmit) {
+        confirmSubmit.addEventListener('click', function() {
+          if (pendingForm) {
+            const targetForm = pendingForm;
+            pendingForm = null;
+            setConfirmState(false);
+            targetForm.submit();
+          } else {
+            closeConfirm();
+          }
+        });
+      }
+      document.addEventListener('keydown', function(event) {
+        if (event.key === 'Escape' && isConfirmOpen) {
+          closeConfirm();
+        }
+      });
+    });
+  </script>
 </body>
 </html>

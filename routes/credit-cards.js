@@ -1,5 +1,6 @@
 const express = require('express');
 const db = require('../db');
+const { parseCurrencyInput, isValidPositiveAmount } = require('../utils/currency');
 const router = express.Router();
 
 function renderWithBase(res, options = {}) {
@@ -67,19 +68,23 @@ router.post('/add', requireAuth, async (req, res) => {
 
   const closingDay = parseInt(closing_day, 10);
   const dueDay = parseInt(due_day, 10);
+  const parsedLimitAmount = parseCurrencyInput(limit_amount);
 
-  if (closingDay < 1 || closingDay > 31 || dueDay < 1 || dueDay > 31) {
+  if (closingDay < 1 || closingDay > 31 || dueDay < 1 || dueDay > 31 || !isValidPositiveAmount(parsedLimitAmount)) {
+    const errorMessage = !isValidPositiveAmount(parsedLimitAmount)
+      ? 'Informe um limite valido maior que zero'
+      : 'Dias de fechamento e vencimento devem estar entre 1 e 31';
     return renderWithBase(res, {
       title: 'Novo Cartao - RC2 Finance',
       content: 'partials/pages/add-credit-card-content',
       currentPath: '/credit-cards',
-      data: { error: 'Dias de fechamento e vencimento devem estar entre 1 e 31' }
+      data: { error: errorMessage }
     });
   }
 
   try {
     await db.query('INSERT INTO credit_cards (user_id, name, limit_amount, closing_day, due_day) VALUES (?, ?, ?, ?, ?)',
-      [userId, name, parseFloat(limit_amount), closingDay, dueDay]);
+      [userId, name, parsedLimitAmount, closingDay, dueDay]);
     res.redirect('/credit-cards');
   } catch (error) {
     console.error(error);
@@ -127,20 +132,24 @@ router.post('/edit/:id', requireAuth, async (req, res) => {
 
   const closingDay = parseInt(closing_day, 10);
   const dueDay = parseInt(due_day, 10);
+  const parsedLimitAmount = parseCurrencyInput(limit_amount);
 
-  if (closingDay < 1 || closingDay > 31 || dueDay < 1 || dueDay > 31) {
+  if (closingDay < 1 || closingDay > 31 || dueDay < 1 || dueDay > 31 || !isValidPositiveAmount(parsedLimitAmount)) {
     const [cards] = await db.query('SELECT * FROM credit_cards WHERE id = ? AND user_id = ?', [cardId, userId]);
+    const errorMessage = !isValidPositiveAmount(parsedLimitAmount)
+      ? 'Informe um limite valido maior que zero'
+      : 'Dias devem estar entre 1 e 31';
     return renderWithBase(res, {
       title: 'Editar Cartao - RC2 Finance',
       content: 'partials/pages/edit-credit-card-content',
       currentPath: '/credit-cards',
-      data: { card: cards[0], error: 'Dias devem estar entre 1 e 31' }
+      data: { card: cards[0], error: errorMessage }
     });
   }
 
   try {
     await db.query('UPDATE credit_cards SET name = ?, limit_amount = ?, closing_day = ?, due_day = ? WHERE id = ? AND user_id = ?',
-      [name, parseFloat(limit_amount), closingDay, dueDay, cardId, userId]);
+      [name, parsedLimitAmount, closingDay, dueDay, cardId, userId]);
     res.redirect('/credit-cards');
   } catch (error) {
     console.error(error);
@@ -231,6 +240,7 @@ router.post('/:id/add-transaction', requireAuth, async (req, res) => {
   const cardId = req.params.id;
   const userId = req.session.userId;
   const { description, amount, date } = req.body;
+  const parsedAmount = parseCurrencyInput(amount);
 
   try {
     const [cards] = await db.query('SELECT * FROM credit_cards WHERE id = ? AND user_id = ?', [cardId, userId]);
@@ -238,8 +248,12 @@ router.post('/:id/add-transaction', requireAuth, async (req, res) => {
       return res.redirect('/credit-cards');
     }
 
+    if (!isValidPositiveAmount(parsedAmount)) {
+      return res.render('add-card-transaction', { card: cards[0], error: 'Informe um valor valido maior que zero' });
+    }
+
     await db.query('INSERT INTO card_transactions (card_id, description, amount, date) VALUES (?, ?, ?, ?)',
-      [cardId, description, parseFloat(amount), date]);
+      [cardId, description, parsedAmount, date]);
 
     res.redirect(`/credit-cards/${cardId}/transactions`);
   } catch (error) {
@@ -277,6 +291,7 @@ router.post('/:cardId/edit-transaction/:transactionId', requireAuth, async (req,
   const { cardId, transactionId } = req.params;
   const userId = req.session.userId;
   const { description, amount, date } = req.body;
+  const parsedAmount = parseCurrencyInput(amount);
 
   try {
     const [cards] = await db.query('SELECT * FROM credit_cards WHERE id = ? AND user_id = ?', [cardId, userId]);
@@ -284,8 +299,17 @@ router.post('/:cardId/edit-transaction/:transactionId', requireAuth, async (req,
       return res.redirect('/credit-cards');
     }
 
+    if (!isValidPositiveAmount(parsedAmount)) {
+      const [transactions] = await db.query('SELECT * FROM card_transactions WHERE id = ? AND card_id = ?', [transactionId, cardId]);
+      return res.render('edit-card-transaction', {
+        card: cards[0],
+        transaction: transactions[0],
+        error: 'Informe um valor valido maior que zero'
+      });
+    }
+
     await db.query('UPDATE card_transactions SET description = ?, amount = ?, date = ? WHERE id = ? AND card_id = ?',
-      [description, parseFloat(amount), date, transactionId, cardId]);
+      [description, parsedAmount, date, transactionId, cardId]);
 
     res.redirect(`/credit-cards/${cardId}/transactions`);
   } catch (error) {

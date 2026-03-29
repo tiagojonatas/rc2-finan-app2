@@ -1,5 +1,6 @@
 const express = require('express');
 const db = require('../db');
+const { parseCurrencyInput, isValidPositiveAmount } = require('../utils/currency');
 const router = express.Router();
 
 function requireAuth(req, res, next) {
@@ -64,6 +65,7 @@ router.post('/add', requireAuth, async (req, res) => {
   const userId = req.session.userId;
   const defaultType = type === 'income' || type === 'expense' ? type : 'expense';
   const categoryId = parseInt(category_id, 10);
+  const parsedAmount = parseCurrencyInput(amount);
   const normalizedPaymentMethod = normalizePaymentMethod(payment_method);
   const normalizedRecurring = normalizeRecurringFlag(is_recurring, defaultType);
 
@@ -73,6 +75,15 @@ router.post('/add', requireAuth, async (req, res) => {
     if (!category_id || Number.isNaN(categoryId)) {
       return res.render('add-transaction', {
         error: 'Categoria e obrigatoria',
+        defaultType,
+        categories,
+        formData: req.body
+      });
+    }
+
+    if (!isValidPositiveAmount(parsedAmount)) {
+      return res.render('add-transaction', {
+        error: 'Informe um valor valido maior que zero',
         defaultType,
         categories,
         formData: req.body
@@ -93,7 +104,7 @@ router.post('/add', requireAuth, async (req, res) => {
       `INSERT INTO transactions
        (user_id, description, amount, type, date, category_id, payment_method, is_recurring)
        VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
-      [userId, description, parseFloat(amount), defaultType, date, categoryId, normalizedPaymentMethod, normalizedRecurring]
+      [userId, description, parsedAmount, defaultType, date, categoryId, normalizedPaymentMethod, normalizedRecurring]
     );
 
     return res.redirect(`/dashboard?toast=created&tx=${result.insertId}`);
@@ -140,6 +151,7 @@ router.post('/edit/:id', requireAuth, async (req, res) => {
   const userId = req.session.userId;
   const normalizedType = type === 'income' || type === 'expense' ? type : 'expense';
   const categoryId = parseInt(category_id, 10);
+  const parsedAmount = parseCurrencyInput(amount);
   const normalizedPaymentMethod = normalizePaymentMethod(payment_method);
   const normalizedRecurring = normalizeRecurringFlag(is_recurring, normalizedType);
 
@@ -159,6 +171,22 @@ router.post('/edit/:id', requireAuth, async (req, res) => {
         },
         categories,
         error: 'Categoria e obrigatoria'
+      });
+    }
+
+    if (!isValidPositiveAmount(parsedAmount)) {
+      const [transactions] = await db.query('SELECT * FROM transactions WHERE id = ? AND user_id = ?', [transactionId, userId]);
+      return res.render('edit-transaction', {
+        transaction: {
+          ...(transactions[0] || {}),
+          ...req.body,
+          id: transactionId,
+          type: normalizedType,
+          payment_method: normalizedPaymentMethod,
+          is_recurring: normalizedRecurring
+        },
+        categories,
+        error: 'Informe um valor valido maior que zero'
       });
     }
 
@@ -183,7 +211,7 @@ router.post('/edit/:id', requireAuth, async (req, res) => {
       `UPDATE transactions
        SET description = ?, amount = ?, type = ?, date = ?, category_id = ?, payment_method = ?, is_recurring = ?
        WHERE id = ? AND user_id = ?`,
-      [description, parseFloat(amount), normalizedType, date, categoryId, normalizedPaymentMethod, normalizedRecurring, transactionId, userId]
+      [description, parsedAmount, normalizedType, date, categoryId, normalizedPaymentMethod, normalizedRecurring, transactionId, userId]
     );
 
     return res.redirect(`/dashboard?toast=updated&tx=${transactionId}`);

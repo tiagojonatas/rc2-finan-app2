@@ -33,7 +33,7 @@
       </div>
       <div class="col-span-2 flex justify-end gap-2">
         <a href="/categories/edit/<%= category.id %>" class="text-xs px-3 py-1.5 rounded-lg bg-gray-950 hover:bg-gray-800 text-gray-300 border border-gray-700">Editar</a>
-        <form action="/categories/delete/<%= category.id %>" method="POST" onsubmit="return confirm('Excluir categoria?');">
+        <form action="/categories/delete/<%= category.id %>" method="POST" data-confirm-title="Excluir categoria" data-confirm-message="Tem certeza que deseja excluir esta categoria?">
           <button type="submit" class="text-xs px-3 py-1.5 rounded-lg bg-rose-900/30 hover:bg-rose-900/50 text-rose-300 border border-rose-800">Excluir</button>
         </form>
       </div>

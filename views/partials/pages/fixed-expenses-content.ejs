@@ -34,7 +34,7 @@
       <div class="grid grid-cols-1 md:grid-cols-12 gap-2 items-start md:items-center px-5 py-4 <%= index < expenses.length - 1 ? 'border-b border-gray-800' : '' %> hover:bg-gray-950 transition-all duration-200">
         <div class="md:col-span-4">
           <p class="font-semibold text-gray-100"><%= expense.description %></p>
-          <p class="text-xs text-gray-400">Categoria ID: <%= expense.category_id || '-' %></p>
+          <p class="text-xs text-gray-400">Categoria: <%= expense.category_name || 'Sem categoria' %></p>
         </div>
         <div class="md:col-span-2 md:text-right font-semibold text-gray-100"><%= formatCurrency(expense.amount) %></div>
         <div class="md:col-span-2 md:text-center text-gray-300">Dia <%= expense.due_day %></div>
@@ -47,7 +47,7 @@
         </div>
         <div class="md:col-span-2 flex md:justify-end gap-2">
           <a href="/fixed-expenses/edit/<%= expense.id %>" class="min-h-[36px] inline-flex items-center text-xs px-3 py-1.5 rounded-lg bg-gray-950 hover:bg-gray-800 text-gray-300 border border-gray-700">Editar</a>
-          <form action="/fixed-expenses/delete/<%= expense.id %>" method="POST" onsubmit="return confirm('Excluir esta despesa fixa?');">
+          <form action="/fixed-expenses/delete/<%= expense.id %>" method="POST" data-confirm-title="Excluir despesa fixa" data-confirm-message="Tem certeza que deseja excluir esta despesa fixa?">
             <button type="submit" class="min-h-[36px] text-xs px-3 py-1.5 rounded-lg bg-rose-900/30 hover:bg-rose-900/50 text-rose-300 border border-rose-800">Excluir</button>
           </form>
         </div>

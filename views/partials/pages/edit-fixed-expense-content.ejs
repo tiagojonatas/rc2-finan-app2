@@ -1,3 +1,5 @@
+<% const safeCategories = Array.isArray(categories) ? categories : []; %>
+
 <div class="flex justify-center items-start min-h-[70vh] pt-10">
   <div class="w-full max-w-2xl">
   <div class="bg-slate-900/80 backdrop-blur border border-slate-800 rounded-2xl p-8 shadow-lg">
@@ -15,8 +17,9 @@
 
       <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div>
-          <label for="amount" class="text-sm text-slate-400">Valor (R$)</label>
-          <input id="amount" name="amount" type="number" step="0.01" min="0" value="<%= expense.amount %>" required class="w-full mt-1 bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-emerald-500 transition" />
+          <label for="amountDisplay" class="text-sm text-slate-400">Valor (R$)</label>
+          <input id="amountDisplay" type="text" inputmode="numeric" placeholder="0,00" required class="w-full mt-1 bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-emerald-500 transition" />
+          <input id="amount" name="amount" type="hidden" value="<%= expense.amount %>" />
         </div>
         <div>
           <label for="due_day" class="text-sm text-slate-400">Dia do vencimento</label>
@@ -26,8 +29,13 @@
 
       <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div>
-          <label for="category_id" class="text-sm text-slate-400">Categoria ID (opcional)</label>
-          <input id="category_id" name="category_id" type="number" min="1" value="<%= expense.category_id || '' %>" class="w-full mt-1 bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-emerald-500 transition" />
+          <label for="category_id" class="text-sm text-slate-400">Categoria (opcional)</label>
+          <select id="category_id" name="category_id" class="w-full mt-1 bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-emerald-500 transition">
+            <option value="">Sem categoria</option>
+            <% safeCategories.forEach((category) => { %>
+              <option value="<%= category.id %>" <%= String(expense.category_id || '') === String(category.id) ? 'selected' : '' %>><%= category.name %></option>
+            <% }) %>
+          </select>
         </div>
         <div>
           <label for="is_active" class="text-sm text-slate-400">Status</label>
@@ -46,3 +54,44 @@
   </div>
   </div>
 </div>
+
+<script>
+  (function initFixedExpenseAmountMask() {
+    const amountDisplay = document.getElementById('amountDisplay');
+    const amountInput = document.getElementById('amount');
+    if (!amountDisplay || !amountInput) return;
+
+    function formatBRL(value) {
+      return value.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    }
+
+    function syncDisplayFromHidden() {
+      const numeric = parseFloat((amountInput.value || '0').toString().replace(',', '.'));
+      amountDisplay.value = Number.isFinite(numeric) ? formatBRL(numeric) : '';
+    }
+
+    amountDisplay.addEventListener('input', function(event) {
+      const digits = event.target.value.replace(/\D/g, '');
+      if (!digits) {
+        amountDisplay.value = '';
+        amountInput.value = '0.00';
+        return;
+      }
+      const value = parseInt(digits, 10) / 100;
+      amountDisplay.value = formatBRL(value);
+      amountInput.value = value.toFixed(2);
+    });
+
+    amountDisplay.addEventListener('paste', function(event) {
+      event.preventDefault();
+      const pasted = (event.clipboardData || window.clipboardData).getData('text') || '';
+      const digits = pasted.replace(/\D/g, '');
+      if (digits) {
+        amountDisplay.value = digits;
+        amountDisplay.dispatchEvent(new Event('input'));
+      }
+    });
+
+    syncDisplayFromHidden();
+  })();
+</script>

@@ -60,7 +60,7 @@
           <a href="/credit-cards/edit/<%= card.id %>" class="min-h-[44px] inline-flex items-center justify-center px-3 py-2 rounded-lg bg-sky-900/30 hover:bg-sky-900/50 text-sky-300 text-sm font-medium border border-sky-800">
             Editar
           </a>
-          <form action="/credit-cards/delete/<%= card.id %>" method="POST" class="inline" onsubmit="return confirm('Tem certeza que deseja excluir este cartao?');">
+          <form action="/credit-cards/delete/<%= card.id %>" method="POST" class="inline" data-confirm-title="Excluir cartao" data-confirm-message="Tem certeza que deseja excluir este cartao?">
             <button type="submit" class="min-h-[44px] px-3 py-2 rounded-lg bg-rose-900/30 hover:bg-rose-900/50 text-rose-300 text-sm font-medium border border-rose-800">
               Excluir
             </button>

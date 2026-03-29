@@ -59,7 +59,7 @@
               <td class="px-5 py-4 text-center">
                 <div class="inline-flex items-center gap-3">
                   <a href="/credit-cards/<%= card.id %>/edit-transaction/<%= transaction.id %>" class="text-sm font-medium text-sky-300 hover:text-sky-200">Editar</a>
-                  <form action="/credit-cards/<%= card.id %>/delete-transaction/<%= transaction.id %>" method="POST" class="inline" onsubmit="return confirm('Tem certeza que deseja excluir esta transacao?');">
+                  <form action="/credit-cards/<%= card.id %>/delete-transaction/<%= transaction.id %>" method="POST" class="inline" data-confirm-title="Excluir transacao" data-confirm-message="Tem certeza que deseja excluir esta transacao?">
                     <button type="submit" class="text-sm font-medium text-rose-300 hover:text-rose-200">Excluir</button>
                   </form>
                 </div>
