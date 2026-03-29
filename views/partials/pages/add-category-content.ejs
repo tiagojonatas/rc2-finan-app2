@@ -10,12 +10,12 @@
     <form action="/categories/add" method="POST" class="space-y-5">
       <div>
         <label for="name" class="text-sm text-slate-400">Nome</label>
-        <input id="name" name="name" type="text" required class="w-full mt-1 bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-emerald-500 transition" />
+        <input id="name" name="name" type="text" required class="w-full mt-1 bg-slate-800 border border-slate-700 rounded-lg px-3 h-12 text-white focus:outline-none focus:ring-2 focus:ring-emerald-500 transition" />
       </div>
       <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div>
           <label for="type" class="text-sm text-slate-400">Tipo</label>
-          <select id="type" name="type" class="w-full mt-1 bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-emerald-500 transition">
+          <select id="type" name="type" class="w-full mt-1 bg-slate-800 border border-slate-700 rounded-lg px-3 h-12 text-white focus:outline-none focus:ring-2 focus:ring-emerald-500 transition">
             <option value="expense">Despesa</option>
             <option value="income">Entrada</option>
           </select>
@@ -26,9 +26,9 @@
         </div>
       </div>
 
-      <div class="flex gap-4 mt-6">
-        <button type="submit" class="bg-emerald-500 hover:bg-emerald-600 px-5 py-2 rounded-lg font-medium transition">Salvar</button>
-        <a href="/categories" class="px-5 py-2 border border-slate-700 rounded-lg text-slate-300 hover:bg-slate-800 transition">Cancelar</a>
+      <div class="flex flex-col md:flex-row gap-3 md:gap-4 mt-6">
+        <button type="submit" class="w-full md:w-auto h-12 bg-emerald-500 hover:bg-emerald-600 px-5 py-3 rounded-lg font-medium transition">Salvar</button>
+        <a href="/categories" class="w-full md:w-auto h-12 inline-flex items-center justify-center px-5 py-3 border border-slate-700 rounded-lg text-slate-300 hover:bg-slate-800 transition">Cancelar</a>
       </div>
     </form>
   </div>

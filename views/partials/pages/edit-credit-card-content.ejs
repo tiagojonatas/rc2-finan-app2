@@ -10,27 +10,27 @@
     <form action="/credit-cards/edit/<%= card.id %>" method="POST" class="space-y-5">
       <div>
         <label for="name" class="text-sm text-slate-400">Nome do Cartao</label>
-        <input id="name" name="name" type="text" value="<%= card.name %>" required class="w-full mt-1 bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-emerald-500 transition">
+        <input id="name" name="name" type="text" value="<%= card.name %>" required class="w-full mt-1 bg-slate-800 border border-slate-700 rounded-lg px-3 h-12 text-white focus:outline-none focus:ring-2 focus:ring-emerald-500 transition">
       </div>
       <div>
         <label for="limit_amount" class="text-sm text-slate-400">Limite (R$)</label>
-        <input id="limitDisplay" type="text" inputmode="numeric" placeholder="0,00" required class="w-full mt-1 bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-emerald-500 transition">
+        <input id="limitDisplay" type="text" inputmode="numeric" placeholder="0,00" required class="w-full mt-1 bg-slate-800 border border-slate-700 rounded-lg px-3 h-12 text-white focus:outline-none focus:ring-2 focus:ring-emerald-500 transition">
         <input id="limit_amount" name="limit_amount" type="hidden" value="<%= card.limit_amount %>">
       </div>
       <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div>
           <label for="closing_day" class="text-sm text-slate-400">Dia Fechamento</label>
-          <input id="closing_day" name="closing_day" type="number" min="1" max="31" value="<%= card.closing_day %>" required class="w-full mt-1 bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-emerald-500 transition">
+          <input id="closing_day" name="closing_day" type="number" min="1" max="31" value="<%= card.closing_day %>" required class="w-full mt-1 bg-slate-800 border border-slate-700 rounded-lg px-3 h-12 text-white focus:outline-none focus:ring-2 focus:ring-emerald-500 transition">
         </div>
         <div>
           <label for="due_day" class="text-sm text-slate-400">Dia Vencimento</label>
-          <input id="due_day" name="due_day" type="number" min="1" max="31" value="<%= card.due_day %>" required class="w-full mt-1 bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-emerald-500 transition">
+          <input id="due_day" name="due_day" type="number" min="1" max="31" value="<%= card.due_day %>" required class="w-full mt-1 bg-slate-800 border border-slate-700 rounded-lg px-3 h-12 text-white focus:outline-none focus:ring-2 focus:ring-emerald-500 transition">
         </div>
       </div>
 
-      <div class="flex gap-4 mt-6">
-        <button type="submit" class="bg-emerald-500 hover:bg-emerald-600 px-5 py-2 rounded-lg font-medium transition">Salvar</button>
-        <a href="/credit-cards" class="px-5 py-2 border border-slate-700 rounded-lg text-slate-300 hover:bg-slate-800 transition">Cancelar</a>
+      <div class="flex flex-col md:flex-row gap-3 md:gap-4 mt-6">
+        <button type="submit" class="w-full md:w-auto h-12 bg-emerald-500 hover:bg-emerald-600 px-5 py-3 rounded-lg font-medium transition">Salvar</button>
+        <a href="/credit-cards" class="w-full md:w-auto h-12 inline-flex items-center justify-center px-5 py-3 border border-slate-700 rounded-lg text-slate-300 hover:bg-slate-800 transition">Cancelar</a>
       </div>
     </form>
   </div>

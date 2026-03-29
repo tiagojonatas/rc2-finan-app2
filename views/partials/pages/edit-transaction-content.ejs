@@ -15,32 +15,32 @@
       <form action="/transactions/edit/<%= transaction.id %>" method="POST" class="space-y-5">
         <div>
           <label for="description" class="text-sm text-slate-400">Descricao</label>
-          <input id="description" name="description" type="text" value="<%= transaction.description || '' %>" required class="w-full mt-1 bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-emerald-500 transition" />
+          <input id="description" name="description" type="text" value="<%= transaction.description || '' %>" required class="w-full mt-1 bg-slate-800 border border-slate-700 rounded-lg px-3 h-12 text-white focus:outline-none focus:ring-2 focus:ring-emerald-500 transition" />
         </div>
 
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
             <label for="amountDisplay" class="text-sm text-slate-400">Valor (R$)</label>
-            <input id="amountDisplay" type="text" inputmode="numeric" placeholder="0,00" required class="w-full mt-1 bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-emerald-500 transition" />
+            <input id="amountDisplay" type="text" inputmode="numeric" placeholder="0,00" required class="w-full mt-1 bg-slate-800 border border-slate-700 rounded-lg px-3 h-12 text-white focus:outline-none focus:ring-2 focus:ring-emerald-500 transition" />
             <input id="amount" name="amount" type="hidden" value="<%= transaction.amount %>" />
           </div>
           <div>
             <label for="date" class="text-sm text-slate-400">Data</label>
-            <input id="date" name="date" type="date" value="<%= transactionDate %>" required class="w-full mt-1 bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-emerald-500 transition" />
+            <input id="date" name="date" type="date" value="<%= transactionDate %>" required class="w-full mt-1 bg-slate-800 border border-slate-700 rounded-lg px-3 h-12 text-white focus:outline-none focus:ring-2 focus:ring-emerald-500 transition" />
           </div>
         </div>
 
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
             <label for="type" class="text-sm text-slate-400">Tipo</label>
-            <select id="type" name="type" required class="w-full mt-1 bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-emerald-500 transition">
+            <select id="type" name="type" required class="w-full mt-1 bg-slate-800 border border-slate-700 rounded-lg px-3 h-12 text-white focus:outline-none focus:ring-2 focus:ring-emerald-500 transition">
               <option value="income" <%= transaction.type === 'income' ? 'selected' : '' %>>Entrada</option>
               <option value="expense" <%= transaction.type === 'expense' ? 'selected' : '' %>>Despesa</option>
             </select>
           </div>
           <div>
             <label for="payment_method" class="text-sm text-slate-400">Forma de pagamento</label>
-            <select id="payment_method" name="payment_method" required class="w-full mt-1 bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-emerald-500 transition">
+            <select id="payment_method" name="payment_method" required class="w-full mt-1 bg-slate-800 border border-slate-700 rounded-lg px-3 h-12 text-white focus:outline-none focus:ring-2 focus:ring-emerald-500 transition">
               <option value="cash" <%= selectedPaymentMethod === 'cash' ? 'selected' : '' %>>Dinheiro</option>
               <option value="debit" <%= selectedPaymentMethod === 'debit' ? 'selected' : '' %>>Debito</option>
               <option value="credit" <%= selectedPaymentMethod === 'credit' ? 'selected' : '' %>>Credito</option>
@@ -50,7 +50,7 @@
 
         <div>
           <label for="category_id" class="text-sm text-slate-400">Categoria</label>
-          <select id="category_id" name="category_id" required class="w-full mt-1 bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-emerald-500 transition">
+          <select id="category_id" name="category_id" required class="w-full mt-1 bg-slate-800 border border-slate-700 rounded-lg px-3 h-12 text-white focus:outline-none focus:ring-2 focus:ring-emerald-500 transition">
             <% safeCategories.forEach((category) => { %>
               <option value="<%= category.id %>" data-type="<%= category.type %>" <%= String(transaction.category_id || '') === String(category.id) ? 'selected' : '' %>>
                 <%= category.name %>
@@ -61,15 +61,15 @@
 
         <div id="recurringWrapper">
           <label for="is_recurring" class="text-sm text-slate-400">Tipo da despesa</label>
-          <select id="is_recurring" name="is_recurring" class="w-full mt-1 bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-emerald-500 transition">
+          <select id="is_recurring" name="is_recurring" class="w-full mt-1 bg-slate-800 border border-slate-700 rounded-lg px-3 h-12 text-white focus:outline-none focus:ring-2 focus:ring-emerald-500 transition">
             <option value="0" <%= !isRecurringSelected ? 'selected' : '' %>>Despesa unica</option>
             <option value="1" <%= isRecurringSelected ? 'selected' : '' %>>Despesa recorrente</option>
           </select>
         </div>
 
-        <div class="flex gap-4 mt-6">
-          <button type="submit" class="bg-emerald-500 hover:bg-emerald-600 px-5 py-2 rounded-lg font-medium transition">Salvar</button>
-          <a href="/dashboard" class="px-5 py-2 border border-slate-700 rounded-lg text-slate-300 hover:bg-slate-800 transition">Cancelar</a>
+        <div class="flex flex-col md:flex-row gap-3 md:gap-4 mt-6">
+          <button type="submit" class="w-full md:w-auto h-12 bg-emerald-500 hover:bg-emerald-600 px-5 py-3 rounded-lg font-medium transition">Salvar</button>
+          <a href="/dashboard" class="w-full md:w-auto h-12 inline-flex items-center justify-center px-5 py-3 border border-slate-700 rounded-lg text-slate-300 hover:bg-slate-800 transition">Cancelar</a>
         </div>
       </form>
     </div>

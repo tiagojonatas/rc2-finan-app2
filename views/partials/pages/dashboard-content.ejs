@@ -2,11 +2,11 @@
   <div class="absolute inset-0 -z-10 bg-[radial-gradient(circle_at_top,rgba(16,185,129,0.08),transparent_60%)] pointer-events-none"></div>
   <div class="relative z-10 flex flex-col sm:flex-row sm:justify-between sm:items-start gap-4 mb-8">
       <div>
-        <h1 class="text-2xl font-semibold text-white tracking-tight">Visao Geral</h1>
+        <h1 class="text-xl sm:text-2xl font-semibold text-white tracking-tight">Visao Geral</h1>
         <p id="currentMonth" class="text-slate-400 text-sm mt-1.5 sm:mt-2"></p>
       </div>
-      <div class="w-full sm:w-auto flex flex-col sm:flex-row sm:flex-wrap items-stretch sm:items-center sm:justify-end gap-2 sm:gap-3">
-        <form id="monthFilterForm" action="/dashboard" method="GET" class="bg-[#111827] text-gray-300 border border-gray-700 hover:bg-gray-800 rounded-lg px-4 py-2 min-h-[44px] flex items-center gap-2 transition-all duration-200">
+      <div class="w-full sm:w-auto flex flex-col sm:flex-row sm:flex-wrap items-stretch sm:items-center sm:justify-end gap-3">
+        <form id="monthFilterForm" action="/dashboard" method="GET" class="w-full sm:w-auto bg-[#111827] text-gray-300 border border-gray-700 hover:bg-gray-800 rounded-lg px-4 py-3 h-12 flex items-center gap-2 transition-all duration-200">
           <label for="monthFilter" class="text-xs font-semibold text-slate-400 uppercase tracking-wide">Periodo</label>
           <select id="monthFilter" name="month" class="bg-transparent text-sm font-semibold text-white focus:outline-none w-full sm:w-auto">
             <% const safeMonthOptions = Array.isArray(monthOptions) ? monthOptions : []; %>
@@ -17,13 +17,13 @@
             <% }); %>
           </select>
         </form>
-        <a href="/reports" class="bg-[#111827] text-gray-300 border border-gray-700 hover:bg-gray-800 rounded-lg px-4 py-2 min-h-[44px] inline-flex items-center justify-center transition-all duration-200">
+        <a href="/reports" class="w-full sm:w-auto bg-[#111827] text-gray-300 border border-gray-700 hover:bg-gray-800 rounded-lg px-4 py-3 h-12 inline-flex items-center justify-center transition-all duration-200">
           Relatorios
         </a>
-        <a href="/categories" class="bg-[#111827] text-gray-300 border border-gray-700 hover:bg-gray-800 rounded-lg px-4 py-2 min-h-[44px] inline-flex items-center justify-center transition-all duration-200">
+        <a href="/categories" class="w-full sm:w-auto bg-[#111827] text-gray-300 border border-gray-700 hover:bg-gray-800 rounded-lg px-4 py-3 h-12 inline-flex items-center justify-center transition-all duration-200">
           Categorias
         </a>
-        <a href="/fixed-expenses" class="bg-[#111827] text-gray-300 border border-gray-700 hover:bg-gray-800 rounded-lg px-4 py-2 min-h-[44px] inline-flex items-center justify-center transition-all duration-200">
+        <a href="/fixed-expenses" class="w-full sm:w-auto bg-[#111827] text-gray-300 border border-gray-700 hover:bg-gray-800 rounded-lg px-4 py-3 h-12 inline-flex items-center justify-center transition-all duration-200">
           Despesas fixas
         </a>
       </div>
@@ -39,10 +39,10 @@
     <!-- Featured Balance Section -->
     <% const numericBalance = parseFloat(balance || 0); %>
     <% const saldoNegativo = numericBalance < 0; %>
-    <div class="rounded-2xl p-6 text-center shadow-lg transition-all duration-300 <%= saldoNegativo ? 'bg-rose-600/20 border border-rose-500/40 text-rose-300' : 'bg-gradient-to-r from-emerald-500/90 to-teal-500/90 text-white' %>">
+    <div class="rounded-2xl p-6 sm:p-7 text-center shadow-lg transition-all duration-300 <%= saldoNegativo ? 'bg-rose-600/20 border border-rose-500/40 text-rose-300' : 'bg-gradient-to-r from-emerald-500/90 to-teal-500/90 text-white' %>">
       <div class="text-center">
         <p class="<%= saldoNegativo ? 'text-rose-200' : 'text-slate-100' %> text-sm">Seu saldo atual</p>
-        <p class="text-3xl font-bold tracking-tight mt-1">
+        <p class="text-3xl sm:text-4xl font-bold tracking-tight mt-1">
           <%= saldoNegativo ? '-R$ ' + Math.abs(numericBalance).toFixed(2).replace('.', ',') : 'R$ ' + numericBalance.toFixed(2).replace('.', ',') %>
         </p>
         <% if (saldoNegativo) { %>
@@ -293,14 +293,14 @@
                         <% } else { %>
                           <div class="mt-1 flex items-center justify-end sm:justify-start gap-2 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">
                             <a href="/transactions/edit/<%= transaction && transaction.id ? transaction.id : '' %>"
-                               class="bg-[#111827] text-gray-300 border border-gray-700 hover:bg-gray-800 rounded-lg px-4 py-2 text-xs min-h-[44px] inline-flex items-center transition-all duration-200">
+                               class="bg-[#111827] text-gray-300 border border-gray-700 hover:bg-gray-800 rounded-lg px-4 py-3 text-sm h-12 inline-flex items-center transition-all duration-200">
                               Editar
                             </a>
                             <form action="/transactions/delete/<%= transaction && transaction.id ? transaction.id : '' %>" method="POST" class="inline"
                                   data-confirm-title="Excluir transacao"
                                   data-confirm-message="Tem certeza que deseja excluir esta transacao?">
                               <button type="submit"
-                                      class="bg-[#111827] text-gray-300 border border-gray-700 hover:bg-gray-800 rounded-lg px-4 py-2 text-xs min-h-[44px] inline-flex items-center transition-all duration-200">
+                                      class="bg-[#111827] text-gray-300 border border-gray-700 hover:bg-gray-800 rounded-lg px-4 py-3 text-sm h-12 inline-flex items-center transition-all duration-200">
                                 Excluir
                               </button>
                             </form>

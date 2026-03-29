@@ -13,25 +13,25 @@
     <form action="/fixed-expenses/add" method="POST" class="space-y-5">
       <div>
         <label for="description" class="text-sm text-slate-400">Descricao</label>
-        <input id="description" name="description" type="text" value="<%= safeFormData.description || '' %>" required class="w-full mt-1 bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-emerald-500 transition" />
+        <input id="description" name="description" type="text" value="<%= safeFormData.description || '' %>" required class="w-full mt-1 bg-slate-800 border border-slate-700 rounded-lg px-3 h-12 text-white focus:outline-none focus:ring-2 focus:ring-emerald-500 transition" />
       </div>
 
       <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div>
           <label for="amountDisplay" class="text-sm text-slate-400">Valor (R$)</label>
-          <input id="amountDisplay" type="text" inputmode="numeric" placeholder="0,00" required class="w-full mt-1 bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-emerald-500 transition" />
+          <input id="amountDisplay" type="text" inputmode="numeric" placeholder="0,00" required class="w-full mt-1 bg-slate-800 border border-slate-700 rounded-lg px-3 h-12 text-white focus:outline-none focus:ring-2 focus:ring-emerald-500 transition" />
           <input id="amount" name="amount" type="hidden" value="<%= safeFormData.amount || '0.00' %>" />
         </div>
         <div>
           <label for="due_day" class="text-sm text-slate-400">Dia do vencimento</label>
-          <input id="due_day" name="due_day" type="number" min="1" max="31" value="<%= safeFormData.due_day || '' %>" required class="w-full mt-1 bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-emerald-500 transition" />
+          <input id="due_day" name="due_day" type="number" min="1" max="31" value="<%= safeFormData.due_day || '' %>" required class="w-full mt-1 bg-slate-800 border border-slate-700 rounded-lg px-3 h-12 text-white focus:outline-none focus:ring-2 focus:ring-emerald-500 transition" />
         </div>
       </div>
 
       <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div>
           <label for="category_id" class="text-sm text-slate-400">Categoria (opcional)</label>
-          <select id="category_id" name="category_id" class="w-full mt-1 bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-emerald-500 transition">
+          <select id="category_id" name="category_id" class="w-full mt-1 bg-slate-800 border border-slate-700 rounded-lg px-3 h-12 text-white focus:outline-none focus:ring-2 focus:ring-emerald-500 transition">
             <option value="">Sem categoria</option>
             <% safeCategories.forEach((category) => { %>
               <option value="<%= category.id %>" <%= String(safeFormData.category_id || '') === String(category.id) ? 'selected' : '' %>><%= category.name %></option>
@@ -40,16 +40,16 @@
         </div>
         <div>
           <label for="is_active" class="text-sm text-slate-400">Status</label>
-          <select id="is_active" name="is_active" class="w-full mt-1 bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-emerald-500 transition">
+          <select id="is_active" name="is_active" class="w-full mt-1 bg-slate-800 border border-slate-700 rounded-lg px-3 h-12 text-white focus:outline-none focus:ring-2 focus:ring-emerald-500 transition">
             <option value="1" <%= String(safeFormData.is_active || '1') === '1' ? 'selected' : '' %>>Ativa</option>
             <option value="0" <%= String(safeFormData.is_active || '1') === '0' ? 'selected' : '' %>>Inativa</option>
           </select>
         </div>
       </div>
 
-      <div class="flex gap-4 mt-6">
-        <button type="submit" class="bg-emerald-500 hover:bg-emerald-600 px-5 py-2 rounded-lg font-medium transition">Salvar</button>
-        <a href="/fixed-expenses" class="px-5 py-2 border border-slate-700 rounded-lg text-slate-300 hover:bg-slate-800 transition">Cancelar</a>
+      <div class="flex flex-col md:flex-row gap-3 md:gap-4 mt-6">
+        <button type="submit" class="w-full md:w-auto h-12 bg-emerald-500 hover:bg-emerald-600 px-5 py-3 rounded-lg font-medium transition">Salvar</button>
+        <a href="/fixed-expenses" class="w-full md:w-auto h-12 inline-flex items-center justify-center px-5 py-3 border border-slate-700 rounded-lg text-slate-300 hover:bg-slate-800 transition">Cancelar</a>
       </div>
     </form>
   </div>

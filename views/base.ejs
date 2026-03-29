@@ -64,7 +64,7 @@
     }
   </style>
 </head>
-<body class="bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 font-sans text-gray-200">
+<body class="bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 font-sans text-gray-200 overflow-x-hidden">
   <% const activePath = typeof currentPath !== 'undefined' ? currentPath : ''; %>
   <% const hasHeader = !(typeof hideHeader !== 'undefined' && hideHeader); %>
   <% const userDisplayName = user && (user.name || user.nome) ? (user.name || user.nome) : ''; %>
@@ -75,18 +75,18 @@
 
   <% if (hasHeader) { %>
     <header class="bg-slate-900/80 backdrop-blur border-b border-slate-800">
-      <div class="max-w-7xl mx-auto px-6 py-3 flex items-center justify-between gap-3">
+      <div class="max-w-7xl mx-auto px-4 sm:px-6 py-2.5 sm:py-3 flex items-center justify-between gap-3">
         <div class="flex items-center gap-3">
-          <img src="/brand/rc2-finance-horizontal.svg" alt="RC2 Finance" class="h-9 sm:h-10 w-auto" />
+          <img src="/brand/rc2-finance-horizontal.svg" alt="RC2 Finance" class="h-8 sm:h-10 w-auto" />
           <p class="text-xs text-emerald-400 font-semibold tracking-wide hidden sm:block">by RC2 Tecnologia</p>
         </div>
         <nav class="hidden md:flex items-center gap-2">
-          <a href="/dashboard" class="min-h-[40px] inline-flex items-center rounded-lg px-3 py-2 text-sm transition-all duration-200 <%= navClass('/dashboard') %>">Visao Geral</a>
-          <a href="/credit-cards" class="min-h-[40px] inline-flex items-center rounded-lg px-3 py-2 text-sm transition-all duration-200 <%= navClass('/credit-cards') %>">Cartoes</a>
-          <a href="/reports" class="min-h-[40px] inline-flex items-center rounded-lg px-3 py-2 text-sm transition-all duration-200 <%= navClass('/reports') %>">Relatorios</a>
-          <a href="/categories" class="min-h-[40px] inline-flex items-center rounded-lg px-3 py-2 text-sm transition-all duration-200 <%= navClass('/categories') %>">Categorias</a>
+          <a href="/dashboard" class="h-12 inline-flex items-center rounded-lg px-4 py-3 text-sm transition-all duration-200 <%= navClass('/dashboard') %>">Visao Geral</a>
+          <a href="/credit-cards" class="h-12 inline-flex items-center rounded-lg px-4 py-3 text-sm transition-all duration-200 <%= navClass('/credit-cards') %>">Cartoes</a>
+          <a href="/reports" class="h-12 inline-flex items-center rounded-lg px-4 py-3 text-sm transition-all duration-200 <%= navClass('/reports') %>">Relatorios</a>
+          <a href="/categories" class="h-12 inline-flex items-center rounded-lg px-4 py-3 text-sm transition-all duration-200 <%= navClass('/categories') %>">Categorias</a>
         </nav>
-        <div class="flex items-center gap-3 sm:gap-4">
+        <div class="hidden md:flex items-center gap-3 sm:gap-4">
           <% if (userDisplayName) { %>
             <div class="hidden sm:flex items-center gap-3 text-sm text-slate-300">
               <div class="text-slate-400"><%= currentDate %></div>
@@ -99,17 +99,56 @@
             </div>
           <% } %>
           <form action="/logout" method="POST">
-            <button type="submit" class="min-h-[40px] inline-flex items-center rounded-lg px-3 py-2 text-sm bg-gray-900 text-gray-300 border border-gray-700 hover:bg-gray-800 transition-all duration-200">
+            <button type="submit" class="h-12 inline-flex items-center rounded-lg px-4 py-3 text-sm bg-gray-900 text-gray-300 border border-gray-700 hover:bg-gray-800 transition-all duration-200">
               Sair
             </button>
           </form>
         </div>
+        <div class="flex md:hidden items-center gap-2">
+          <% if (userDisplayName) { %>
+            <div class="w-8 h-8 rounded-full bg-emerald-500/90 text-white text-xs font-semibold flex items-center justify-center">
+              <%= userInitial %>
+            </div>
+          <% } %>
+          <button id="mobileMenuButton" type="button" class="h-12 w-12 inline-flex items-center justify-center rounded-lg border border-slate-700 bg-gray-900 text-gray-200">
+            <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
+            </svg>
+          </button>
+        </div>
       </div>
     </header>
+
+    <div id="mobileMenu" class="fixed inset-0 z-[85] hidden md:hidden">
+      <div id="mobileMenuBackdrop" class="absolute inset-0 bg-black/50 opacity-0 transition-opacity duration-200"></div>
+      <aside id="mobileMenuPanel" class="absolute right-0 top-0 h-full w-72 max-w-[86vw] bg-slate-900 border-l border-slate-800 p-4 space-y-4 translate-x-full transition-transform duration-200">
+        <div class="flex items-center justify-between">
+          <p class="text-sm font-semibold text-white">Menu</p>
+          <button id="mobileMenuClose" type="button" class="h-10 w-10 inline-flex items-center justify-center rounded-lg border border-slate-700 bg-slate-800 text-slate-300">X</button>
+        </div>
+        <% if (userDisplayName) { %>
+          <div class="rounded-lg border border-slate-700 bg-slate-800/70 p-3">
+            <p class="text-xs text-slate-400"><%= currentDate %></p>
+            <p class="text-sm font-medium text-white mt-1"><%= userDisplayName %></p>
+          </div>
+        <% } %>
+        <nav class="flex flex-col gap-3">
+          <a href="/dashboard" class="h-12 px-4 py-3 rounded-lg inline-flex items-center <%= navClass('/dashboard') %>">Visao Geral</a>
+          <a href="/credit-cards" class="h-12 px-4 py-3 rounded-lg inline-flex items-center <%= navClass('/credit-cards') %>">Cartoes</a>
+          <a href="/reports" class="h-12 px-4 py-3 rounded-lg inline-flex items-center <%= navClass('/reports') %>">Relatorios</a>
+          <a href="/categories" class="h-12 px-4 py-3 rounded-lg inline-flex items-center <%= navClass('/categories') %>">Categorias</a>
+        </nav>
+        <form action="/logout" method="POST">
+          <button type="submit" class="w-full h-12 px-4 py-3 rounded-lg border border-slate-700 bg-gray-900 text-gray-300 hover:bg-gray-800 transition-all duration-200">
+            Sair
+          </button>
+        </form>
+      </aside>
+    </div>
   <% } %>
 
   <% const contentPath = typeof content !== 'undefined' ? content : contentPartial; %>
-  <main class="max-w-6xl mx-auto px-4 py-6 <%= typeof mainClass !== 'undefined' ? mainClass : 'space-y-6' %>">
+  <main class="max-w-6xl mx-auto px-4 sm:px-5 py-5 sm:py-6 <%= typeof mainClass !== 'undefined' ? mainClass : 'space-y-6' %>">
     <%- include(contentPath) %>
   </main>
 
@@ -138,8 +177,14 @@
       const confirmMessage = document.getElementById('confirmMessage');
       const confirmCancel = document.getElementById('confirmCancel');
       const confirmSubmit = document.getElementById('confirmSubmit');
+      const mobileMenu = document.getElementById('mobileMenu');
+      const mobileMenuBackdrop = document.getElementById('mobileMenuBackdrop');
+      const mobileMenuPanel = document.getElementById('mobileMenuPanel');
+      const mobileMenuButton = document.getElementById('mobileMenuButton');
+      const mobileMenuClose = document.getElementById('mobileMenuClose');
       let pendingForm = null;
       let isConfirmOpen = false;
+      let isMobileMenuOpen = false;
 
       function setConfirmState(open) {
         isConfirmOpen = open;
@@ -184,6 +229,28 @@
         pendingForm = null;
       }
 
+      function setMobileMenuState(open) {
+        if (!mobileMenu || !mobileMenuBackdrop || !mobileMenuPanel) return;
+        isMobileMenuOpen = open;
+        if (open) {
+          mobileMenu.classList.remove('hidden');
+          requestAnimationFrame(function() {
+            mobileMenuBackdrop.classList.remove('opacity-0');
+            mobileMenuBackdrop.classList.add('opacity-100');
+            mobileMenuPanel.classList.remove('translate-x-full');
+          });
+        } else {
+          mobileMenuBackdrop.classList.add('opacity-0');
+          mobileMenuBackdrop.classList.remove('opacity-100');
+          mobileMenuPanel.classList.add('translate-x-full');
+          setTimeout(function() {
+            if (!isMobileMenuOpen) {
+              mobileMenu.classList.add('hidden');
+            }
+          }, 200);
+        }
+      }
+
       document.querySelectorAll('form[data-confirm-message]').forEach(function(form) {
         form.addEventListener('submit', function(event) {
           event.preventDefault();
@@ -213,7 +280,33 @@
         if (event.key === 'Escape' && isConfirmOpen) {
           closeConfirm();
         }
+        if (event.key === 'Escape' && isMobileMenuOpen) {
+          setMobileMenuState(false);
+        }
       });
+
+      if (mobileMenuButton) {
+        mobileMenuButton.addEventListener('click', function() {
+          setMobileMenuState(true);
+        });
+      }
+      if (mobileMenuClose) {
+        mobileMenuClose.addEventListener('click', function() {
+          setMobileMenuState(false);
+        });
+      }
+      if (mobileMenuBackdrop) {
+        mobileMenuBackdrop.addEventListener('click', function() {
+          setMobileMenuState(false);
+        });
+      }
+      if (mobileMenuPanel) {
+        mobileMenuPanel.querySelectorAll('a').forEach(function(link) {
+          link.addEventListener('click', function() {
+            setMobileMenuState(false);
+          });
+        });
+      }
     });
   </script>
 </body>
