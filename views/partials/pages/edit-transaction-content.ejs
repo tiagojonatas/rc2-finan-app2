@@ -1,6 +1,6 @@
 <% const safeCategories = Array.isArray(categories) ? categories : []; %>
 <% const selectedPaymentMethod = transaction && transaction.payment_method ? transaction.payment_method : 'cash'; %>
-<% const isRecurringChecked = Number((transaction && transaction.is_recurring) || 0) === 1 || String((transaction && transaction.is_recurring) || '') === '1' || String((transaction && transaction.is_recurring) || '') === 'on'; %>
+<% const isRecurringSelected = Number((transaction && transaction.is_recurring) || 0) === 1 || String((transaction && transaction.is_recurring) || '') === '1' || String((transaction && transaction.is_recurring) || '') === 'on'; %>
 <% const transactionDate = transaction && transaction.date ? new Date(transaction.date).toISOString().split('T')[0] : ''; %>
 
 <div class="flex justify-center items-start min-h-[70vh] pt-10">
@@ -59,11 +59,12 @@
           </select>
         </div>
 
-        <div id="recurringWrapper" class="rounded-lg border border-slate-700 bg-slate-800/50 px-3 py-2">
-          <label class="inline-flex items-center gap-2 text-sm text-slate-300">
-            <input id="is_recurring" name="is_recurring" type="checkbox" value="1" <%= isRecurringChecked ? 'checked' : '' %> class="h-4 w-4 rounded border-slate-600 text-emerald-500 focus:ring-emerald-500/40" />
-            Despesa fixa
-          </label>
+        <div id="recurringWrapper">
+          <label for="is_recurring" class="text-sm text-slate-400">Tipo da despesa</label>
+          <select id="is_recurring" name="is_recurring" class="w-full mt-1 bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-emerald-500 transition">
+            <option value="0" <%= !isRecurringSelected ? 'selected' : '' %>>Despesa unica</option>
+            <option value="1" <%= isRecurringSelected ? 'selected' : '' %>>Despesa recorrente</option>
+          </select>
         </div>
 
         <div class="flex gap-4 mt-6">
@@ -82,9 +83,9 @@
     const typeSelect = document.getElementById('type');
     const categorySelect = document.getElementById('category_id');
     const recurringWrapper = document.getElementById('recurringWrapper');
-    const recurringCheckbox = document.getElementById('is_recurring');
+    const recurringTypeSelect = document.getElementById('is_recurring');
 
-    if (!amountDisplay || !amountInput || !typeSelect || !categorySelect || !recurringWrapper || !recurringCheckbox) return;
+    if (!amountDisplay || !amountInput || !typeSelect || !categorySelect || !recurringWrapper || !recurringTypeSelect) return;
 
     function formatBRL(value) {
       return value.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -115,7 +116,7 @@
     function updateRecurringVisibility() {
       const isExpense = typeSelect.value === 'expense';
       recurringWrapper.style.display = isExpense ? '' : 'none';
-      if (!isExpense) recurringCheckbox.checked = false;
+      if (!isExpense) recurringTypeSelect.value = '0';
     }
 
     amountDisplay.addEventListener('input', function(event) {
