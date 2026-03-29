@@ -1,6 +1,8 @@
-﻿const express = require('express');
+const express = require('express');
 const bcrypt = require('bcrypt');
 const db = require('../db');
+const { ensureMonthlyFixedExpenses } = require('../utils/monthly-fixed-expenses');
+
 const router = express.Router();
 const DEFAULT_EXPENSE_CATEGORIES = [
   { name: 'Moradia', color: '#8B5CF6' },
@@ -77,18 +79,12 @@ function isValidMonthKey(value) {
   return /^\d{4}-(0[1-9]|1[0-2])$/.test(value || '');
 }
 
-function getMonthDateFromDueDay(year, monthNumber, dueDay) {
-  const day = Math.min(Math.max(Number(dueDay) || 1, 1), new Date(year, monthNumber, 0).getDate());
-  return new Date(year, monthNumber - 1, day);
-}
-
 // Middleware to check if user is authenticated
 function requireAuth(req, res, next) {
   if (req.session.userId) {
     return next();
-  } else {
-    res.redirect('/login');
   }
+  return res.redirect('/login');
 }
 
 // GET /register
@@ -103,30 +99,28 @@ router.post('/register', async (req, res) => {
   const normalizedEmail = (email || '').trim().toLowerCase();
 
   try {
-    // Check if user already exists
     const [existingUser] = await db.query('SELECT id FROM users WHERE email = ?', [normalizedEmail]);
     if (existingUser.length > 0) {
       return res.render('register', { error: 'Email ja cadastrado' });
     }
 
-    // Hash password
     const hashedPassword = await bcrypt.hash(password, 10);
 
-    // Insert user
     const [result] = await db.query(
       "INSERT INTO users (name, email, password_hash, role) VALUES (?, ?, ?, 'user')",
       [normalizedName, normalizedEmail, hashedPassword]
     );
+
     try {
       await createDefaultCategoriesForUser(result.insertId);
     } catch (categoryError) {
       console.warn('Categories table unavailable during register. Run: npm run init-categories');
     }
 
-    res.redirect('/login');
+    return res.redirect('/login');
   } catch (error) {
     console.error(error);
-    res.render('register', { error: 'Erro ao cadastrar usuario' });
+    return res.render('register', { error: 'Erro ao cadastrar usuario' });
   }
 });
 
@@ -160,13 +154,15 @@ router.post('/login', async (req, res) => {
       name: user.name,
       role: user.role || 'user'
     };
+
     if (req.session.userRole === 'admin') {
       return res.redirect('/admin');
     }
-    res.redirect('/dashboard');
+
+    return res.redirect('/dashboard');
   } catch (error) {
     console.error(error);
-    res.render('login', { error: 'Erro ao fazer login', email: (email || '').trim() });
+    return res.render('login', { error: 'Erro ao fazer login', email: (email || '').trim() });
   }
 });
 
@@ -197,6 +193,7 @@ router.get('/dashboard', requireAuth, async (req, res) => {
     const [selectedYear, selectedMonthNumber] = selectedMonth.split('-').map(Number);
     const startDate = `${selectedMonth}-01`;
     const endDate = new Date(selectedYear, selectedMonthNumber, 0).toISOString().split('T')[0];
+
     const toastByType = {
       created: 'Transacao criada com sucesso',
       updated: 'Transacao atualizada com sucesso'
@@ -207,7 +204,22 @@ router.get('/dashboard', requireAuth, async (req, res) => {
       year: 'numeric'
     });
 
-    // Fetch variable transactions in selected month
+    try {
+      const nextMonthKey = getMonthKey(new Date(now.getFullYear(), now.getMonth() + 1, 1));
+      const monthsToEnsure = Array.from(new Set([selectedMonth, currentMonthKey, nextMonthKey]));
+      for (const monthKey of monthsToEnsure) {
+        await ensureMonthlyFixedExpenses(userId, monthKey);
+      }
+      await db.query(
+        `UPDATE monthly_fixed_expenses
+         SET status = 'atrasado'
+         WHERE user_id = ? AND status = 'pendente' AND due_date < CURDATE()`,
+        [userId]
+      );
+    } catch (ensureError) {
+      console.warn('Monthly fixed expenses unavailable for dashboard. Run: npm run init-fixed-expenses');
+    }
+
     const [transactions] = await db.query(
       `SELECT t.*, c.name AS category_name, c.color AS category_color
        FROM transactions t
@@ -217,36 +229,35 @@ router.get('/dashboard', requireAuth, async (req, res) => {
       [userId, startDate, endDate]
     );
 
-    // Build recurring fixed-expense virtual transactions for selected month
     let fixedTransactions = [];
     try {
       const [fixedExpenseRows] = await db.query(
-        `SELECT fe.id, fe.description, fe.amount, fe.category_id, fe.due_day, fe.created_at,
+        `SELECT mfe.id, mfe.amount, mfe.due_date, mfe.status,
+                fe.id AS fixed_id, fe.description, fe.category_id,
                 c.name AS category_name, c.color AS category_color
-         FROM fixed_expenses fe
+         FROM monthly_fixed_expenses mfe
+         INNER JOIN fixed_expenses fe ON fe.id = mfe.fixed_expense_id
          LEFT JOIN categories c ON c.id = fe.category_id AND c.user_id = fe.user_id
-         WHERE fe.user_id = ? AND fe.is_active = 1 AND DATE(fe.created_at) <= ?`,
-        [userId, endDate]
+         WHERE mfe.user_id = ? AND mfe.year = ? AND mfe.month = ?`,
+        [userId, selectedYear, selectedMonthNumber]
       );
 
-      fixedTransactions = fixedExpenseRows.map((expense) => {
-        const expenseDate = getMonthDateFromDueDay(selectedYear, selectedMonthNumber, expense.due_day);
-        return {
-          id: `fixed-${expense.id}`,
-          source: 'fixed_expense',
-          description: expense.description,
-          amount: parseFloat(expense.amount || 0),
-          type: 'expense',
-          date: expenseDate,
-          category_id: expense.category_id,
-          category_name: expense.category_name || 'Sem categoria',
-          category_color: expense.category_color || '#00C9A7',
-          payment_method: 'fixed',
-          is_recurring: 1
-        };
-      });
+      fixedTransactions = fixedExpenseRows.map((expense) => ({
+        id: `fixed-${expense.id}`,
+        source: 'fixed_expense',
+        description: expense.description,
+        amount: parseFloat(expense.amount || 0),
+        type: 'expense',
+        date: expense.due_date,
+        category_id: expense.category_id,
+        category_name: expense.category_name || 'Sem categoria',
+        category_color: expense.category_color || '#00C9A7',
+        payment_method: 'fixed',
+        is_recurring: 1,
+        fixed_status: expense.status
+      }));
     } catch (fixedTxError) {
-      console.warn('Fixed expenses unavailable for dashboard transaction list. Run: npm run init-fixed-expenses');
+      console.warn('Fixed monthly expenses unavailable for dashboard transaction list. Run: npm run init-fixed-expenses');
       fixedTransactions = [];
     }
 
@@ -254,7 +265,6 @@ router.get('/dashboard', requireAuth, async (req, res) => {
       (a, b) => new Date(b.date) - new Date(a.date)
     );
 
-    // Month options for selector
     const [monthRows] = await db.query(
       `SELECT DISTINCT DATE_FORMAT(date, '%Y-%m') AS month_key
        FROM transactions
@@ -262,11 +272,26 @@ router.get('/dashboard', requireAuth, async (req, res) => {
        ORDER BY month_key DESC`,
       [userId]
     );
-    const monthOptions = monthRows.map((row) => row.month_key).filter(Boolean);
+    let monthOptions = monthRows.map((row) => row.month_key).filter(Boolean);
+
+    try {
+      const [fixedMonthRows] = await db.query(
+        `SELECT CONCAT(year, '-', LPAD(month, 2, '0')) AS month_key
+         FROM monthly_fixed_expenses
+         WHERE user_id = ?
+         GROUP BY year, month
+         ORDER BY year DESC, month DESC`,
+        [userId]
+      );
+      const fixedMonths = fixedMonthRows.map((row) => row.month_key).filter(Boolean);
+      monthOptions = Array.from(new Set([...monthOptions, ...fixedMonths])).sort().reverse();
+    } catch (monthError) {
+      console.warn('Monthly fixed expenses unavailable for month options.');
+    }
+
     if (!monthOptions.includes(currentMonthKey)) monthOptions.unshift(currentMonthKey);
     if (!monthOptions.includes(selectedMonth)) monthOptions.unshift(selectedMonth);
 
-    // Calculate totals
     let totalIncome = 0;
     let totalExpenses = 0;
 
@@ -279,18 +304,77 @@ router.get('/dashboard', requireAuth, async (req, res) => {
     });
 
     let totalFixedExpenses = 0;
+    let pendingFixedExpenses = 0;
     try {
       const [fixedExpenseRows] = await db.query(
-        'SELECT COALESCE(SUM(amount), 0) AS total FROM fixed_expenses WHERE user_id = ? AND is_active = 1',
-        [userId]
+        `SELECT COALESCE(SUM(amount), 0) AS total
+         FROM monthly_fixed_expenses
+         WHERE user_id = ? AND year = ? AND month = ?`,
+        [userId, selectedYear, selectedMonthNumber]
       );
       totalFixedExpenses = parseFloat((fixedExpenseRows[0] && fixedExpenseRows[0].total) || 0);
+
+      const [pendingFixedRows] = await db.query(
+        `SELECT COALESCE(SUM(amount), 0) AS total
+         FROM monthly_fixed_expenses
+         WHERE user_id = ? AND year = ? AND month = ? AND status IN ('pendente', 'atrasado')`,
+        [userId, selectedYear, selectedMonthNumber]
+      );
+      pendingFixedExpenses = parseFloat((pendingFixedRows[0] && pendingFixedRows[0].total) || 0);
     } catch (fixedError) {
-      console.warn('Fixed expenses table unavailable. Run: npm run init-fixed-expenses');
+      console.warn('Fixed monthly expenses table unavailable. Run: npm run init-fixed-expenses');
       totalFixedExpenses = 0;
+      pendingFixedExpenses = 0;
     }
 
-    // Monthly projection: fixed expenses + average variable expenses from the last 3 months
+    let overdueAccounts = [];
+    let upcomingDueAccounts = [];
+    try {
+      const [overdueRows] = await db.query(
+        `SELECT mfe.id, mfe.amount, mfe.due_date, mfe.status, fe.description,
+                DATEDIFF(CURDATE(), mfe.due_date) AS overdue_days
+         FROM monthly_fixed_expenses mfe
+         INNER JOIN fixed_expenses fe ON fe.id = mfe.fixed_expense_id
+         WHERE mfe.user_id = ? AND mfe.status = 'atrasado'
+         ORDER BY mfe.due_date ASC
+         LIMIT 6`,
+        [userId]
+      );
+      overdueAccounts = overdueRows.map((row) => ({
+        id: row.id,
+        description: row.description,
+        amount: parseFloat(row.amount || 0),
+        dueDate: row.due_date,
+        status: row.status,
+        overdueDays: Number(row.overdue_days || 0)
+      }));
+
+      const [upcomingRows] = await db.query(
+        `SELECT mfe.id, mfe.amount, mfe.due_date, mfe.status, fe.description,
+                DATEDIFF(mfe.due_date, CURDATE()) AS days_to_due
+         FROM monthly_fixed_expenses mfe
+         INNER JOIN fixed_expenses fe ON fe.id = mfe.fixed_expense_id
+         WHERE mfe.user_id = ?
+           AND mfe.status = 'pendente'
+           AND mfe.due_date BETWEEN CURDATE() AND DATE_ADD(CURDATE(), INTERVAL 3 DAY)
+         ORDER BY mfe.due_date ASC
+         LIMIT 6`,
+        [userId]
+      );
+      upcomingDueAccounts = upcomingRows.map((row) => ({
+        id: row.id,
+        description: row.description,
+        amount: parseFloat(row.amount || 0),
+        dueDate: row.due_date,
+        status: row.status,
+        daysToDue: Number(row.days_to_due || 0)
+      }));
+    } catch (fixedStatusError) {
+      console.warn('Monthly fixed expenses unavailable for overdue/upcoming lists.');
+      overdueAccounts = [];
+      upcomingDueAccounts = [];
+    }
+
     const projectionWindowStartDate = new Date(selectedYear, selectedMonthNumber - 3, 1);
     const projectionWindowStart = `${projectionWindowStartDate.getFullYear()}-${String(projectionWindowStartDate.getMonth() + 1).padStart(2, '0')}-01`;
     const [variableRows] = await db.query(
@@ -301,14 +385,17 @@ router.get('/dashboard', requireAuth, async (req, res) => {
        ORDER BY month_key DESC`,
       [userId, projectionWindowStart, endDate]
     );
+
     const recentVariableRows = variableRows.slice(0, 3);
     const averageVariableExpenses = recentVariableRows.length > 0
       ? recentVariableRows.reduce((sum, row) => sum + parseFloat(row.total || 0), 0) / recentVariableRows.length
       : 0;
-    const estimatedTotalMonthExpense = totalFixedExpenses + averageVariableExpenses;
+
+    const estimatedTotalMonthExpense = pendingFixedExpenses + averageVariableExpenses;
     const projectedBalance = totalIncome - estimatedTotalMonthExpense;
     const monthlyProjection = {
-      fixedExpenses: totalFixedExpenses,
+      fixedExpenses: pendingFixedExpenses,
+      totalFixedExpenses,
       averageVariableExpenses,
       estimatedTotalMonthExpense,
       projectedBalance,
@@ -318,7 +405,6 @@ router.get('/dashboard', requireAuth, async (req, res) => {
     const totalExpensesWithFixed = totalExpenses + totalFixedExpenses;
     const balance = totalIncome - totalExpensesWithFixed;
 
-    // Insight block: current month behavior + variation vs previous month
     const previousMonthDate = new Date(selectedYear, selectedMonthNumber - 2, 1);
     const previousMonthKey = getMonthKey(previousMonthDate);
     const previousStartDate = `${previousMonthKey}-01`;
@@ -336,15 +422,33 @@ router.get('/dashboard', requireAuth, async (req, res) => {
        WHERE user_id = ? AND date BETWEEN ? AND ?`,
       [userId, previousStartDate, previousEndDate]
     );
+
     const previousIncome = parseFloat((previousTotals[0] && previousTotals[0].income) || 0);
-    const previousExpenses = parseFloat((previousTotals[0] && previousTotals[0].expense) || 0);
-    const expenseDelta = totalExpenses - previousExpenses;
+    const previousVariableExpenses = parseFloat((previousTotals[0] && previousTotals[0].expense) || 0);
+
+    let previousFixedExpenses = 0;
+    try {
+      const [previousFixedRows] = await db.query(
+        `SELECT COALESCE(SUM(amount), 0) AS total
+         FROM monthly_fixed_expenses
+         WHERE user_id = ? AND year = ? AND month = ?`,
+        [userId, previousMonthDate.getFullYear(), previousMonthDate.getMonth() + 1]
+      );
+      previousFixedExpenses = parseFloat((previousFixedRows[0] && previousFixedRows[0].total) || 0);
+    } catch (previousFixedError) {
+      previousFixedExpenses = 0;
+    }
+
+    const previousExpenses = previousVariableExpenses + previousFixedExpenses;
+    const expenseDelta = totalExpensesWithFixed - previousExpenses;
+
     let expenseVariationPercent = 0;
     if (previousExpenses > 0) {
       expenseVariationPercent = (expenseDelta / previousExpenses) * 100;
-    } else if (totalExpenses > 0) {
+    } else if (totalExpensesWithFixed > 0) {
       expenseVariationPercent = 100;
     }
+
     const financialInsight = {
       isHealthy: totalExpensesWithFixed <= totalIncome,
       message: totalExpensesWithFixed <= totalIncome
@@ -360,7 +464,6 @@ router.get('/dashboard', requireAuth, async (req, res) => {
       })
     };
 
-    // Expense report by category (sum + percentage + ranking)
     const expenseCategoryMap = new Map();
     monthTransactions.forEach((transaction) => {
       if (transaction.type !== 'expense') return;
@@ -381,7 +484,6 @@ router.get('/dashboard', requireAuth, async (req, res) => {
       }))
       .sort((a, b) => b.total - a.total);
 
-    // Monthly balance evolution (last 12 months)
     const monthlyMap = new Map();
     transactions.forEach((transaction) => {
       const key = getMonthKey(transaction.date);
@@ -393,6 +495,24 @@ router.get('/dashboard', requireAuth, async (req, res) => {
       }
       monthlyMap.set(key, bucket);
     });
+
+    try {
+      const [fixedMonthlyRows] = await db.query(
+        `SELECT CONCAT(year, '-', LPAD(month, 2, '0')) AS month_key, COALESCE(SUM(amount), 0) AS total
+         FROM monthly_fixed_expenses
+         WHERE user_id = ?
+         GROUP BY year, month`,
+        [userId]
+      );
+      fixedMonthlyRows.forEach((row) => {
+        const key = row.month_key;
+        const bucket = monthlyMap.get(key) || { income: 0, expense: 0 };
+        bucket.expense += parseFloat(row.total || 0);
+        monthlyMap.set(key, bucket);
+      });
+    } catch (monthlyFixedBalanceError) {
+      console.warn('Monthly fixed expenses unavailable for balance chart.');
+    }
 
     const monthKeys = Array.from(monthlyMap.keys()).sort().slice(-12);
     const monthlyBalanceData = monthKeys.map((key) => {
@@ -406,7 +526,6 @@ router.get('/dashboard', requireAuth, async (req, res) => {
       };
     });
 
-    // Group transactions by date
     const groupedTransactions = {};
     const today = new Date();
     const yesterday = new Date(today);
@@ -434,10 +553,8 @@ router.get('/dashboard', requireAuth, async (req, res) => {
       }
     });
 
-    // Convert grouped transactions to array and sort by date (most recent first)
     const transactionGroups = Object.values(groupedTransactions).sort((a, b) => b.date - a.date);
 
-    // Add formatted date labels
     const todayStr = getLocalDateKey(today);
     const yesterdayStr = getLocalDateKey(yesterday);
 
@@ -457,7 +574,6 @@ router.get('/dashboard', requireAuth, async (req, res) => {
       }
     });
 
-    // Credit card summary for selected month
     const [creditCards] = await db.query('SELECT id, name, limit_amount, closing_day, due_day FROM credit_cards WHERE user_id = ?', [userId]);
     let creditCardSummary = {
       hasCards: false,
@@ -518,9 +634,10 @@ router.get('/dashboard', requireAuth, async (req, res) => {
         nextDueDate
       };
     }
+
     const dashboardCards = creditCards.map((card) => ({ id: card.id, name: card.name }));
 
-    res.render('dashboard', {
+    return res.render('dashboard', {
       userName: req.session.userName,
       totalIncome: totalIncome.toFixed(2),
       totalExpenses: totalExpensesWithFixed.toFixed(2),
@@ -537,11 +654,13 @@ router.get('/dashboard', requireAuth, async (req, res) => {
       creditCardSummary,
       dashboardCards,
       expenseCategoryReport,
-      monthlyBalanceData
+      monthlyBalanceData,
+      overdueAccounts,
+      upcomingDueAccounts
     });
   } catch (error) {
     console.error('Dashboard error:', error);
-    res.render('dashboard', {
+    return res.render('dashboard', {
       userName: req.session.userName || 'Usuario',
       totalIncome: '0.00',
       totalExpenses: '0.00',
@@ -582,10 +701,11 @@ router.get('/dashboard', requireAuth, async (req, res) => {
         previousMonthLabel: ''
       },
       expenseCategoryReport: [],
-      monthlyBalanceData: []
+      monthlyBalanceData: [],
+      overdueAccounts: [],
+      upcomingDueAccounts: []
     });
   }
 });
 
 module.exports = router;
-

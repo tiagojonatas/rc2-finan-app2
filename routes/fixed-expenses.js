@@ -1,6 +1,8 @@
 const express = require('express');
 const db = require('../db');
 const { parseCurrencyInput, isValidPositiveAmount } = require('../utils/currency');
+const { ensureMonthlyFixedExpenses, parseMonthKey, getMonthKey } = require('../utils/monthly-fixed-expenses');
+
 const router = express.Router();
 
 function renderWithBase(res, options = {}) {
@@ -26,6 +28,32 @@ function requireAuth(req, res, next) {
   return res.redirect('/login');
 }
 
+function getSelectedMonth(req) {
+  const requested = req.query.month;
+  const parsed = parseMonthKey(requested);
+  if (parsed) {
+    return {
+      monthKey: requested,
+      year: parsed.year,
+      month: parsed.month
+    };
+  }
+  const currentMonthKey = getMonthKey(new Date());
+  const currentParsed = parseMonthKey(currentMonthKey);
+  return {
+    monthKey: currentMonthKey,
+    year: currentParsed.year,
+    month: currentParsed.month
+  };
+}
+
+function monthLabel(year, month) {
+  return new Date(year, month - 1, 1).toLocaleDateString('pt-BR', {
+    month: 'long',
+    year: 'numeric'
+  });
+}
+
 async function getExpenseCategories(userId) {
   const [categories] = await db.query(
     "SELECT id, name FROM categories WHERE user_id = ? AND type = 'expense' AND name <> 'Outros' ORDER BY name ASC",
@@ -43,10 +71,35 @@ async function isValidExpenseCategory(userId, categoryId) {
   return rows.length > 0;
 }
 
-router.get('/', requireAuth, async (req, res) => {
-  const userId = req.session.userId;
+function normalizeStatusFilter(status) {
+  const allowed = ['all', 'pendente', 'pago', 'atrasado'];
+  return allowed.includes(status) ? status : 'all';
+}
+
+function buildFixedExpenseRedirect(month, status, extra = {}) {
+  const params = new URLSearchParams();
+  params.set('month', month || getMonthKey(new Date()));
+  params.set('status', normalizeStatusFilter(status));
+  Object.entries(extra).forEach(([key, value]) => {
+    if (value) params.set(key, value);
+  });
+  return `/fixed-expenses?${params.toString()}`;
+}
+
+async function loadFixedExpensePageData(userId, monthKey, statusFilter) {
+  const parsed = parseMonthKey(monthKey);
+  if (!parsed) throw new Error('Mes invalido');
+  const { year, month } = parsed;
+
   try {
-    const [expenses] = await db.query(
+    await ensureMonthlyFixedExpenses(userId, monthKey);
+  } catch (error) {
+    console.warn('Could not ensure monthly fixed expenses:', error.message);
+  }
+
+  let fixedDefinitions = [];
+  try {
+    const [rows] = await db.query(
       `SELECT fe.*, c.name AS category_name
        FROM fixed_expenses fe
        LEFT JOIN categories c ON c.id = fe.category_id AND c.user_id = fe.user_id
@@ -54,41 +107,134 @@ router.get('/', requireAuth, async (req, res) => {
        ORDER BY fe.is_active DESC, fe.due_day ASC, fe.created_at DESC`,
       [userId]
     );
+    fixedDefinitions = rows;
+  } catch (error) {
+    console.warn('Could not load fixed expense definitions:', error.message);
+  }
+
+  const statusCondition = statusFilter === 'all' ? '' : ' AND mfe.status = ?';
+  const monthlyExpenseParams = statusFilter === 'all'
+    ? [userId, year, month]
+    : [userId, year, month, statusFilter];
+
+  let monthlyExpenses = [];
+  try {
+    const [rows] = await db.query(
+      `SELECT mfe.*, fe.description, fe.due_day, fe.is_active, c.name AS category_name
+       FROM monthly_fixed_expenses mfe
+       INNER JOIN fixed_expenses fe ON fe.id = mfe.fixed_expense_id
+       LEFT JOIN categories c ON c.id = fe.category_id AND c.user_id = fe.user_id
+       WHERE mfe.user_id = ? AND mfe.year = ? AND mfe.month = ?${statusCondition}
+       ORDER BY mfe.due_date ASC, fe.description ASC`,
+      monthlyExpenseParams
+    );
+    monthlyExpenses = rows;
+  } catch (error) {
+    console.warn('Could not load filtered monthly fixed expenses:', error.message);
+    try {
+      const [fallbackRows] = await db.query(
+        `SELECT mfe.*, fe.description, fe.due_day, fe.is_active, c.name AS category_name
+         FROM monthly_fixed_expenses mfe
+         INNER JOIN fixed_expenses fe ON fe.id = mfe.fixed_expense_id
+         LEFT JOIN categories c ON c.id = fe.category_id AND c.user_id = fe.user_id
+         WHERE mfe.user_id = ? AND mfe.year = ? AND mfe.month = ?
+         ORDER BY mfe.due_date ASC, fe.description ASC`,
+        [userId, year, month]
+      );
+      monthlyExpenses = fallbackRows;
+    } catch (fallbackError) {
+      console.warn('Could not load monthly fixed expenses fallback:', fallbackError.message);
+    }
+  }
+
+  let monthRows = [];
+  try {
+    const [rows] = await db.query(
+      `SELECT CONCAT(year, '-', LPAD(month, 2, '0')) AS month_key
+       FROM monthly_fixed_expenses
+       WHERE user_id = ?
+       GROUP BY year, month
+       ORDER BY year DESC, month DESC`,
+      [userId]
+    );
+    monthRows = rows;
+  } catch (error) {
+    console.warn('Could not load month options from monthly fixed expenses:', error.message);
+  }
+
+  const currentMonthKey = getMonthKey(new Date());
+  const monthOptions = monthRows.map((row) => row.month_key).filter(Boolean);
+  if (!monthOptions.includes(currentMonthKey)) monthOptions.unshift(currentMonthKey);
+  if (!monthOptions.includes(monthKey)) monthOptions.unshift(monthKey);
+
+  return {
+    fixedDefinitions,
+    monthlyExpenses,
+    monthOptions,
+    selectedMonth: monthKey,
+    selectedMonthLabel: monthLabel(year, month),
+    selectedStatus: statusFilter
+  };
+}
+
+router.get('/', requireAuth, async (req, res) => {
+  const userId = req.session.userId;
+  const selected = getSelectedMonth(req);
+  const selectedStatus = normalizeStatusFilter(req.query.status);
+  const feedbackErrorMap = {
+    missing_amount: 'Defina um valor maior que zero antes de marcar como pago.'
+  };
+  const feedbackSuccessMap = {
+    paid: 'Conta marcada como paga com sucesso.',
+    reopened: 'Conta reaberta com sucesso.',
+    value_updated: 'Valor atualizado com sucesso.'
+  };
+  const feedbackError = feedbackErrorMap[req.query.error] || null;
+  const feedbackSuccess = feedbackSuccessMap[req.query.success] || null;
+
+  try {
+    const data = await loadFixedExpensePageData(userId, selected.monthKey, selectedStatus);
     renderWithBase(res, {
-      title: 'Despesas Fixas - RC2 Finance',
-      content: 'partials/pages/fixed-expenses-content',
-      currentPath: '/fixed-expenses',
-      data: { expenses, error: null, success: null }
+      data: {
+        ...data,
+        error: feedbackError,
+        success: feedbackSuccess
+      }
     });
   } catch (error) {
     console.error(error);
     renderWithBase(res, {
-      title: 'Despesas Fixas - RC2 Finance',
-      content: 'partials/pages/fixed-expenses-content',
-      currentPath: '/fixed-expenses',
-      data: { expenses: [], error: 'Erro ao carregar despesas fixas', success: null }
+      data: {
+        fixedDefinitions: [],
+        monthlyExpenses: [],
+        monthOptions: [selected.monthKey],
+        selectedMonth: selected.monthKey,
+        selectedMonthLabel: monthLabel(selected.year, selected.month),
+        selectedStatus,
+        error: feedbackError || 'Erro ao carregar despesas fixas',
+        success: feedbackSuccess
+      }
     });
   }
 });
 
-router.get('/add', requireAuth, (req, res) => {
+router.get('/add', requireAuth, async (req, res) => {
   const userId = req.session.userId;
-  getExpenseCategories(userId)
-    .then((categories) => renderWithBase(res, {
+  try {
+    const categories = await getExpenseCategories(userId);
+    renderWithBase(res, {
       title: 'Nova Despesa Fixa - RC2 Finance',
       content: 'partials/pages/add-fixed-expense-content',
-      currentPath: '/fixed-expenses',
       data: { error: null, categories, formData: {} }
-    }))
-    .catch((error) => {
-      console.error(error);
-      renderWithBase(res, {
-        title: 'Nova Despesa Fixa - RC2 Finance',
-        content: 'partials/pages/add-fixed-expense-content',
-        currentPath: '/fixed-expenses',
-        data: { error: 'Erro ao carregar categorias', categories: [], formData: {} }
-      });
     });
+  } catch (error) {
+    console.error(error);
+    renderWithBase(res, {
+      title: 'Nova Despesa Fixa - RC2 Finance',
+      content: 'partials/pages/add-fixed-expense-content',
+      data: { error: 'Erro ao carregar categorias', categories: [], formData: {} }
+    });
+  }
 });
 
 router.post('/add', requireAuth, async (req, res) => {
@@ -97,18 +243,24 @@ router.post('/add', requireAuth, async (req, res) => {
   const dueDay = parseInt(due_day, 10);
   const active = is_active === '1' ? 1 : 0;
   const categoryId = category_id ? parseInt(category_id, 10) : null;
-  const parsedAmount = parseCurrencyInput(amount);
+  const normalizedDescription = (description || '').trim();
+  const hasAmount = String(amount || '').trim() !== '';
+  const parsedAmount = hasAmount ? parseCurrencyInput(amount) : null;
 
-  if (!dueDay || dueDay < 1 || dueDay > 31 || !isValidPositiveAmount(parsedAmount)) {
+  if (!normalizedDescription || !dueDay || dueDay < 1 || dueDay > 31 || (hasAmount && !isValidPositiveAmount(parsedAmount))) {
     const categories = await getExpenseCategories(userId).catch(() => []);
-    const errorMessage = !isValidPositiveAmount(parsedAmount)
-      ? 'Informe um valor valido maior que zero'
-      : 'Dia de vencimento deve estar entre 1 e 31';
     return renderWithBase(res, {
       title: 'Nova Despesa Fixa - RC2 Finance',
       content: 'partials/pages/add-fixed-expense-content',
-      currentPath: '/fixed-expenses',
-      data: { error: errorMessage, categories, formData: req.body }
+      data: {
+        error: !normalizedDescription
+          ? 'Descricao e obrigatoria'
+          : (!dueDay || dueDay < 1 || dueDay > 31)
+            ? 'Dia de vencimento deve estar entre 1 e 31'
+            : 'Informe um valor valido maior que zero',
+        categories,
+        formData: req.body
+      }
     });
   }
 
@@ -119,23 +271,22 @@ router.post('/add', requireAuth, async (req, res) => {
       return renderWithBase(res, {
         title: 'Nova Despesa Fixa - RC2 Finance',
         content: 'partials/pages/add-fixed-expense-content',
-        currentPath: '/fixed-expenses',
         data: { error: 'Categoria invalida', categories, formData: req.body }
       });
     }
 
     await db.query(
       'INSERT INTO fixed_expenses (user_id, description, amount, category_id, due_day, is_active) VALUES (?, ?, ?, ?, ?, ?)',
-      [userId, description, parsedAmount, Number.isNaN(categoryId) ? null : categoryId, dueDay, active]
+      [userId, normalizedDescription, hasAmount ? parsedAmount : null, Number.isNaN(categoryId) ? null : categoryId, dueDay, active]
     );
-    res.redirect('/fixed-expenses');
+
+    return res.redirect('/fixed-expenses');
   } catch (error) {
     console.error(error);
     const categories = await getExpenseCategories(userId).catch(() => []);
-    renderWithBase(res, {
+    return renderWithBase(res, {
       title: 'Nova Despesa Fixa - RC2 Finance',
       content: 'partials/pages/add-fixed-expense-content',
-      currentPath: '/fixed-expenses',
       data: { error: 'Erro ao cadastrar despesa fixa', categories, formData: req.body }
     });
   }
@@ -154,7 +305,6 @@ router.get('/edit/:id', requireAuth, async (req, res) => {
     return renderWithBase(res, {
       title: 'Editar Despesa Fixa - RC2 Finance',
       content: 'partials/pages/edit-fixed-expense-content',
-      currentPath: '/fixed-expenses',
       data: { expense: expenses[0], categories, error: null }
     });
   } catch (error) {
@@ -170,22 +320,24 @@ router.post('/edit/:id', requireAuth, async (req, res) => {
   const dueDay = parseInt(due_day, 10);
   const active = is_active === '1' ? 1 : 0;
   const categoryId = category_id ? parseInt(category_id, 10) : null;
-  const parsedAmount = parseCurrencyInput(amount);
+  const normalizedDescription = (description || '').trim();
+  const hasAmount = String(amount || '').trim() !== '';
+  const parsedAmount = hasAmount ? parseCurrencyInput(amount) : null;
 
-  if (!dueDay || dueDay < 1 || dueDay > 31 || !isValidPositiveAmount(parsedAmount)) {
+  if (!normalizedDescription || !dueDay || dueDay < 1 || dueDay > 31 || (hasAmount && !isValidPositiveAmount(parsedAmount))) {
     const [expenses] = await db.query('SELECT * FROM fixed_expenses WHERE id = ? AND user_id = ?', [expenseId, userId]);
     const categories = await getExpenseCategories(userId).catch(() => []);
-    const errorMessage = !isValidPositiveAmount(parsedAmount)
-      ? 'Informe um valor valido maior que zero'
-      : 'Dia de vencimento deve estar entre 1 e 31';
     return renderWithBase(res, {
       title: 'Editar Despesa Fixa - RC2 Finance',
       content: 'partials/pages/edit-fixed-expense-content',
-      currentPath: '/fixed-expenses',
       data: {
         expense: { ...(expenses[0] || {}), ...req.body, id: expenseId },
         categories,
-        error: errorMessage
+        error: !normalizedDescription
+          ? 'Descricao e obrigatoria'
+          : (!dueDay || dueDay < 1 || dueDay > 31)
+            ? 'Dia de vencimento deve estar entre 1 e 31'
+            : 'Informe um valor valido maior que zero'
       }
     });
   }
@@ -198,7 +350,6 @@ router.post('/edit/:id', requireAuth, async (req, res) => {
       return renderWithBase(res, {
         title: 'Editar Despesa Fixa - RC2 Finance',
         content: 'partials/pages/edit-fixed-expense-content',
-        currentPath: '/fixed-expenses',
         data: {
           expense: { ...(expenses[0] || {}), ...req.body, id: expenseId },
           categories,
@@ -211,20 +362,91 @@ router.post('/edit/:id', requireAuth, async (req, res) => {
       `UPDATE fixed_expenses
        SET description = ?, amount = ?, category_id = ?, due_day = ?, is_active = ?
        WHERE id = ? AND user_id = ?`,
-      [description, parsedAmount, Number.isNaN(categoryId) ? null : categoryId, dueDay, active, expenseId, userId]
+      [normalizedDescription, hasAmount ? parsedAmount : null, Number.isNaN(categoryId) ? null : categoryId, dueDay, active, expenseId, userId]
     );
-    res.redirect('/fixed-expenses');
+
+    return res.redirect('/fixed-expenses');
   } catch (error) {
     console.error(error);
     const [expenses] = await db.query('SELECT * FROM fixed_expenses WHERE id = ? AND user_id = ?', [expenseId, userId]);
     const categories = await getExpenseCategories(userId).catch(() => []);
-    renderWithBase(res, {
+    return renderWithBase(res, {
       title: 'Editar Despesa Fixa - RC2 Finance',
       content: 'partials/pages/edit-fixed-expense-content',
-      currentPath: '/fixed-expenses',
       data: { expense: expenses[0], categories, error: 'Erro ao editar despesa fixa' }
     });
   }
+});
+
+router.post('/monthly/:id/value', requireAuth, async (req, res) => {
+  const userId = req.session.userId;
+  const monthlyId = req.params.id;
+  const { amount, month, status } = req.body;
+  const parsedAmount = parseCurrencyInput(amount);
+
+  if (!Number.isFinite(parsedAmount) || parsedAmount < 0) {
+    return res.redirect(buildFixedExpenseRedirect(month, status));
+  }
+
+  try {
+    await db.query(
+      'UPDATE monthly_fixed_expenses SET amount = ? WHERE id = ? AND user_id = ?',
+      [parsedAmount, monthlyId, userId]
+    );
+  } catch (error) {
+    console.error(error);
+  }
+
+  return res.redirect(buildFixedExpenseRedirect(month, status, { success: 'value_updated' }));
+});
+
+router.post('/monthly/:id/pay', requireAuth, async (req, res) => {
+  const userId = req.session.userId;
+  const monthlyId = req.params.id;
+  const { month, status } = req.body;
+
+  try {
+    const [rows] = await db.query(
+      'SELECT amount FROM monthly_fixed_expenses WHERE id = ? AND user_id = ? LIMIT 1',
+      [monthlyId, userId]
+    );
+    const monthlyExpense = rows[0];
+    const numericAmount = parseFloat((monthlyExpense && monthlyExpense.amount) || 0);
+    if (!monthlyExpense || !Number.isFinite(numericAmount) || numericAmount <= 0) {
+      return res.redirect(buildFixedExpenseRedirect(month, status, { error: 'missing_amount' }));
+    }
+
+    await db.query(
+      `UPDATE monthly_fixed_expenses
+       SET status = 'pago', payment_date = CURDATE()
+       WHERE id = ? AND user_id = ?`,
+      [monthlyId, userId]
+    );
+  } catch (error) {
+    console.error(error);
+  }
+
+  return res.redirect(buildFixedExpenseRedirect(month, status, { success: 'paid' }));
+});
+
+router.post('/monthly/:id/reopen', requireAuth, async (req, res) => {
+  const userId = req.session.userId;
+  const monthlyId = req.params.id;
+  const { month, status } = req.body;
+
+  try {
+    await db.query(
+      `UPDATE monthly_fixed_expenses
+       SET status = CASE WHEN due_date < CURDATE() THEN 'atrasado' ELSE 'pendente' END,
+           payment_date = NULL
+       WHERE id = ? AND user_id = ?`,
+      [monthlyId, userId]
+    );
+  } catch (error) {
+    console.error(error);
+  }
+
+  return res.redirect(buildFixedExpenseRedirect(month, status, { success: 'reopened' }));
 });
 
 router.post('/delete/:id', requireAuth, async (req, res) => {

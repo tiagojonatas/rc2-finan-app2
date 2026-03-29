@@ -1,5 +1,6 @@
-﻿const express = require('express');
+const express = require('express');
 const db = require('../db');
+const { ensureMonthlyFixedExpenses } = require('../utils/monthly-fixed-expenses');
 
 const router = express.Router();
 
@@ -32,6 +33,12 @@ router.get('/', requireAuth, async (req, res) => {
       year: 'numeric'
     });
 
+    try {
+      await ensureMonthlyFixedExpenses(userId, selectedMonth);
+    } catch (ensureError) {
+      console.warn('Monthly fixed expenses unavailable for reports. Run: npm run init-fixed-expenses');
+    }
+
     const [monthRows] = await db.query(
       `SELECT DISTINCT DATE_FORMAT(date, '%Y-%m') AS month_key
        FROM transactions
@@ -39,7 +46,24 @@ router.get('/', requireAuth, async (req, res) => {
        ORDER BY month_key DESC`,
       [userId]
     );
-    const monthOptions = monthRows.map((row) => row.month_key).filter(Boolean);
+
+    let monthOptions = monthRows.map((row) => row.month_key).filter(Boolean);
+
+    try {
+      const [fixedMonthRows] = await db.query(
+        `SELECT CONCAT(year, '-', LPAD(month, 2, '0')) AS month_key
+         FROM monthly_fixed_expenses
+         WHERE user_id = ?
+         GROUP BY year, month
+         ORDER BY year DESC, month DESC`,
+        [userId]
+      );
+      const fixedMonths = fixedMonthRows.map((row) => row.month_key).filter(Boolean);
+      monthOptions = Array.from(new Set([...monthOptions, ...fixedMonths])).sort().reverse();
+    } catch (fixedMonthError) {
+      console.warn('Monthly fixed expenses unavailable for report month options.');
+    }
+
     if (!monthOptions.includes(currentMonthKey)) monthOptions.unshift(currentMonthKey);
     if (!monthOptions.includes(selectedMonth)) monthOptions.unshift(selectedMonth);
 
@@ -55,11 +79,12 @@ router.get('/', requireAuth, async (req, res) => {
     let fixedExpenses = [];
     try {
       const [fixedRows] = await db.query(
-        `SELECT fe.id, fe.amount, fe.created_at, c.name AS category_name, c.color AS category_color
-         FROM fixed_expenses fe
+        `SELECT mfe.amount, c.name AS category_name, c.color AS category_color
+         FROM monthly_fixed_expenses mfe
+         INNER JOIN fixed_expenses fe ON fe.id = mfe.fixed_expense_id
          LEFT JOIN categories c ON c.id = fe.category_id AND c.user_id = fe.user_id
-         WHERE fe.user_id = ? AND fe.is_active = 1 AND DATE(fe.created_at) <= ?`,
-        [userId, endDate]
+         WHERE mfe.user_id = ? AND mfe.year = ? AND mfe.month = ?`,
+        [userId, selectedYear, selectedMonthNumber]
       );
       fixedExpenses = fixedRows.map((row) => ({
         type: 'expense',
@@ -68,16 +93,13 @@ router.get('/', requireAuth, async (req, res) => {
         category_color: row.category_color || '#00C9A7'
       }));
     } catch (fixedErr) {
-      console.warn('Fixed expenses unavailable for reports. Run: npm run init-fixed-expenses');
+      console.warn('Monthly fixed expenses unavailable for reports. Run: npm run init-fixed-expenses');
       fixedExpenses = [];
     }
 
     let totalExpenses = 0;
     const expenseCategoryMap = new Map();
-    const expenseSources = [
-      ...transactions,
-      ...fixedExpenses
-    ];
+    const expenseSources = [...transactions, ...fixedExpenses];
 
     expenseSources.forEach((transaction) => {
       if (transaction.type !== 'expense') return;
@@ -112,15 +134,44 @@ router.get('/', requireAuth, async (req, res) => {
       [userId]
     );
 
-    const monthlyBalanceData = monthlyRows.slice(-12).map((row) => {
-      const [year, month] = row.month_key.split('-');
-      const monthDate = new Date(Number(year), Number(month) - 1, 1);
-      const monthLabel = monthDate.toLocaleDateString('pt-BR', { month: 'short', year: '2-digit' });
-      return {
-        label: monthLabel,
-        balance: parseFloat(row.income_total || 0) - parseFloat(row.expense_total || 0)
-      };
+    const monthlyMap = new Map();
+    monthlyRows.forEach((row) => {
+      monthlyMap.set(row.month_key, {
+        income: parseFloat(row.income_total || 0),
+        expense: parseFloat(row.expense_total || 0)
+      });
     });
+
+    try {
+      const [fixedMonthlyRows] = await db.query(
+        `SELECT CONCAT(year, '-', LPAD(month, 2, '0')) AS month_key, COALESCE(SUM(amount), 0) AS total
+         FROM monthly_fixed_expenses
+         WHERE user_id = ?
+         GROUP BY year, month`,
+        [userId]
+      );
+
+      fixedMonthlyRows.forEach((row) => {
+        const bucket = monthlyMap.get(row.month_key) || { income: 0, expense: 0 };
+        bucket.expense += parseFloat(row.total || 0);
+        monthlyMap.set(row.month_key, bucket);
+      });
+    } catch (fixedMonthlyError) {
+      console.warn('Monthly fixed expenses unavailable for reports balance chart.');
+    }
+
+    const monthlyBalanceData = Array.from(monthlyMap.entries())
+      .sort((a, b) => a[0].localeCompare(b[0]))
+      .slice(-12)
+      .map(([monthKey, values]) => {
+        const [year, month] = monthKey.split('-');
+        const monthDate = new Date(Number(year), Number(month) - 1, 1);
+        const monthLabel = monthDate.toLocaleDateString('pt-BR', { month: 'short', year: '2-digit' });
+        return {
+          label: monthLabel,
+          balance: values.income - values.expense
+        };
+      });
 
     return res.render('reports', {
       selectedMonth,
@@ -144,4 +195,3 @@ router.get('/', requireAuth, async (req, res) => {
 });
 
 module.exports = router;
-

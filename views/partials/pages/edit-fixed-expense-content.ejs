@@ -17,9 +17,9 @@
 
       <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div>
-          <label for="amountDisplay" class="text-sm text-slate-400">Valor (R$)</label>
-          <input id="amountDisplay" type="text" inputmode="numeric" placeholder="0,00" required class="w-full mt-1 bg-slate-800 border border-slate-700 rounded-lg px-3 h-12 text-white focus:outline-none focus:ring-2 focus:ring-emerald-500 transition" />
-          <input id="amount" name="amount" type="hidden" value="<%= expense.amount %>" />
+          <label for="amountDisplay" class="text-sm text-slate-400">Valor base (opcional)</label>
+          <input id="amountDisplay" type="text" inputmode="numeric" placeholder="Deixe vazio para valor variavel" class="w-full mt-1 bg-slate-800 border border-slate-700 rounded-lg px-3 h-12 text-white focus:outline-none focus:ring-2 focus:ring-emerald-500 transition" />
+          <input id="amount" name="amount" type="hidden" value="<%= expense.amount == null ? '' : expense.amount %>" />
         </div>
         <div>
           <label for="due_day" class="text-sm text-slate-400">Dia do vencimento</label>
@@ -66,7 +66,12 @@
     }
 
     function syncDisplayFromHidden() {
-      const numeric = parseFloat((amountInput.value || '0').toString().replace(',', '.'));
+      const raw = (amountInput.value || '').toString().trim();
+      if (!raw) {
+        amountDisplay.value = '';
+        return;
+      }
+      const numeric = parseFloat(raw.replace(',', '.'));
       amountDisplay.value = Number.isFinite(numeric) ? formatBRL(numeric) : '';
     }
 
@@ -74,7 +79,7 @@
       const digits = event.target.value.replace(/\D/g, '');
       if (!digits) {
         amountDisplay.value = '';
-        amountInput.value = '0.00';
+        amountInput.value = '';
         return;
       }
       const value = parseInt(digits, 10) / 100;

@@ -77,6 +77,68 @@
       </div>
     </div>
 
+    <!-- Fixed Expenses Status -->
+    <% const safeOverdueAccounts = Array.isArray(overdueAccounts) ? overdueAccounts : []; %>
+    <% const safeUpcomingDueAccounts = Array.isArray(upcomingDueAccounts) ? upcomingDueAccounts : []; %>
+    <div class="border-t border-slate-800/50 pt-6 space-y-4">
+      <div class="flex items-center justify-between gap-3">
+        <h2 class="text-lg sm:text-xl font-semibold text-white tracking-tight">Controle de obrigacoes</h2>
+        <div class="flex items-center gap-2 text-[11px]">
+          <span class="px-2 py-0.5 rounded-full border border-rose-700 bg-rose-900/40 text-rose-300">Atrasado</span>
+          <span class="px-2 py-0.5 rounded-full border border-amber-700 bg-amber-900/40 text-amber-300">Pendente</span>
+          <span class="px-2 py-0.5 rounded-full border border-emerald-700 bg-emerald-900/40 text-emerald-300">Pago</span>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-1 xl:grid-cols-2 gap-4">
+        <section class="bg-slate-900/60 backdrop-blur border border-rose-800/60 rounded-xl p-4 shadow-md">
+          <div class="flex items-center justify-between mb-3">
+            <h3 class="text-sm font-semibold uppercase tracking-wide text-rose-300">Contas em atraso</h3>
+            <span class="text-xs text-rose-200"><%= safeOverdueAccounts.length %></span>
+          </div>
+          <% if (safeOverdueAccounts.length === 0) { %>
+            <p class="text-sm text-slate-400">Nenhuma conta em atraso.</p>
+          <% } else { %>
+            <div class="space-y-2">
+              <% safeOverdueAccounts.forEach((item) => { %>
+                <div class="rounded-lg border border-rose-800/40 bg-rose-900/20 px-3 py-2 flex items-start justify-between gap-3">
+                  <div class="min-w-0">
+                    <p class="text-sm font-semibold text-white truncate"><%= item.description %></p>
+                    <p class="text-xs text-rose-200 mt-1"><%= item.overdueDays %> dia(s) em atraso</p>
+                  </div>
+                  <p class="text-sm font-semibold text-rose-300 whitespace-nowrap"><%= formatCurrency(item.amount) %></p>
+                </div>
+              <% }); %>
+            </div>
+          <% } %>
+        </section>
+
+        <section class="bg-slate-900/60 backdrop-blur border border-amber-800/60 rounded-xl p-4 shadow-md">
+          <div class="flex items-center justify-between mb-3">
+            <h3 class="text-sm font-semibold uppercase tracking-wide text-amber-300">Proximas a vencer</h3>
+            <span class="text-xs text-amber-200"><%= safeUpcomingDueAccounts.length %></span>
+          </div>
+          <% if (safeUpcomingDueAccounts.length === 0) { %>
+            <p class="text-sm text-slate-400">Nenhuma conta vence nos proximos 3 dias.</p>
+          <% } else { %>
+            <div class="space-y-2">
+              <% safeUpcomingDueAccounts.forEach((item) => { %>
+                <div class="rounded-lg border border-amber-800/40 bg-amber-900/20 px-3 py-2 flex items-start justify-between gap-3">
+                  <div class="min-w-0">
+                    <p class="text-sm font-semibold text-white truncate"><%= item.description %></p>
+                    <p class="text-xs text-amber-200 mt-1">
+                      <%= item.daysToDue === 0 ? 'Vence hoje' : ('Vence em ' + item.daysToDue + ' dia(s)') %>
+                    </p>
+                  </div>
+                  <p class="text-sm font-semibold text-amber-300 whitespace-nowrap"><%= formatCurrency(item.amount) %></p>
+                </div>
+              <% }); %>
+            </div>
+          <% } %>
+        </section>
+      </div>
+    </div>
+
     <!-- Monthly Summary -->
     <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 border-t border-slate-800/50 pt-6">
       <div class="bg-slate-900/60 backdrop-blur border border-slate-800 rounded-xl p-4 shadow-md hover:shadow-lg hover:border-emerald-500/30 transition-all duration-200 hover:scale-[1.01]">
@@ -100,10 +162,14 @@
         <h2 class="text-xl font-semibold tracking-tight text-white">Previsao de gastos do mes</h2>
       </div>
       <div class="p-6">
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-5">
+        <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4 mb-5">
           <div class="rounded-lg border border-gray-800 bg-[#111827] p-4">
-            <p class="text-xs uppercase tracking-wide text-slate-400 mb-1">Despesas fixas</p>
+            <p class="text-xs uppercase tracking-wide text-slate-400 mb-1">Despesas pendentes</p>
             <p class="text-lg font-semibold tracking-tight text-white"><%= formatCurrency(projection.fixedExpenses || 0) %></p>
+          </div>
+          <div class="rounded-lg border border-gray-800 bg-[#111827] p-4">
+            <p class="text-xs uppercase tracking-wide text-slate-400 mb-1">Fixas do mes (total)</p>
+            <p class="text-lg font-semibold tracking-tight text-white"><%= formatCurrency(projection.totalFixedExpenses || 0) %></p>
           </div>
           <div class="rounded-lg border border-gray-800 bg-[#111827] p-4">
             <p class="text-xs uppercase tracking-wide text-slate-400 mb-1">Media variavel (3m)</p>
