@@ -52,14 +52,39 @@ router.get('/', requireAuth, async (req, res) => {
       [userId, startDate, endDate]
     );
 
+    let fixedExpenses = [];
+    try {
+      const [fixedRows] = await db.query(
+        `SELECT fe.id, fe.amount, fe.created_at, c.name AS category_name, c.color AS category_color
+         FROM fixed_expenses fe
+         LEFT JOIN categories c ON c.id = fe.category_id AND c.user_id = fe.user_id
+         WHERE fe.user_id = ? AND fe.is_active = 1 AND DATE(fe.created_at) <= ?`,
+        [userId, endDate]
+      );
+      fixedExpenses = fixedRows.map((row) => ({
+        type: 'expense',
+        amount: parseFloat(row.amount || 0),
+        category_name: row.category_name || 'Sem categoria',
+        category_color: row.category_color || '#00C9A7'
+      }));
+    } catch (fixedErr) {
+      console.warn('Fixed expenses unavailable for reports. Run: npm run init-fixed-expenses');
+      fixedExpenses = [];
+    }
+
     let totalExpenses = 0;
     const expenseCategoryMap = new Map();
-    transactions.forEach((transaction) => {
+    const expenseSources = [
+      ...transactions,
+      ...fixedExpenses
+    ];
+
+    expenseSources.forEach((transaction) => {
       if (transaction.type !== 'expense') return;
 
       const amount = parseFloat(transaction.amount || 0);
       totalExpenses += amount;
-      const categoryName = (transaction.category_name || 'Outros').trim() || 'Outros';
+      const categoryName = (transaction.category_name || 'Sem categoria').trim() || 'Sem categoria';
       const categoryColor = transaction.category_color || '#00C9A7';
       const current = expenseCategoryMap.get(categoryName) || { total: 0, color: categoryColor };
       current.total += amount;

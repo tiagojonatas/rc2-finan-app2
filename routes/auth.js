@@ -77,6 +77,11 @@ function isValidMonthKey(value) {
   return /^\d{4}-(0[1-9]|1[0-2])$/.test(value || '');
 }
 
+function getMonthDateFromDueDay(year, monthNumber, dueDay) {
+  const day = Math.min(Math.max(Number(dueDay) || 1, 1), new Date(year, monthNumber, 0).getDate());
+  return new Date(year, monthNumber - 1, day);
+}
+
 // Middleware to check if user is authenticated
 function requireAuth(req, res, next) {
   if (req.session.userId) {
@@ -202,7 +207,7 @@ router.get('/dashboard', requireAuth, async (req, res) => {
       year: 'numeric'
     });
 
-    // Fetch transactions in selected month
+    // Fetch variable transactions in selected month
     const [transactions] = await db.query(
       `SELECT t.*, c.name AS category_name, c.color AS category_color
        FROM transactions t
@@ -210,6 +215,43 @@ router.get('/dashboard', requireAuth, async (req, res) => {
        WHERE t.user_id = ? AND t.date BETWEEN ? AND ?
        ORDER BY t.date DESC`,
       [userId, startDate, endDate]
+    );
+
+    // Build recurring fixed-expense virtual transactions for selected month
+    let fixedTransactions = [];
+    try {
+      const [fixedExpenseRows] = await db.query(
+        `SELECT fe.id, fe.description, fe.amount, fe.category_id, fe.due_day, fe.created_at,
+                c.name AS category_name, c.color AS category_color
+         FROM fixed_expenses fe
+         LEFT JOIN categories c ON c.id = fe.category_id AND c.user_id = fe.user_id
+         WHERE fe.user_id = ? AND fe.is_active = 1 AND DATE(fe.created_at) <= ?`,
+        [userId, endDate]
+      );
+
+      fixedTransactions = fixedExpenseRows.map((expense) => {
+        const expenseDate = getMonthDateFromDueDay(selectedYear, selectedMonthNumber, expense.due_day);
+        return {
+          id: `fixed-${expense.id}`,
+          source: 'fixed_expense',
+          description: expense.description,
+          amount: parseFloat(expense.amount || 0),
+          type: 'expense',
+          date: expenseDate,
+          category_id: expense.category_id,
+          category_name: expense.category_name || 'Sem categoria',
+          category_color: expense.category_color || '#00C9A7',
+          payment_method: 'fixed',
+          is_recurring: 1
+        };
+      });
+    } catch (fixedTxError) {
+      console.warn('Fixed expenses unavailable for dashboard transaction list. Run: npm run init-fixed-expenses');
+      fixedTransactions = [];
+    }
+
+    const monthTransactions = [...transactions, ...fixedTransactions].sort(
+      (a, b) => new Date(b.date) - new Date(a.date)
     );
 
     // Month options for selector
@@ -320,9 +362,9 @@ router.get('/dashboard', requireAuth, async (req, res) => {
 
     // Expense report by category (sum + percentage + ranking)
     const expenseCategoryMap = new Map();
-    transactions.forEach((transaction) => {
+    monthTransactions.forEach((transaction) => {
       if (transaction.type !== 'expense') return;
-      const categoryName = (transaction.category_name || 'Outros').trim() || 'Outros';
+      const categoryName = (transaction.category_name || 'Sem categoria').trim() || 'Sem categoria';
       const categoryColor = transaction.category_color || '#00C9A7';
       const current = expenseCategoryMap.get(categoryName) || { total: 0, color: categoryColor };
       current.total += parseFloat(transaction.amount || 0);
@@ -335,7 +377,7 @@ router.get('/dashboard', requireAuth, async (req, res) => {
         name,
         total: info.total,
         color: info.color || '#00C9A7',
-        percentage: totalExpenses > 0 ? (info.total / totalExpenses) * 100 : 0
+        percentage: totalExpensesWithFixed > 0 ? (info.total / totalExpensesWithFixed) * 100 : 0
       }))
       .sort((a, b) => b.total - a.total);
 
@@ -370,7 +412,7 @@ router.get('/dashboard', requireAuth, async (req, res) => {
     const yesterday = new Date(today);
     yesterday.setDate(yesterday.getDate() - 1);
 
-    transactions.forEach((transaction) => {
+    monthTransactions.forEach((transaction) => {
       const transactionDate = new Date(transaction.date);
       const dateKey = getLocalDateKey(transactionDate);
 
@@ -386,9 +428,9 @@ router.get('/dashboard', requireAuth, async (req, res) => {
       groupedTransactions[dateKey].transactions.push(transaction);
 
       if (transaction.type === 'income') {
-        groupedTransactions[dateKey].totalIncome += parseFloat(transaction.amount);
+        groupedTransactions[dateKey].totalIncome += parseFloat(transaction.amount || 0);
       } else if (transaction.type === 'expense') {
-        groupedTransactions[dateKey].totalExpenses += parseFloat(transaction.amount);
+        groupedTransactions[dateKey].totalExpenses += parseFloat(transaction.amount || 0);
       }
     });
 
