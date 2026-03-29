@@ -37,12 +37,23 @@
     <% } %>
 
     <!-- Featured Balance Section -->
-    <div class="bg-gradient-to-r from-emerald-500/90 to-teal-500/90 shadow-lg rounded-2xl p-6">
+    <% const numericBalance = parseFloat(balance || 0); %>
+    <% const saldoNegativo = numericBalance < 0; %>
+    <div class="rounded-2xl p-6 text-center shadow-lg transition-all duration-300 <%= saldoNegativo ? 'bg-rose-600/20 border border-rose-500/40 text-rose-300' : 'bg-gradient-to-r from-emerald-500/90 to-teal-500/90 text-white' %>">
       <div class="text-center">
-        <p class="text-slate-100 text-sm">Seu saldo atual</p>
-        <p class="text-3xl font-semibold tracking-tight">
-          <%= formatCurrency(balance) %>
+        <p class="<%= saldoNegativo ? 'text-rose-200' : 'text-slate-100' %> text-sm">Seu saldo atual</p>
+        <p class="text-3xl font-bold tracking-tight mt-1">
+          <%= saldoNegativo ? '-R$ ' + Math.abs(numericBalance).toFixed(2).replace('.', ',') : 'R$ ' + numericBalance.toFixed(2).replace('.', ',') %>
         </p>
+        <% if (saldoNegativo) { %>
+          <div class="mt-2 text-sm text-rose-200 flex items-center justify-center gap-2">
+            <span class="inline-flex w-5 h-5 rounded-full bg-rose-500/30 border border-rose-400/40 items-center justify-center text-[11px] font-bold">!</span>
+            Saldo negativo
+          </div>
+          <div class="text-xs text-rose-300/90 mt-1">
+            Revise seus gastos para equilibrar o orcamento
+          </div>
+        <% } %>
       </div>
     </div>
 
