@@ -1,7 +1,7 @@
-const express = require('express');
+﻿const express = require('express');
 const bcrypt = require('bcrypt');
 const db = require('../db');
-const { ensureMonthlyFixedExpenses } = require('../utils/monthly-fixed-expenses');
+const { ensureMonthlyFixedExpenses, markOverdueMonthlyExpenses } = require('../utils/monthly-fixed-expenses');
 
 const router = express.Router();
 const DEFAULT_EXPENSE_CATEGORIES = [
@@ -210,12 +210,7 @@ router.get('/dashboard', requireAuth, async (req, res) => {
       for (const monthKey of monthsToEnsure) {
         await ensureMonthlyFixedExpenses(userId, monthKey);
       }
-      await db.query(
-        `UPDATE monthly_fixed_expenses
-         SET status = 'atrasado'
-         WHERE user_id = ? AND status = 'pendente' AND due_date < CURDATE()`,
-        [userId]
-      );
+      await markOverdueMonthlyExpenses(userId);
     } catch (ensureError) {
       console.warn('Monthly fixed expenses unavailable for dashboard. Run: npm run init-fixed-expenses');
     }
@@ -709,3 +704,7 @@ router.get('/dashboard', requireAuth, async (req, res) => {
 });
 
 module.exports = router;
+
+
+
+

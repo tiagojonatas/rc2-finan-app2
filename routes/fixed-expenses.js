@@ -1,7 +1,7 @@
 const express = require('express');
 const db = require('../db');
 const { parseCurrencyInput, isValidPositiveAmount } = require('../utils/currency');
-const { ensureMonthlyFixedExpenses, parseMonthKey, getMonthKey } = require('../utils/monthly-fixed-expenses');
+const { ensureMonthlyFixedExpenses, markOverdueMonthlyExpenses, parseMonthKey, getMonthKey } = require('../utils/monthly-fixed-expenses');
 
 const router = express.Router();
 
@@ -93,6 +93,7 @@ async function loadFixedExpensePageData(userId, monthKey, statusFilter) {
 
   try {
     await ensureMonthlyFixedExpenses(userId, monthKey);
+    await markOverdueMonthlyExpenses(userId);
   } catch (error) {
     console.warn('Could not ensure monthly fixed expenses:', error.message);
   }
@@ -474,3 +475,4 @@ router.post('/delete/:id', requireAuth, async (req, res) => {
 });
 
 module.exports = router;
+

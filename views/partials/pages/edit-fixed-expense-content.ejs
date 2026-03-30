@@ -38,7 +38,7 @@
           </select>
         </div>
         <div>
-          <label for="is_active" class="text-sm text-slate-400">Status</label>
+          <label for="is_active" class="text-sm text-slate-400">Cadastro ativo</label>
           <select id="is_active" name="is_active" class="w-full mt-1 bg-slate-800 border border-slate-700 rounded-lg px-3 h-12 text-white focus:outline-none focus:ring-2 focus:ring-emerald-500 transition">
             <option value="1" <%= expense.is_active ? 'selected' : '' %>>Ativa</option>
             <option value="0" <%= !expense.is_active ? 'selected' : '' %>>Inativa</option>
@@ -100,3 +100,4 @@
     syncDisplayFromHidden();
   })();
 </script>
+

@@ -63,8 +63,20 @@ async function ensureMonthlyFixedExpenses(userId, monthKey) {
   );
 }
 
+async function markOverdueMonthlyExpenses(userId) {
+  await db.query(
+    `UPDATE monthly_fixed_expenses
+     SET status = 'atrasado'
+     WHERE user_id = ?
+       AND status = 'pendente'
+       AND due_date < CURDATE()`,
+    [userId]
+  );
+}
+
 module.exports = {
   ensureMonthlyFixedExpenses,
+  markOverdueMonthlyExpenses,
   parseMonthKey,
   getMonthKey
 };
