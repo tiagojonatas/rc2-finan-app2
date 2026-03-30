@@ -43,7 +43,7 @@
       <div class="text-center">
         <p class="<%= saldoNegativo ? 'text-rose-200' : 'text-slate-100' %> text-sm">Seu saldo atual</p>
         <p class="text-3xl sm:text-4xl font-bold tracking-tight mt-1">
-          <%= saldoNegativo ? '-R$ ' + Math.abs(numericBalance).toFixed(2).replace('.', ',') : 'R$ ' + numericBalance.toFixed(2).replace('.', ',') %>
+          <%= saldoNegativo ? ('- ' + formatCurrency(Math.abs(numericBalance))) : formatCurrency(numericBalance) %>
         </p>
         <% if (saldoNegativo) { %>
           <div class="mt-2 text-sm text-rose-200 flex items-center justify-center gap-2">

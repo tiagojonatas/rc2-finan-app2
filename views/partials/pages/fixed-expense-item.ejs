@@ -1,0 +1,71 @@
+<% const numericAmount = Number(item.amount || 0); %>
+<% const amountMissing = !Number.isFinite(numericAmount) || numericAmount <= 0; %>
+<div class="p-4 sm:p-5 hover:bg-gray-950/40 transition-all duration-200">
+  <div class="flex flex-col md:flex-row md:items-start md:justify-between gap-3">
+    <div>
+      <p class="font-semibold text-gray-100"><%= item.description %></p>
+      <p class="text-xs text-gray-400 mt-1">Categoria: <%= item.category_name || 'Sem categoria' %> • Vence em <%= formatDate(item.due_date) %></p>
+      <% if (amountMissing) { %>
+        <p class="text-xs text-amber-300 mt-1">Valor nao informado</p>
+      <% } %>
+    </div>
+
+    <div class="text-left md:text-right">
+      <p class="text-lg font-semibold <%= amountMissing ? 'text-amber-300' : 'text-gray-100' %>">
+        <%= amountMissing ? 'Valor nao informado' : formatCurrency(numericAmount) %>
+      </p>
+      <% if (item.status === 'pago') { %>
+        <span class="inline-flex mt-1 px-2 py-1 rounded-full text-xs font-semibold bg-emerald-900/40 text-emerald-300 border border-emerald-800">Pago</span>
+      <% } else if (item.status === 'atrasado') { %>
+        <span class="inline-flex mt-1 px-2 py-1 rounded-full text-xs font-semibold bg-rose-900/40 text-rose-300 border border-rose-800">Atrasado</span>
+      <% } else { %>
+        <span class="inline-flex mt-1 px-2 py-1 rounded-full text-xs font-semibold bg-amber-900/40 text-amber-300 border border-amber-800">Pendente</span>
+      <% } %>
+    </div>
+  </div>
+
+  <div class="mt-3 flex flex-wrap items-center gap-2">
+    <% if (item.status !== 'pago') { %>
+      <% if (amountMissing) { %>
+        <button
+          type="button"
+          data-pay-action="value"
+          data-expense-id="<%= item.id %>"
+          data-expense-description="<%= item.description %>"
+          data-expense-amount="<%= numericAmount %>"
+          data-expense-status="<%= item.status %>"
+          class="h-10 px-3 rounded-lg border border-amber-700 text-amber-300 hover:bg-amber-900/30 text-sm">
+          Definir valor
+        </button>
+      <% } else { %>
+        <button
+          type="button"
+          data-pay-action="value"
+          data-expense-id="<%= item.id %>"
+          data-expense-description="<%= item.description %>"
+          data-expense-amount="<%= numericAmount %>"
+          data-expense-status="<%= item.status %>"
+          class="h-10 px-3 rounded-lg border border-slate-700 text-slate-300 hover:bg-slate-800 text-sm">
+          Editar valor
+        </button>
+      <% } %>
+
+      <button
+        type="button"
+        data-pay-action="pay"
+        data-expense-id="<%= item.id %>"
+        data-expense-description="<%= item.description %>"
+        data-expense-amount="<%= numericAmount %>"
+        data-expense-status="<%= item.status %>"
+        class="h-10 px-3 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-sm">
+        Pagar agora
+      </button>
+    <% } else { %>
+      <form action="/fixed-expenses/monthly/<%= item.id %>/reopen" method="POST">
+        <input type="hidden" name="month" value="<%= selectedMonth %>" />
+        <input type="hidden" name="status" value="<%= currentStatus %>" />
+        <button type="submit" class="h-10 px-3 rounded-lg border border-slate-700 text-slate-300 hover:bg-slate-800 text-sm">Reabrir</button>
+      </form>
+    <% } %>
+  </div>
+</div>

@@ -112,39 +112,20 @@ async function loadFixedExpensePageData(userId, monthKey, statusFilter) {
     console.warn('Could not load fixed expense definitions:', error.message);
   }
 
-  const statusCondition = statusFilter === 'all' ? '' : ' AND mfe.status = ?';
-  const monthlyExpenseParams = statusFilter === 'all'
-    ? [userId, year, month]
-    : [userId, year, month, statusFilter];
-
-  let monthlyExpenses = [];
+  let monthlyExpensesAll = [];
   try {
     const [rows] = await db.query(
       `SELECT mfe.*, fe.description, fe.due_day, fe.is_active, c.name AS category_name
        FROM monthly_fixed_expenses mfe
        INNER JOIN fixed_expenses fe ON fe.id = mfe.fixed_expense_id
        LEFT JOIN categories c ON c.id = fe.category_id AND c.user_id = fe.user_id
-       WHERE mfe.user_id = ? AND mfe.year = ? AND mfe.month = ?${statusCondition}
+       WHERE mfe.user_id = ? AND mfe.year = ? AND mfe.month = ?
        ORDER BY mfe.due_date ASC, fe.description ASC`,
-      monthlyExpenseParams
+      [userId, year, month]
     );
-    monthlyExpenses = rows;
+    monthlyExpensesAll = rows;
   } catch (error) {
-    console.warn('Could not load filtered monthly fixed expenses:', error.message);
-    try {
-      const [fallbackRows] = await db.query(
-        `SELECT mfe.*, fe.description, fe.due_day, fe.is_active, c.name AS category_name
-         FROM monthly_fixed_expenses mfe
-         INNER JOIN fixed_expenses fe ON fe.id = mfe.fixed_expense_id
-         LEFT JOIN categories c ON c.id = fe.category_id AND c.user_id = fe.user_id
-         WHERE mfe.user_id = ? AND mfe.year = ? AND mfe.month = ?
-         ORDER BY mfe.due_date ASC, fe.description ASC`,
-        [userId, year, month]
-      );
-      monthlyExpenses = fallbackRows;
-    } catch (fallbackError) {
-      console.warn('Could not load monthly fixed expenses fallback:', fallbackError.message);
-    }
+    console.warn('Could not load monthly fixed expenses:', error.message);
   }
 
   let monthRows = [];
@@ -167,9 +148,26 @@ async function loadFixedExpensePageData(userId, monthKey, statusFilter) {
   if (!monthOptions.includes(currentMonthKey)) monthOptions.unshift(currentMonthKey);
   if (!monthOptions.includes(monthKey)) monthOptions.unshift(monthKey);
 
+  const monthlyExpensesByStatus = {
+    atrasado: monthlyExpensesAll.filter((item) => item.status === 'atrasado'),
+    pendente: monthlyExpensesAll.filter((item) => item.status === 'pendente'),
+    pago: monthlyExpensesAll.filter((item) => item.status === 'pago')
+  };
+  const totalsByStatus = {
+    atrasado: monthlyExpensesByStatus.atrasado.reduce((acc, item) => acc + Number(item.amount || 0), 0),
+    pendente: monthlyExpensesByStatus.pendente.reduce((acc, item) => acc + Number(item.amount || 0), 0),
+    pago: monthlyExpensesByStatus.pago.reduce((acc, item) => acc + Number(item.amount || 0), 0)
+  };
+  const filteredMonthlyExpenses = statusFilter === 'all'
+    ? monthlyExpensesAll
+    : monthlyExpensesByStatus[statusFilter] || [];
+
   return {
     fixedDefinitions,
-    monthlyExpenses,
+    monthlyExpenses: filteredMonthlyExpenses,
+    monthlyExpensesAll,
+    monthlyExpensesByStatus,
+    totalsByStatus,
     monthOptions,
     selectedMonth: monthKey,
     selectedMonthLabel: monthLabel(year, month),
@@ -207,6 +205,9 @@ router.get('/', requireAuth, async (req, res) => {
       data: {
         fixedDefinitions: [],
         monthlyExpenses: [],
+        monthlyExpensesAll: [],
+        monthlyExpensesByStatus: { atrasado: [], pendente: [], pago: [] },
+        totalsByStatus: { atrasado: 0, pendente: 0, pago: 0 },
         monthOptions: [selected.monthKey],
         selectedMonth: selected.monthKey,
         selectedMonthLabel: monthLabel(selected.year, selected.month),
@@ -403,7 +404,7 @@ router.post('/monthly/:id/value', requireAuth, async (req, res) => {
 router.post('/monthly/:id/pay', requireAuth, async (req, res) => {
   const userId = req.session.userId;
   const monthlyId = req.params.id;
-  const { month, status } = req.body;
+  const { month, status, amount } = req.body;
 
   try {
     const [rows] = await db.query(
@@ -411,9 +412,20 @@ router.post('/monthly/:id/pay', requireAuth, async (req, res) => {
       [monthlyId, userId]
     );
     const monthlyExpense = rows[0];
-    const numericAmount = parseFloat((monthlyExpense && monthlyExpense.amount) || 0);
+    const hasAmountInput = typeof amount !== 'undefined' && String(amount).trim() !== '';
+    const parsedInputAmount = hasAmountInput ? parseCurrencyInput(amount) : null;
+    const numericAmount = hasAmountInput
+      ? parsedInputAmount
+      : parseFloat((monthlyExpense && monthlyExpense.amount) || 0);
     if (!monthlyExpense || !Number.isFinite(numericAmount) || numericAmount <= 0) {
       return res.redirect(buildFixedExpenseRedirect(month, status, { error: 'missing_amount' }));
+    }
+
+    if (hasAmountInput) {
+      await db.query(
+        'UPDATE monthly_fixed_expenses SET amount = ? WHERE id = ? AND user_id = ?',
+        [numericAmount, monthlyId, userId]
+      );
     }
 
     await db.query(

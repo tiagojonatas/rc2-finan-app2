@@ -1,7 +1,12 @@
 <% const safeDefinitions = Array.isArray(fixedDefinitions) ? fixedDefinitions : (Array.isArray(expenses) ? expenses : []); %>
-<% const safeMonthlyExpenses = Array.isArray(monthlyExpenses) ? monthlyExpenses : []; %>
 <% const safeMonthOptions = Array.isArray(monthOptions) ? monthOptions : []; %>
 <% const currentStatus = selectedStatus || 'all'; %>
+<% const grouped = monthlyExpensesByStatus || { atrasado: [], pendente: [], pago: [] }; %>
+<% const overdueItems = Array.isArray(grouped.atrasado) ? grouped.atrasado : []; %>
+<% const pendingItems = Array.isArray(grouped.pendente) ? grouped.pendente : []; %>
+<% const paidItems = Array.isArray(grouped.pago) ? grouped.pago : []; %>
+<% const totals = totalsByStatus || { atrasado: 0, pendente: 0, pago: 0 }; %>
+<% const showAllStatuses = currentStatus === 'all'; %>
 
 <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-6">
   <div>
@@ -11,7 +16,7 @@
   <a href="/fixed-expenses/add" class="w-full sm:w-auto h-12 inline-flex items-center justify-center bg-[#00C9A7] hover:bg-[#009e83] text-white px-4 py-3 rounded-lg transition-all duration-200">+ Nova fixa</a>
 </div>
 
-<div class="mb-5 flex flex-col sm:flex-row gap-3 sm:items-center sm:justify-between">
+<div class="mb-4 flex flex-col sm:flex-row gap-3 sm:items-center sm:justify-between">
   <form action="/fixed-expenses" method="GET" class="bg-gray-900 border border-gray-800 rounded-lg px-3 py-2 flex flex-col sm:flex-row sm:items-center gap-2 w-full sm:w-auto">
     <div class="flex items-center gap-2">
       <label for="month" class="text-xs font-semibold text-gray-400 uppercase tracking-wide">Periodo</label>
@@ -37,6 +42,16 @@
   <p class="text-sm text-slate-400"><%= selectedMonthLabel || '' %></p>
 </div>
 
+<% if (overdueItems.length > 0) { %>
+  <div class="mb-4 rounded-xl border border-rose-800 bg-rose-900/25 p-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+    <div>
+      <p class="text-sm font-semibold text-rose-200">Voce possui <%= overdueItems.length %> conta(s) atrasada(s)</p>
+      <p class="text-xs text-rose-300 mt-1">Total em atraso: <strong><%= formatCurrency(totals.atrasado || 0) %></strong></p>
+    </div>
+    <a href="#sec-atrasado" class="h-10 px-3 inline-flex items-center justify-center rounded-lg border border-rose-700 text-rose-200 hover:bg-rose-900/40 text-sm">Ver atrasadas</a>
+  </div>
+<% } %>
+
 <% if (error) { %>
   <div class="mb-4 rounded-xl border border-rose-800 bg-rose-900/30 text-rose-300 px-4 py-3"><%= error %></div>
 <% } %>
@@ -45,73 +60,74 @@
   <div class="mb-4 rounded-xl border border-emerald-800 bg-emerald-900/30 text-emerald-300 px-4 py-3"><%= success %></div>
 <% } %>
 
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-3 mb-6">
+  <div class="rounded-xl border border-rose-800/50 bg-rose-900/20 p-4">
+    <p class="text-xs uppercase tracking-wide text-rose-300">Total atrasado</p>
+    <p class="text-xl font-semibold text-rose-200 mt-1"><%= formatCurrency(totals.atrasado || 0) %></p>
+  </div>
+  <div class="rounded-xl border border-amber-800/50 bg-amber-900/20 p-4">
+    <p class="text-xs uppercase tracking-wide text-amber-300">Total pendente</p>
+    <p class="text-xl font-semibold text-amber-200 mt-1"><%= formatCurrency(totals.pendente || 0) %></p>
+  </div>
+  <div class="rounded-xl border border-emerald-800/50 bg-emerald-900/20 p-4">
+    <p class="text-xs uppercase tracking-wide text-emerald-300">Total pago</p>
+    <p class="text-xl font-semibold text-emerald-200 mt-1"><%= formatCurrency(totals.pago || 0) %></p>
+  </div>
+</div>
+
 <div class="grid grid-cols-1 xl:grid-cols-3 gap-6">
-  <section class="xl:col-span-2 bg-gray-900 rounded-xl border border-gray-800 overflow-hidden shadow-md">
-    <div class="px-5 py-3 bg-gray-950 border-b border-gray-800 flex items-center justify-between">
-      <h2 class="text-sm font-semibold uppercase tracking-wide text-gray-300">Ocorrencias do mes</h2>
-      <span class="text-xs text-gray-500"><%= safeMonthlyExpenses.length %> conta(s)</span>
-    </div>
-
-    <% if (safeMonthlyExpenses.length === 0) { %>
-      <div class="p-8 text-center text-gray-400">Nenhuma ocorrencia encontrada para este filtro.</div>
-    <% } else { %>
-      <div class="divide-y divide-gray-800">
-        <% safeMonthlyExpenses.forEach((item) => { %>
-          <div class="p-4 sm:p-5 hover:bg-gray-950 transition-all duration-200">
-            <div class="flex flex-col md:flex-row md:items-start md:justify-between gap-3">
-              <div>
-                <p class="font-semibold text-gray-100"><%= item.description %></p>
-                <p class="text-xs text-gray-400 mt-1">Categoria: <%= item.category_name || 'Sem categoria' %> • Vence em <%= formatDate(item.due_date) %></p>
-              </div>
-              <div class="text-left md:text-right">
-                <p class="text-lg font-semibold text-gray-100"><%= formatCurrency(item.amount) %></p>
-                <% if (item.status === 'pago') { %>
-                  <span class="inline-flex mt-1 px-2 py-1 rounded-full text-xs font-semibold bg-emerald-900/40 text-emerald-300 border border-emerald-800">Pago</span>
-                <% } else if (item.status === 'atrasado') { %>
-                  <span class="inline-flex mt-1 px-2 py-1 rounded-full text-xs font-semibold bg-rose-900/40 text-rose-300 border border-rose-800">Atrasado</span>
-                <% } else { %>
-                  <span class="inline-flex mt-1 px-2 py-1 rounded-full text-xs font-semibold bg-amber-900/40 text-amber-300 border border-amber-800">Pendente</span>
-                <% } %>
-              </div>
-            </div>
-
-            <div class="mt-3 flex flex-col sm:flex-row gap-2 sm:items-center">
-              <button
-                type="button"
-                data-edit-value-toggle="<%= item.id %>"
-                class="h-10 px-3 rounded-lg border border-slate-700 text-slate-300 hover:bg-slate-800 text-sm">
-                Editar valor
-              </button>
-
-              <div class="flex items-center gap-2">
-                <% if (item.status !== 'pago') { %>
-                  <form action="/fixed-expenses/monthly/<%= item.id %>/pay" method="POST">
-                    <input type="hidden" name="month" value="<%= selectedMonth %>" />
-                    <input type="hidden" name="status" value="<%= currentStatus %>" />
-                    <button type="submit" class="h-10 px-3 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-sm">Marcar pago</button>
-                  </form>
-                <% } else { %>
-                  <form action="/fixed-expenses/monthly/<%= item.id %>/reopen" method="POST">
-                    <input type="hidden" name="month" value="<%= selectedMonth %>" />
-                    <input type="hidden" name="status" value="<%= currentStatus %>" />
-                    <button type="submit" class="h-10 px-3 rounded-lg border border-slate-700 text-slate-300 hover:bg-slate-800 text-sm">Reabrir</button>
-                  </form>
-                <% } %>
-              </div>
-            </div>
-
-            <form
-              id="editValueForm-<%= item.id %>"
-              action="/fixed-expenses/monthly/<%= item.id %>/value"
-              method="POST"
-              class="hidden mt-3 flex flex-col sm:flex-row sm:items-center gap-2">
-              <input type="hidden" name="month" value="<%= selectedMonth %>" />
-              <input type="hidden" name="status" value="<%= currentStatus %>" />
-              <input type="number" step="0.01" min="0" name="amount" value="<%= Number(item.amount || 0).toFixed(2) %>" class="w-full sm:w-40 h-10 bg-slate-800 border border-slate-700 rounded-lg px-3 text-sm text-white" required />
-              <button type="submit" class="h-10 px-3 rounded-lg border border-slate-700 text-slate-300 hover:bg-slate-800 text-sm">Salvar valor</button>
-            </form>
+  <section class="xl:col-span-2 space-y-4">
+    <% if (showAllStatuses || currentStatus === 'atrasado') { %>
+      <div id="sec-atrasado" class="bg-gray-900 rounded-xl border border-rose-800/60 overflow-hidden shadow-md">
+        <div class="px-5 py-3 bg-rose-950/40 border-b border-rose-800/60 flex items-center justify-between">
+          <h2 class="text-sm font-semibold uppercase tracking-wide text-rose-200">Atrasadas</h2>
+          <span class="text-xs text-rose-300"><%= overdueItems.length %> conta(s)</span>
+        </div>
+        <% if (overdueItems.length === 0) { %>
+          <div class="p-6 text-center text-gray-400">Nenhuma conta atrasada neste periodo.</div>
+        <% } else { %>
+          <div class="divide-y divide-gray-800">
+            <% overdueItems.forEach((item) => { %>
+              <%- include('fixed-expense-item', { item, selectedMonth, currentStatus, mode: 'atrasado' }) %>
+            <% }) %>
           </div>
-        <% }) %>
+        <% } %>
+      </div>
+    <% } %>
+
+    <% if (showAllStatuses || currentStatus === 'pendente') { %>
+      <div class="bg-gray-900 rounded-xl border border-amber-800/60 overflow-hidden shadow-md">
+        <div class="px-5 py-3 bg-amber-950/40 border-b border-amber-800/60 flex items-center justify-between">
+          <h2 class="text-sm font-semibold uppercase tracking-wide text-amber-200">Pendentes</h2>
+          <span class="text-xs text-amber-300"><%= pendingItems.length %> conta(s)</span>
+        </div>
+        <% if (pendingItems.length === 0) { %>
+          <div class="p-6 text-center text-gray-400">Nenhuma conta pendente neste periodo.</div>
+        <% } else { %>
+          <div class="divide-y divide-gray-800">
+            <% pendingItems.forEach((item) => { %>
+              <%- include('fixed-expense-item', { item, selectedMonth, currentStatus, mode: 'pendente' }) %>
+            <% }) %>
+          </div>
+        <% } %>
+      </div>
+    <% } %>
+
+    <% if (showAllStatuses || currentStatus === 'pago') { %>
+      <div class="bg-gray-900 rounded-xl border border-emerald-800/60 overflow-hidden shadow-md">
+        <div class="px-5 py-3 bg-emerald-950/40 border-b border-emerald-800/60 flex items-center justify-between">
+          <h2 class="text-sm font-semibold uppercase tracking-wide text-emerald-200">Pagas</h2>
+          <span class="text-xs text-emerald-300"><%= paidItems.length %> conta(s)</span>
+        </div>
+        <% if (paidItems.length === 0) { %>
+          <div class="p-6 text-center text-gray-400">Nenhuma conta paga neste periodo.</div>
+        <% } else { %>
+          <div class="divide-y divide-gray-800">
+            <% paidItems.forEach((item) => { %>
+              <%- include('fixed-expense-item', { item, selectedMonth, currentStatus, mode: 'pago' }) %>
+            <% }) %>
+          </div>
+        <% } %>
       </div>
     <% } %>
   </section>
@@ -138,11 +154,6 @@
               <form action="/fixed-expenses/delete/<%= expense.id %>" method="POST" data-confirm-title="Excluir despesa fixa" data-confirm-message="Tem certeza que deseja excluir esta despesa fixa e suas ocorrencias mensais?">
                 <button type="submit" class="h-10 px-3 rounded-lg bg-rose-900/30 hover:bg-rose-900/50 text-rose-300 border border-rose-800 text-sm">Excluir</button>
               </form>
-              <% if (expense.is_active) { %>
-                <span class="ml-auto inline-flex px-2 py-1 rounded-full text-xs font-semibold bg-emerald-900/40 text-emerald-300 border border-emerald-800">Ativa</span>
-              <% } else { %>
-                <span class="ml-auto inline-flex px-2 py-1 rounded-full text-xs font-semibold bg-gray-950 text-gray-400 border border-gray-700">Inativa</span>
-              <% } %>
             </div>
           </div>
         <% }) %>
@@ -151,16 +162,97 @@
   </section>
 </div>
 
+<div id="payNowModal" class="fixed inset-0 z-[80] hidden items-center justify-center p-4">
+  <div id="payNowBackdrop" class="absolute inset-0 bg-black/50 opacity-0 transition-opacity duration-200"></div>
+  <div id="payNowPanel" class="relative w-full max-w-md bg-gray-900 border border-gray-800 rounded-xl p-5 shadow-xl opacity-0 scale-95 transition-all duration-200">
+    <div class="flex items-start justify-between gap-3 mb-4">
+      <div>
+        <h3 id="payNowTitle" class="text-lg font-semibold text-white">Pagar agora</h3>
+        <p id="payNowDescription" class="text-sm text-gray-400 mt-1"></p>
+      </div>
+      <button type="button" id="closePayNowModal" class="text-gray-400 hover:text-white text-xl leading-none">&times;</button>
+    </div>
+
+    <form id="payNowForm" method="POST" class="space-y-3">
+      <input type="hidden" name="month" value="<%= selectedMonth %>" />
+      <input type="hidden" name="status" value="<%= currentStatus %>" />
+      <div>
+        <label for="payNowAmount" class="text-sm text-gray-300">Valor</label>
+        <input id="payNowAmount" name="amount" type="number" min="0.01" step="0.01" required class="mt-1 w-full h-11 bg-slate-800 border border-slate-700 rounded-lg px-3 text-white" />
+      </div>
+      <div class="flex items-center justify-end gap-2 pt-1">
+        <button type="button" id="cancelPayNow" class="h-10 px-3 rounded-lg border border-gray-700 text-gray-300 hover:bg-gray-800">Cancelar</button>
+        <button type="submit" id="confirmPayNow" class="h-10 px-3 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white">Confirmar pagamento</button>
+      </div>
+    </form>
+  </div>
+</div>
+
 <script>
   document.addEventListener('DOMContentLoaded', function () {
-    const toggleButtons = document.querySelectorAll('[data-edit-value-toggle]');
-    toggleButtons.forEach(function (btn) {
-      btn.addEventListener('click', function () {
-        const id = btn.getAttribute('data-edit-value-toggle');
-        const target = document.getElementById(`editValueForm-${id}`);
-        if (!target) return;
-        target.classList.toggle('hidden');
+    const modal = document.getElementById('payNowModal');
+    const panel = document.getElementById('payNowPanel');
+    const backdrop = document.getElementById('payNowBackdrop');
+    const form = document.getElementById('payNowForm');
+    const amountInput = document.getElementById('payNowAmount');
+    const title = document.getElementById('payNowTitle');
+    const description = document.getElementById('payNowDescription');
+
+    function openModal(action, expenseId, expenseDescription, amount, mode) {
+      if (!modal || !form || !amountInput) return;
+      form.action = `/fixed-expenses/monthly/${expenseId}/${action}`;
+      amountInput.value = Number(amount || 0) > 0 ? Number(amount).toFixed(2) : '';
+      title.textContent = action === 'pay' ? 'Pagar agora' : 'Editar valor';
+      description.textContent = expenseDescription || '';
+      if (action === 'pay') {
+        form.querySelector('#confirmPayNow').textContent = 'Confirmar pagamento';
+      } else {
+        form.querySelector('#confirmPayNow').textContent = 'Salvar valor';
+      }
+
+      modal.classList.remove('hidden');
+      modal.classList.add('flex');
+      requestAnimationFrame(function () {
+        backdrop.classList.remove('opacity-0');
+        backdrop.classList.add('opacity-100');
+        panel.classList.remove('opacity-0', 'scale-95');
+        panel.classList.add('opacity-100', 'scale-100');
       });
+
+      setTimeout(function () {
+        amountInput.focus();
+      }, 120);
+    }
+
+    function closeModal() {
+      if (!modal) return;
+      backdrop.classList.add('opacity-0');
+      backdrop.classList.remove('opacity-100');
+      panel.classList.add('opacity-0', 'scale-95');
+      panel.classList.remove('opacity-100', 'scale-100');
+      setTimeout(function () {
+        modal.classList.add('hidden');
+        modal.classList.remove('flex');
+      }, 200);
+    }
+
+    document.querySelectorAll('[data-pay-action]').forEach(function (button) {
+      button.addEventListener('click', function () {
+        openModal(
+          button.getAttribute('data-pay-action'),
+          button.getAttribute('data-expense-id'),
+          button.getAttribute('data-expense-description'),
+          button.getAttribute('data-expense-amount') || '0',
+          button.getAttribute('data-expense-status')
+        );
+      });
+    });
+
+    document.getElementById('closePayNowModal')?.addEventListener('click', closeModal);
+    document.getElementById('cancelPayNow')?.addEventListener('click', closeModal);
+    backdrop?.addEventListener('click', closeModal);
+    document.addEventListener('keydown', function (event) {
+      if (event.key === 'Escape') closeModal();
     });
   });
 </script>
