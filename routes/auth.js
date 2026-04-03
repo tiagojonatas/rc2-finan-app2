@@ -4,6 +4,8 @@ const db = require('../db');
 const { ensureMonthlyFixedExpenses, markOverdueMonthlyExpenses } = require('../utils/monthly-fixed-expenses');
 
 const router = express.Router();
+const LAST_LOGIN_EMAIL_COOKIE = 'lastLoginEmail';
+const isProduction = process.env.NODE_ENV === 'production';
 const DEFAULT_EXPENSE_CATEGORIES = [
   { name: 'Moradia', color: '#8B5CF6' },
   { name: 'Alimentacao', color: '#10B981' },
@@ -79,6 +81,32 @@ function isValidMonthKey(value) {
   return /^\d{4}-(0[1-9]|1[0-2])$/.test(value || '');
 }
 
+function getCookieValue(req, key) {
+  const rawCookie = req.headers && req.headers.cookie ? req.headers.cookie : '';
+  if (!rawCookie) return '';
+
+  const parts = rawCookie.split(';');
+  for (const part of parts) {
+    const [cookieKey, ...rest] = part.trim().split('=');
+    if (cookieKey === key) {
+      return decodeURIComponent(rest.join('=') || '');
+    }
+  }
+
+  return '';
+}
+
+function setLastLoginEmailCookie(res, email) {
+  const normalizedEmail = (email || '').trim().toLowerCase();
+  if (!normalizedEmail) return;
+  res.cookie(LAST_LOGIN_EMAIL_COOKIE, normalizedEmail, {
+    httpOnly: true,
+    sameSite: 'lax',
+    secure: isProduction,
+    maxAge: 1000 * 60 * 60 * 24 * 30
+  });
+}
+
 // Middleware to check if user is authenticated
 function requireAuth(req, res, next) {
   if (req.session.userId) {
@@ -126,13 +154,15 @@ router.post('/register', async (req, res) => {
 
 // GET /login
 router.get('/login', (req, res) => {
-  res.render('login', { error: null, email: '' });
+  const rememberedEmail = getCookieValue(req, LAST_LOGIN_EMAIL_COOKIE);
+  res.render('login', { error: null, email: rememberedEmail || '' });
 });
 
 // POST /login
 router.post('/login', async (req, res) => {
   const { email, password } = req.body;
   const normalizedEmail = (email || '').trim().toLowerCase();
+  setLastLoginEmailCookie(res, normalizedEmail);
 
   try {
     const [users] = await db.query('SELECT id, name, password_hash, role FROM users WHERE email = ?', [normalizedEmail]);
@@ -148,10 +178,12 @@ router.post('/login', async (req, res) => {
 
     req.session.userId = user.id;
     req.session.userName = user.name;
+    req.session.userEmail = normalizedEmail;
     req.session.userRole = user.role || 'user';
     req.session.user = {
       id: user.id,
       name: user.name,
+      email: normalizedEmail,
       role: user.role || 'user'
     };
 
@@ -168,6 +200,7 @@ router.post('/login', async (req, res) => {
 
 // POST /logout
 router.post('/logout', (req, res) => {
+  setLastLoginEmailCookie(res, req.session && req.session.user ? req.session.user.email : '');
   req.session.destroy((err) => {
     if (err) {
       console.error(err);
