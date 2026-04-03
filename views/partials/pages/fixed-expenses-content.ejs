@@ -145,7 +145,7 @@
         <% safeDefinitions.forEach((expense) => { %>
           <div class="p-4">
             <p class="font-semibold text-gray-100"><%= expense.description %></p>
-            <p class="text-xs text-gray-400 mt-1">Dia <%= expense.due_day %> â€¢ Categoria: <%= expense.category_name || 'Sem categoria' %></p>
+            <p class="text-xs text-gray-400 mt-1">Dia <%= expense.due_day %> &bull; Categoria: <%= expense.category_name || 'Sem categoria' %></p>
             <p class="text-sm mt-1 <%= expense.amount === null ? 'text-amber-300' : 'text-gray-200' %>">
               Valor base: <%= expense.amount === null ? 'Variavel (defina no mes)' : formatCurrency(expense.amount) %>
             </p>
@@ -256,3 +256,4 @@
     });
   });
 </script>
+

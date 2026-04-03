@@ -241,15 +241,16 @@ router.get('/add', requireAuth, async (req, res) => {
 
 router.post('/add', requireAuth, async (req, res) => {
   const userId = req.session.userId;
-  const { description, amount, category_id, due_day, is_active } = req.body;
+  const { description, amount, category_id, due_day, is_active, value_type } = req.body;
   const dueDay = parseInt(due_day, 10);
   const active = is_active === '1' ? 1 : 0;
   const categoryId = category_id ? parseInt(category_id, 10) : null;
   const normalizedDescription = (description || '').trim();
-  const hasAmount = String(amount || '').trim() !== '';
+  const normalizedValueType = value_type === 'variable' ? 'variable' : 'fixed';
+  const hasAmount = normalizedValueType === 'fixed' && String(amount || '').trim() !== '';
   const parsedAmount = hasAmount ? parseCurrencyInput(amount) : null;
 
-  if (!normalizedDescription || !dueDay || dueDay < 1 || dueDay > 31 || (hasAmount && !isValidPositiveAmount(parsedAmount))) {
+  if (!normalizedDescription || !dueDay || dueDay < 1 || dueDay > 31 || (normalizedValueType === 'fixed' && !isValidPositiveAmount(parsedAmount))) {
     const categories = await getExpenseCategories(userId).catch(() => []);
     return renderWithBase(res, {
       title: 'Nova Despesa Fixa - RC2 Finance',
@@ -259,7 +260,7 @@ router.post('/add', requireAuth, async (req, res) => {
           ? 'Descricao e obrigatoria'
           : (!dueDay || dueDay < 1 || dueDay > 31)
             ? 'Dia de vencimento deve estar entre 1 e 31'
-            : 'Informe um valor valido maior que zero',
+            : 'Para tipo Fixo, informe um valor base maior que zero',
         categories,
         formData: req.body
       }
@@ -279,7 +280,7 @@ router.post('/add', requireAuth, async (req, res) => {
 
     await db.query(
       'INSERT INTO fixed_expenses (user_id, description, amount, category_id, due_day, is_active) VALUES (?, ?, ?, ?, ?, ?)',
-      [userId, normalizedDescription, hasAmount ? parsedAmount : null, Number.isNaN(categoryId) ? null : categoryId, dueDay, active]
+      [userId, normalizedDescription, normalizedValueType === 'fixed' ? parsedAmount : null, Number.isNaN(categoryId) ? null : categoryId, dueDay, active]
     );
 
     return res.redirect('/fixed-expenses');
@@ -318,15 +319,16 @@ router.get('/edit/:id', requireAuth, async (req, res) => {
 router.post('/edit/:id', requireAuth, async (req, res) => {
   const userId = req.session.userId;
   const expenseId = req.params.id;
-  const { description, amount, category_id, due_day, is_active } = req.body;
+  const { description, amount, category_id, due_day, is_active, value_type } = req.body;
   const dueDay = parseInt(due_day, 10);
   const active = is_active === '1' ? 1 : 0;
   const categoryId = category_id ? parseInt(category_id, 10) : null;
   const normalizedDescription = (description || '').trim();
-  const hasAmount = String(amount || '').trim() !== '';
+  const normalizedValueType = value_type === 'variable' ? 'variable' : 'fixed';
+  const hasAmount = normalizedValueType === 'fixed' && String(amount || '').trim() !== '';
   const parsedAmount = hasAmount ? parseCurrencyInput(amount) : null;
 
-  if (!normalizedDescription || !dueDay || dueDay < 1 || dueDay > 31 || (hasAmount && !isValidPositiveAmount(parsedAmount))) {
+  if (!normalizedDescription || !dueDay || dueDay < 1 || dueDay > 31 || (normalizedValueType === 'fixed' && !isValidPositiveAmount(parsedAmount))) {
     const [expenses] = await db.query('SELECT * FROM fixed_expenses WHERE id = ? AND user_id = ?', [expenseId, userId]);
     const categories = await getExpenseCategories(userId).catch(() => []);
     return renderWithBase(res, {
@@ -339,7 +341,7 @@ router.post('/edit/:id', requireAuth, async (req, res) => {
           ? 'Descricao e obrigatoria'
           : (!dueDay || dueDay < 1 || dueDay > 31)
             ? 'Dia de vencimento deve estar entre 1 e 31'
-            : 'Informe um valor valido maior que zero'
+            : 'Para tipo Fixo, informe um valor base maior que zero'
       }
     });
   }
@@ -364,7 +366,7 @@ router.post('/edit/:id', requireAuth, async (req, res) => {
       `UPDATE fixed_expenses
        SET description = ?, amount = ?, category_id = ?, due_day = ?, is_active = ?
        WHERE id = ? AND user_id = ?`,
-      [normalizedDescription, hasAmount ? parsedAmount : null, Number.isNaN(categoryId) ? null : categoryId, dueDay, active, expenseId, userId]
+      [normalizedDescription, normalizedValueType === 'fixed' ? parsedAmount : null, Number.isNaN(categoryId) ? null : categoryId, dueDay, active, expenseId, userId]
     );
 
     return res.redirect('/fixed-expenses');
