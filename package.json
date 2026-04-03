@@ -6,6 +6,7 @@
   "scripts": {
     "start": "node app.js",
     "dev": "nodemon app.js",
+    "migrate": "node run-migrations.js",
     "init-db": "node init.js",
     "init-credit-cards": "node init-credit-cards.js",
     "init-fixed-expenses": "node init-fixed-expenses.js",
