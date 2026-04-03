@@ -52,6 +52,15 @@ function normalizeRecurringFlag(recurringValue, transactionType) {
   return recurringValue === 'on' || recurringValue === '1' || recurringValue === 1 || recurringValue === true ? 1 : 0;
 }
 
+function normalizeAffectsBalance(value) {
+  return value === 'on' || value === '1' || value === 1 || value === true ? 1 : 0;
+}
+
+function enforceAffectsBalanceByType(transactionType, affectsBalanceValue) {
+  if (transactionType === 'income') return 1;
+  return affectsBalanceValue;
+}
+
 router.get('/add', requireAuth, async (req, res) => {
   const userId = req.session.userId;
   const requestedType = req.query.type;
@@ -67,7 +76,7 @@ router.get('/add', requireAuth, async (req, res) => {
         error: null,
         defaultType,
         categories,
-        formData: { type: defaultType, payment_method: 'cash', is_recurring: 0 }
+        formData: { type: defaultType, payment_method: 'cash', is_recurring: 0, affects_balance: 1 }
       }
     });
   } catch (error) {
@@ -80,20 +89,21 @@ router.get('/add', requireAuth, async (req, res) => {
         error: 'Erro ao carregar categorias. Execute: npm run init-categories',
         defaultType,
         categories: [],
-        formData: { type: defaultType, payment_method: 'cash', is_recurring: 0 }
+        formData: { type: defaultType, payment_method: 'cash', is_recurring: 0, affects_balance: 1 }
       }
     });
   }
 });
 
 router.post('/add', requireAuth, async (req, res) => {
-  const { description, amount, type, date, category_id, payment_method, is_recurring } = req.body;
+  const { description, amount, type, date, category_id, payment_method, is_recurring, affects_balance } = req.body;
   const userId = req.session.userId;
   const defaultType = type === 'income' || type === 'expense' ? type : 'expense';
   const categoryId = parseInt(category_id, 10);
   const parsedAmount = parseCurrencyInput(amount);
   const normalizedPaymentMethod = normalizePaymentMethod(payment_method);
   const normalizedRecurring = normalizeRecurringFlag(is_recurring, defaultType);
+  const normalizedAffectsBalance = enforceAffectsBalanceByType(defaultType, normalizeAffectsBalance(affects_balance));
 
   try {
     const categories = await getUserCategories(userId);
@@ -107,7 +117,7 @@ router.post('/add', requireAuth, async (req, res) => {
           error: 'Categoria e obrigatoria',
           defaultType,
           categories,
-          formData: req.body
+          formData: { ...req.body, affects_balance: normalizedAffectsBalance }
         }
       });
     }
@@ -121,7 +131,7 @@ router.post('/add', requireAuth, async (req, res) => {
           error: 'Informe um valor valido maior que zero',
           defaultType,
           categories,
-          formData: req.body
+          formData: { ...req.body, affects_balance: normalizedAffectsBalance }
         }
       });
     }
@@ -136,16 +146,16 @@ router.post('/add', requireAuth, async (req, res) => {
           error: 'Categoria invalida para o tipo selecionado',
           defaultType,
           categories,
-          formData: req.body
+          formData: { ...req.body, affects_balance: normalizedAffectsBalance }
         }
       });
     }
 
     const [result] = await db.query(
       `INSERT INTO transactions
-       (user_id, description, amount, type, date, category_id, payment_method, is_recurring)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
-      [userId, description, parsedAmount, defaultType, date, categoryId, normalizedPaymentMethod, normalizedRecurring]
+       (user_id, description, amount, type, date, category_id, payment_method, is_recurring, affects_balance)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [userId, description, parsedAmount, defaultType, date, categoryId, normalizedPaymentMethod, normalizedRecurring, normalizedAffectsBalance]
     );
 
     return res.redirect(`/dashboard?toast=created&tx=${result.insertId}`);
@@ -160,7 +170,7 @@ router.post('/add', requireAuth, async (req, res) => {
         error: 'Erro ao adicionar transacao',
         defaultType,
         categories,
-        formData: req.body
+        formData: { ...req.body, affects_balance: normalizedAffectsBalance }
       }
     });
   }
@@ -198,13 +208,14 @@ router.get('/edit/:id', requireAuth, async (req, res) => {
 
 router.post('/edit/:id', requireAuth, async (req, res) => {
   const transactionId = req.params.id;
-  const { description, amount, type, date, category_id, payment_method, is_recurring } = req.body;
+  const { description, amount, type, date, category_id, payment_method, is_recurring, affects_balance } = req.body;
   const userId = req.session.userId;
   const normalizedType = type === 'income' || type === 'expense' ? type : 'expense';
   const categoryId = parseInt(category_id, 10);
   const parsedAmount = parseCurrencyInput(amount);
   const normalizedPaymentMethod = normalizePaymentMethod(payment_method);
   const normalizedRecurring = normalizeRecurringFlag(is_recurring, normalizedType);
+  const normalizedAffectsBalance = enforceAffectsBalanceByType(normalizedType, normalizeAffectsBalance(affects_balance));
 
   try {
     const categories = await getUserCategories(userId);
@@ -222,7 +233,8 @@ router.post('/edit/:id', requireAuth, async (req, res) => {
             id: transactionId,
             type: normalizedType,
             payment_method: normalizedPaymentMethod,
-            is_recurring: normalizedRecurring
+            is_recurring: normalizedRecurring,
+            affects_balance: normalizedAffectsBalance
           },
           categories,
           error: 'Categoria e obrigatoria'
@@ -243,7 +255,8 @@ router.post('/edit/:id', requireAuth, async (req, res) => {
             id: transactionId,
             type: normalizedType,
             payment_method: normalizedPaymentMethod,
-            is_recurring: normalizedRecurring
+            is_recurring: normalizedRecurring,
+            affects_balance: normalizedAffectsBalance
           },
           categories,
           error: 'Informe um valor valido maior que zero'
@@ -265,7 +278,8 @@ router.post('/edit/:id', requireAuth, async (req, res) => {
             id: transactionId,
             type: normalizedType,
             payment_method: normalizedPaymentMethod,
-            is_recurring: normalizedRecurring
+            is_recurring: normalizedRecurring,
+            affects_balance: normalizedAffectsBalance
           },
           categories,
           error: 'Categoria invalida para o tipo selecionado'
@@ -275,9 +289,9 @@ router.post('/edit/:id', requireAuth, async (req, res) => {
 
     await db.query(
       `UPDATE transactions
-       SET description = ?, amount = ?, type = ?, date = ?, category_id = ?, payment_method = ?, is_recurring = ?
+       SET description = ?, amount = ?, type = ?, date = ?, category_id = ?, payment_method = ?, is_recurring = ?, affects_balance = ?
        WHERE id = ? AND user_id = ?`,
-      [description, parsedAmount, normalizedType, date, categoryId, normalizedPaymentMethod, normalizedRecurring, transactionId, userId]
+      [description, parsedAmount, normalizedType, date, categoryId, normalizedPaymentMethod, normalizedRecurring, normalizedAffectsBalance, transactionId, userId]
     );
 
     return res.redirect(`/dashboard?toast=updated&tx=${transactionId}`);

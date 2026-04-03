@@ -3,6 +3,11 @@
 <% const selectedType = safeFormData.type || defaultType || 'expense'; %>
 <% const selectedPaymentMethod = safeFormData.payment_method || 'cash'; %>
 <% const isRecurringSelected = String(safeFormData.is_recurring || '') === '1' || String(safeFormData.is_recurring || '') === 'on'; %>
+<% const affectsBalanceSelected = selectedType === 'income'
+  ? true
+  : (typeof safeFormData.affects_balance === 'undefined'
+    ? true
+    : (String(safeFormData.affects_balance) === '1' || String(safeFormData.affects_balance) === 'on' || safeFormData.affects_balance === true)); %>
 
 <div class="flex justify-center items-start min-h-[70vh] pt-10">
   <div class="w-full max-w-2xl">
@@ -68,6 +73,18 @@
           </select>
         </div>
 
+        <label id="affectsBalanceWrapper" class="flex items-center gap-3 rounded-lg border border-slate-700 bg-slate-800/70 px-3 py-3 text-sm text-slate-300">
+          <input
+            id="affects_balance"
+            name="affects_balance"
+            type="checkbox"
+            value="1"
+            <%= affectsBalanceSelected ? 'checked' : '' %>
+            class="h-4 w-4 rounded border-slate-600 bg-slate-900 text-emerald-500 focus:ring-emerald-500"
+          />
+          <span>Impacta saldo</span>
+        </label>
+
         <div class="flex flex-col md:flex-row gap-3 md:gap-4 mt-6">
           <button type="submit" class="w-full md:w-auto h-12 bg-emerald-500 hover:bg-emerald-600 px-5 py-3 rounded-lg font-medium transition">Salvar</button>
           <a href="/dashboard" class="w-full md:w-auto h-12 inline-flex items-center justify-center px-5 py-3 border border-slate-700 rounded-lg text-slate-300 hover:bg-slate-800 transition">Cancelar</a>
@@ -85,8 +102,10 @@
     const categorySelect = document.getElementById('category_id');
     const recurringWrapper = document.getElementById('recurringWrapper');
     const recurringTypeSelect = document.getElementById('is_recurring');
+    const affectsBalanceWrapper = document.getElementById('affectsBalanceWrapper');
+    const affectsBalanceInput = document.getElementById('affects_balance');
 
-    if (!amountDisplay || !amountInput || !typeSelect || !categorySelect || !recurringWrapper || !recurringTypeSelect) return;
+    if (!amountDisplay || !amountInput || !typeSelect || !categorySelect || !recurringWrapper || !recurringTypeSelect || !affectsBalanceWrapper || !affectsBalanceInput) return;
 
     function formatBRL(value) {
       return value.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -120,6 +139,18 @@
       if (!isExpense) recurringTypeSelect.value = '0';
     }
 
+    function updateAffectsBalanceVisibility() {
+      const isIncome = typeSelect.value === 'income';
+      if (isIncome) {
+        affectsBalanceInput.checked = true;
+        affectsBalanceInput.disabled = true;
+        affectsBalanceWrapper.style.display = 'none';
+      } else {
+        affectsBalanceInput.disabled = false;
+        affectsBalanceWrapper.style.display = '';
+      }
+    }
+
     amountDisplay.addEventListener('input', function(event) {
       const digits = event.target.value.replace(/\D/g, '');
       if (!digits) {
@@ -145,7 +176,9 @@
     initializeAmount();
     updateCategoryOptions();
     updateRecurringVisibility();
+    updateAffectsBalanceVisibility();
     typeSelect.addEventListener('change', updateCategoryOptions);
     typeSelect.addEventListener('change', updateRecurringVisibility);
+    typeSelect.addEventListener('change', updateAffectsBalanceVisibility);
   })();
 </script>

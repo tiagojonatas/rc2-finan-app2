@@ -126,7 +126,7 @@ router.get('/', requireAuth, async (req, res) => {
               SUM(CASE WHEN type = 'income' THEN amount ELSE 0 END) AS income_total,
               SUM(CASE WHEN type = 'expense' THEN amount ELSE 0 END) AS expense_total
        FROM transactions
-       WHERE user_id = ?
+       WHERE user_id = ? AND COALESCE(affects_balance, 1) = 1
        GROUP BY DATE_FORMAT(date, '%Y-%m')
        ORDER BY month_key ASC`,
       [userId]

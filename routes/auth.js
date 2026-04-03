@@ -307,12 +307,23 @@ router.get('/dashboard', requireAuth, async (req, res) => {
 
     let totalIncome = 0;
     let totalExpenses = 0;
+    let totalIncomeForBalance = 0;
+    let totalExpensesForBalance = 0;
 
     transactions.forEach((transaction) => {
+      const amount = parseFloat(transaction.amount || 0);
+      const affectsBalance = Number(transaction.affects_balance ?? 1) === 1;
+
       if (transaction.type === 'income') {
-        totalIncome += parseFloat(transaction.amount);
+        totalIncome += amount;
+        if (affectsBalance) {
+          totalIncomeForBalance += amount;
+        }
       } else if (transaction.type === 'expense') {
-        totalExpenses += parseFloat(transaction.amount);
+        totalExpenses += amount;
+        if (affectsBalance) {
+          totalExpensesForBalance += amount;
+        }
       }
     });
 
@@ -393,7 +404,7 @@ router.get('/dashboard', requireAuth, async (req, res) => {
     const [variableRows] = await db.query(
       `SELECT DATE_FORMAT(date, '%Y-%m') AS month_key, COALESCE(SUM(amount), 0) AS total
        FROM transactions
-       WHERE user_id = ? AND type = 'expense' AND date BETWEEN ? AND ?
+       WHERE user_id = ? AND type = 'expense' AND COALESCE(affects_balance, 1) = 1 AND date BETWEEN ? AND ?
        GROUP BY DATE_FORMAT(date, '%Y-%m')
        ORDER BY month_key DESC`,
       [userId, projectionWindowStart, endDate]
@@ -404,15 +415,15 @@ router.get('/dashboard', requireAuth, async (req, res) => {
       ? recentVariableRows.reduce((sum, row) => sum + parseFloat(row.total || 0), 0) / recentVariableRows.length
       : 0;
 
-    const hasCurrentMonthMovement = transactions.length > 0 || fixedTransactions.length > 0;
+    const hasCurrentMonthMovement = transactions.some((transaction) => Number(transaction.affects_balance ?? 1) === 1) || fixedTransactions.length > 0;
     if (!hasCurrentMonthMovement) {
       averageVariableExpenses = 0;
     }
 
     const estimatedTotalMonthExpense = pendingFixedExpenses + averageVariableExpenses;
-    let projectedBalance = totalIncome - estimatedTotalMonthExpense;
-    const shouldResetProjection = totalIncome === 0
-      && totalExpenses === 0
+    let projectedBalance = totalIncomeForBalance - estimatedTotalMonthExpense;
+    const shouldResetProjection = totalIncomeForBalance === 0
+      && totalExpensesForBalance === 0
       && totalFixedExpenses === 0
       && pendingFixedExpenses === 0;
 
@@ -437,7 +448,8 @@ router.get('/dashboard', requireAuth, async (req, res) => {
     };
 
     const totalExpensesWithFixed = totalExpenses + totalFixedExpenses;
-    const balance = totalIncome - totalExpensesWithFixed;
+    const totalExpensesForBalanceWithFixed = totalExpensesForBalance + totalFixedExpenses;
+    const balance = totalIncomeForBalance - totalExpensesForBalanceWithFixed;
 
     const previousMonthDate = addMonths(fromParts(selectedYear, selectedMonthNumber, 1), -1);
     const previousMonthKey = getMonthKey(previousMonthDate);
@@ -449,7 +461,7 @@ router.get('/dashboard', requireAuth, async (req, res) => {
          COALESCE(SUM(CASE WHEN type = 'income' THEN amount ELSE 0 END), 0) AS income,
          COALESCE(SUM(CASE WHEN type = 'expense' THEN amount ELSE 0 END), 0) AS expense
        FROM transactions
-       WHERE user_id = ? AND date BETWEEN ? AND ?`,
+       WHERE user_id = ? AND COALESCE(affects_balance, 1) = 1 AND date BETWEEN ? AND ?`,
       [userId, previousStartDate, previousEndDate]
     );
 
@@ -470,21 +482,21 @@ router.get('/dashboard', requireAuth, async (req, res) => {
     }
 
     const previousExpenses = previousVariableExpenses + previousFixedExpenses;
-    const expenseDelta = totalExpensesWithFixed - previousExpenses;
+    const expenseDelta = totalExpensesForBalanceWithFixed - previousExpenses;
 
     let expenseVariationPercent = 0;
     if (previousExpenses > 0) {
       expenseVariationPercent = (expenseDelta / previousExpenses) * 100;
-    } else if (totalExpensesWithFixed > 0) {
+    } else if (totalExpensesForBalanceWithFixed > 0) {
       expenseVariationPercent = 100;
     }
 
     const financialInsight = {
-      isHealthy: totalExpensesWithFixed <= totalIncome,
-      message: totalExpensesWithFixed <= totalIncome
+      isHealthy: totalExpensesForBalanceWithFixed <= totalIncomeForBalance,
+      message: totalExpensesForBalanceWithFixed <= totalIncomeForBalance
         ? 'Voce esta dentro do seu planejamento'
         : 'Atencao: voce esta gastando mais do que ganha',
-      currentExpenses: totalExpensesWithFixed,
+      currentExpenses: totalExpensesForBalanceWithFixed,
       previousExpenses,
       expenseVariationPercent,
       expenseVariationDirection: expenseDelta > 0 ? 'up' : (expenseDelta < 0 ? 'down' : 'stable'),
@@ -513,6 +525,7 @@ router.get('/dashboard', requireAuth, async (req, res) => {
 
     const monthlyMap = new Map();
     transactions.forEach((transaction) => {
+      if (Number(transaction.affects_balance ?? 1) !== 1) return;
       const key = getMonthKey(transaction.date);
       const bucket = monthlyMap.get(key) || { income: 0, expense: 0 };
       if (transaction.type === 'income') {
