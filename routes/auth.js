@@ -415,17 +415,38 @@ router.get('/dashboard', requireAuth, async (req, res) => {
     );
 
     const recentVariableRows = variableRows.slice(0, 3);
-    const averageVariableExpenses = recentVariableRows.length > 0
+    let averageVariableExpenses = recentVariableRows.length > 0
       ? recentVariableRows.reduce((sum, row) => sum + parseFloat(row.total || 0), 0) / recentVariableRows.length
       : 0;
 
+    const hasCurrentMonthMovement = transactions.length > 0 || fixedTransactions.length > 0;
+    if (!hasCurrentMonthMovement) {
+      averageVariableExpenses = 0;
+    }
+
     const estimatedTotalMonthExpense = pendingFixedExpenses + averageVariableExpenses;
-    const projectedBalance = totalIncome - estimatedTotalMonthExpense;
+    let projectedBalance = totalIncome - estimatedTotalMonthExpense;
+    const shouldResetProjection = totalIncome === 0
+      && totalExpenses === 0
+      && totalFixedExpenses === 0
+      && pendingFixedExpenses === 0;
+
+    let finalFixedProjection = pendingFixedExpenses;
+    let finalAverageVariableProjection = averageVariableExpenses;
+    let finalEstimatedTotalMonthExpense = estimatedTotalMonthExpense;
+
+    if (shouldResetProjection) {
+      projectedBalance = 0;
+      finalFixedProjection = 0;
+      finalAverageVariableProjection = 0;
+      finalEstimatedTotalMonthExpense = 0;
+    }
+
     const monthlyProjection = {
-      fixedExpenses: pendingFixedExpenses,
-      totalFixedExpenses,
-      averageVariableExpenses,
-      estimatedTotalMonthExpense,
+      fixedExpenses: finalFixedProjection,
+      totalFixedExpenses: shouldResetProjection ? 0 : totalFixedExpenses,
+      averageVariableExpenses: finalAverageVariableProjection,
+      estimatedTotalMonthExpense: finalEstimatedTotalMonthExpense,
       projectedBalance,
       isPositive: projectedBalance >= 0
     };
