@@ -1,6 +1,15 @@
 const express = require('express');
 const db = require('../db');
 const { ensureMonthlyFixedExpenses } = require('../utils/monthly-fixed-expenses');
+const {
+  getMonthKey,
+  isValidMonthKey,
+  nowInTz,
+  getMonthStart,
+  getMonthEnd,
+  getMonthLabel,
+  getMonthShortLabel
+} = require('../utils/datetime');
 
 const router = express.Router();
 
@@ -9,29 +18,18 @@ function requireAuth(req, res, next) {
   return res.redirect('/login');
 }
 
-function getMonthKey(date) {
-  const d = new Date(date);
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
-}
-
-function isValidMonthKey(value) {
-  return /^\d{4}-(0[1-9]|1[0-2])$/.test(value || '');
-}
-
 router.get('/', requireAuth, async (req, res) => {
   try {
     const userId = req.session.userId;
     const requestedMonth = req.query.month;
-    const now = new Date();
-    const currentMonthKey = getMonthKey(now);
+    const currentMonthKey = getMonthKey(nowInTz());
     const selectedMonth = isValidMonthKey(requestedMonth) ? requestedMonth : currentMonthKey;
-    const [selectedYear, selectedMonthNumber] = selectedMonth.split('-').map(Number);
-    const startDate = `${selectedMonth}-01`;
-    const endDate = new Date(selectedYear, selectedMonthNumber, 0).toISOString().split('T')[0];
-    const selectedMonthLabel = new Date(selectedYear, selectedMonthNumber - 1, 1).toLocaleDateString('pt-BR', {
-      month: 'long',
-      year: 'numeric'
-    });
+    const parsedMonth = selectedMonth.split('-').map(Number);
+    const selectedYear = parsedMonth[0];
+    const selectedMonthNumber = parsedMonth[1];
+    const startDate = getMonthStart(selectedMonth);
+    const endDate = getMonthEnd(selectedMonth);
+    const selectedMonthLabel = getMonthLabel(selectedMonth);
 
     try {
       await ensureMonthlyFixedExpenses(userId, selectedMonth);
@@ -163,15 +161,10 @@ router.get('/', requireAuth, async (req, res) => {
     const monthlyBalanceData = Array.from(monthlyMap.entries())
       .sort((a, b) => a[0].localeCompare(b[0]))
       .slice(-12)
-      .map(([monthKey, values]) => {
-        const [year, month] = monthKey.split('-');
-        const monthDate = new Date(Number(year), Number(month) - 1, 1);
-        const monthLabel = monthDate.toLocaleDateString('pt-BR', { month: 'short', year: '2-digit' });
-        return {
-          label: monthLabel,
-          balance: values.income - values.expense
-        };
-      });
+      .map(([monthKey, values]) => ({
+        label: getMonthShortLabel(monthKey),
+        balance: values.income - values.expense
+      }));
 
     return res.render('reports', {
       selectedMonth,

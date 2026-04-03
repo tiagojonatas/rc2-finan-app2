@@ -27,6 +27,7 @@ function formatCurrency(value) {
 function formatDate(date, options = {}) {
   if (!date) return '';
 
+  const d = toTzDate(date);
   const defaultOptions = {
     day: '2-digit',
     month: '2-digit',
@@ -34,7 +35,7 @@ function formatDate(date, options = {}) {
     ...options
   };
 
-  return new Date(date).toLocaleDateString('pt-BR', defaultOptions);
+  return d.toDate().toLocaleDateString('pt-BR', defaultOptions);
 }
 
 /**
@@ -46,13 +47,14 @@ function formatDate(date, options = {}) {
 function formatTime(date, options = {}) {
   if (!date) return '';
 
+  const d = toTzDate(date);
   const defaultOptions = {
     hour: '2-digit',
     minute: '2-digit',
     ...options
   };
 
-  return new Date(date).toLocaleTimeString('pt-BR', defaultOptions);
+  return d.toDate().toLocaleTimeString('pt-BR', defaultOptions);
 }
 
 module.exports = {
@@ -60,3 +62,4 @@ module.exports = {
   formatDate,
   formatTime
 };
+const { toTzDate } = require('./utils/datetime');

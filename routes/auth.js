@@ -1,7 +1,8 @@
-﻿const express = require('express');
+const express = require('express');
 const bcrypt = require('bcrypt');
 const db = require('../db');
 const { ensureMonthlyFixedExpenses, markOverdueMonthlyExpenses } = require('../utils/monthly-fixed-expenses');
+const { nowInTz, toTzDate, getDateKey, getMonthKey, isValidMonthKey, getMonthStart, getMonthEnd, getMonthLabel, getMonthShortLabel, addMonths, fromParts } = require('../utils/datetime');
 
 const router = express.Router();
 const LAST_LOGIN_EMAIL_COOKIE = 'lastLoginEmail';
@@ -43,42 +44,29 @@ async function createDefaultCategoriesForUser(userId) {
 }
 
 function getLocalDateKey(date) {
-  const d = new Date(date);
-  const year = d.getFullYear();
-  const month = String(d.getMonth() + 1).padStart(2, '0');
-  const day = String(d.getDate()).padStart(2, '0');
-  return `${year}-${month}-${day}`;
+  return getDateKey(date);
 }
 
 function getNextOccurrence(dayOfMonth, baseDate) {
   const targetDay = Number(dayOfMonth);
   if (!Number.isFinite(targetDay) || targetDay < 1) return null;
 
-  let year = baseDate.getFullYear();
-  let monthIndex = baseDate.getMonth();
-  let day = Math.min(targetDay, new Date(year, monthIndex + 1, 0).getDate());
-  let candidate = new Date(year, monthIndex, day);
+  let year = baseDate.year();
+  let month = baseDate.month() + 1;
+  let day = Math.min(targetDay, fromParts(year, month, 1).daysInMonth());
+  let candidate = fromParts(year, month, day);
 
-  if (candidate < baseDate) {
-    monthIndex += 1;
-    if (monthIndex > 11) {
-      monthIndex = 0;
+  if (candidate.isBefore(baseDate, 'day')) {
+    month += 1;
+    if (month > 12) {
+      month = 1;
       year += 1;
     }
-    day = Math.min(targetDay, new Date(year, monthIndex + 1, 0).getDate());
-    candidate = new Date(year, monthIndex, day);
+    day = Math.min(targetDay, fromParts(year, month, 1).daysInMonth());
+    candidate = fromParts(year, month, day);
   }
 
-  return candidate;
-}
-
-function getMonthKey(date) {
-  const d = new Date(date);
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
-}
-
-function isValidMonthKey(value) {
-  return /^\d{4}-(0[1-9]|1[0-2])$/.test(value || '');
+  return candidate.toDate();
 }
 
 function getCookieValue(req, key) {
@@ -220,25 +208,22 @@ router.get('/dashboard', requireAuth, async (req, res) => {
     const toastType = req.query.toast;
     const highlightedTransactionId = Number.parseInt(req.query.tx, 10);
     const requestedMonth = req.query.month;
-    const now = new Date();
+    const now = nowInTz();
     const currentMonthKey = getMonthKey(now);
     const selectedMonth = isValidMonthKey(requestedMonth) ? requestedMonth : currentMonthKey;
     const [selectedYear, selectedMonthNumber] = selectedMonth.split('-').map(Number);
-    const startDate = `${selectedMonth}-01`;
-    const endDate = new Date(selectedYear, selectedMonthNumber, 0).toISOString().split('T')[0];
+    const startDate = getMonthStart(selectedMonth);
+    const endDate = getMonthEnd(selectedMonth);
 
     const toastByType = {
       created: 'Transacao criada com sucesso',
       updated: 'Transacao atualizada com sucesso'
     };
     const dashboardToast = toastByType[toastType] || null;
-    const selectedMonthLabel = new Date(selectedYear, selectedMonthNumber - 1, 1).toLocaleDateString('pt-BR', {
-      month: 'long',
-      year: 'numeric'
-    });
+    const selectedMonthLabel = getMonthLabel(selectedMonth);
 
     try {
-      const nextMonthKey = getMonthKey(new Date(now.getFullYear(), now.getMonth() + 1, 1));
+      const nextMonthKey = getMonthKey(addMonths(now, 1));
       const monthsToEnsure = Array.from(new Set([selectedMonth, currentMonthKey, nextMonthKey]));
       for (const monthKey of monthsToEnsure) {
         await ensureMonthlyFixedExpenses(userId, monthKey);
@@ -290,7 +275,7 @@ router.get('/dashboard', requireAuth, async (req, res) => {
     }
 
     const monthTransactions = [...transactions, ...fixedTransactions].sort(
-      (a, b) => new Date(b.date) - new Date(a.date)
+      (a, b) => toTzDate(b.date).valueOf() - toTzDate(a.date).valueOf()
     );
 
     const [monthRows] = await db.query(
@@ -358,15 +343,16 @@ router.get('/dashboard', requireAuth, async (req, res) => {
     let overdueAccounts = [];
     let upcomingDueAccounts = [];
     try {
+      const todayDate = getDateKey(now);
       const [overdueRows] = await db.query(
         `SELECT mfe.id, mfe.amount, mfe.due_date, mfe.status, fe.description,
-                DATEDIFF(CURDATE(), mfe.due_date) AS overdue_days
+                DATEDIFF(?, mfe.due_date) AS overdue_days
          FROM monthly_fixed_expenses mfe
          INNER JOIN fixed_expenses fe ON fe.id = mfe.fixed_expense_id
          WHERE mfe.user_id = ? AND mfe.status = 'atrasado'
          ORDER BY mfe.due_date ASC
          LIMIT 6`,
-        [userId]
+        [todayDate, userId]
       );
       overdueAccounts = overdueRows.map((row) => ({
         id: row.id,
@@ -379,15 +365,15 @@ router.get('/dashboard', requireAuth, async (req, res) => {
 
       const [upcomingRows] = await db.query(
         `SELECT mfe.id, mfe.amount, mfe.due_date, mfe.status, fe.description,
-                DATEDIFF(mfe.due_date, CURDATE()) AS days_to_due
+                DATEDIFF(mfe.due_date, ?) AS days_to_due
          FROM monthly_fixed_expenses mfe
          INNER JOIN fixed_expenses fe ON fe.id = mfe.fixed_expense_id
          WHERE mfe.user_id = ?
            AND mfe.status = 'pendente'
-           AND mfe.due_date BETWEEN CURDATE() AND DATE_ADD(CURDATE(), INTERVAL 3 DAY)
+           AND mfe.due_date BETWEEN ? AND DATE_ADD(?, INTERVAL 3 DAY)
          ORDER BY mfe.due_date ASC
          LIMIT 6`,
-        [userId]
+        [todayDate, userId, todayDate, todayDate]
       );
       upcomingDueAccounts = upcomingRows.map((row) => ({
         id: row.id,
@@ -403,8 +389,7 @@ router.get('/dashboard', requireAuth, async (req, res) => {
       upcomingDueAccounts = [];
     }
 
-    const projectionWindowStartDate = new Date(selectedYear, selectedMonthNumber - 3, 1);
-    const projectionWindowStart = `${projectionWindowStartDate.getFullYear()}-${String(projectionWindowStartDate.getMonth() + 1).padStart(2, '0')}-01`;
+    const projectionWindowStart = addMonths(fromParts(selectedYear, selectedMonthNumber, 1), -3).format('YYYY-MM-DD');
     const [variableRows] = await db.query(
       `SELECT DATE_FORMAT(date, '%Y-%m') AS month_key, COALESCE(SUM(amount), 0) AS total
        FROM transactions
@@ -454,14 +439,10 @@ router.get('/dashboard', requireAuth, async (req, res) => {
     const totalExpensesWithFixed = totalExpenses + totalFixedExpenses;
     const balance = totalIncome - totalExpensesWithFixed;
 
-    const previousMonthDate = new Date(selectedYear, selectedMonthNumber - 2, 1);
+    const previousMonthDate = addMonths(fromParts(selectedYear, selectedMonthNumber, 1), -1);
     const previousMonthKey = getMonthKey(previousMonthDate);
-    const previousStartDate = `${previousMonthKey}-01`;
-    const previousEndDate = new Date(
-      previousMonthDate.getFullYear(),
-      previousMonthDate.getMonth() + 1,
-      0
-    ).toISOString().split('T')[0];
+    const previousStartDate = getMonthStart(previousMonthKey);
+    const previousEndDate = getMonthEnd(previousMonthKey);
 
     const [previousTotals] = await db.query(
       `SELECT
@@ -481,7 +462,7 @@ router.get('/dashboard', requireAuth, async (req, res) => {
         `SELECT COALESCE(SUM(amount), 0) AS total
          FROM monthly_fixed_expenses
          WHERE user_id = ? AND year = ? AND month = ?`,
-        [userId, previousMonthDate.getFullYear(), previousMonthDate.getMonth() + 1]
+        [userId, Number(previousMonthKey.split('-')[0]), Number(previousMonthKey.split('-')[1])]
       );
       previousFixedExpenses = parseFloat((previousFixedRows[0] && previousFixedRows[0].total) || 0);
     } catch (previousFixedError) {
@@ -507,10 +488,7 @@ router.get('/dashboard', requireAuth, async (req, res) => {
       previousExpenses,
       expenseVariationPercent,
       expenseVariationDirection: expenseDelta > 0 ? 'up' : (expenseDelta < 0 ? 'down' : 'stable'),
-      previousMonthLabel: new Date(previousMonthDate.getFullYear(), previousMonthDate.getMonth(), 1).toLocaleDateString('pt-BR', {
-        month: 'long',
-        year: 'numeric'
-      })
+      previousMonthLabel: getMonthLabel(previousMonthKey)
     };
 
     const expenseCategoryMap = new Map();
@@ -565,9 +543,7 @@ router.get('/dashboard', requireAuth, async (req, res) => {
 
     const monthKeys = Array.from(monthlyMap.keys()).sort().slice(-12);
     const monthlyBalanceData = monthKeys.map((key) => {
-      const [year, month] = key.split('-');
-      const monthDate = new Date(Number(year), Number(month) - 1, 1);
-      const monthLabel = monthDate.toLocaleDateString('pt-BR', { month: 'short', year: '2-digit' });
+      const monthLabel = getMonthShortLabel(key);
       const bucket = monthlyMap.get(key) || { income: 0, expense: 0 };
       return {
         label: monthLabel,
@@ -576,12 +552,11 @@ router.get('/dashboard', requireAuth, async (req, res) => {
     });
 
     const groupedTransactions = {};
-    const today = new Date();
-    const yesterday = new Date(today);
-    yesterday.setDate(yesterday.getDate() - 1);
+    const today = nowInTz();
+    const yesterday = today.subtract(1, 'day');
 
     monthTransactions.forEach((transaction) => {
-      const transactionDate = new Date(transaction.date);
+      const transactionDate = transaction.date;
       const dateKey = getLocalDateKey(transactionDate);
 
       if (!groupedTransactions[dateKey]) {
@@ -616,10 +591,8 @@ router.get('/dashboard', requireAuth, async (req, res) => {
       } else if (groupDateStr === yesterdayStr) {
         group.dateLabel = 'Ontem';
       } else {
-        group.dateLabel = groupDate.toLocaleDateString('pt-BR', {
-          day: '2-digit',
-          month: 'long'
-        });
+        const [year, month, day] = groupDateStr.split('-').map(Number);
+        group.dateLabel = fromParts(year, month, day).format('DD [de] MMMM');
       }
     });
 
@@ -758,6 +731,10 @@ router.get('/dashboard', requireAuth, async (req, res) => {
 });
 
 module.exports = router;
+
+
+
+
 
 
 

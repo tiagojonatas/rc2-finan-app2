@@ -2,6 +2,7 @@ const express = require('express');
 const db = require('../db');
 const { parseCurrencyInput, isValidPositiveAmount } = require('../utils/currency');
 const { ensureMonthlyFixedExpenses, markOverdueMonthlyExpenses, parseMonthKey, getMonthKey } = require('../utils/monthly-fixed-expenses');
+const { getMonthLabel } = require('../utils/datetime');
 
 const router = express.Router();
 
@@ -38,7 +39,7 @@ function getSelectedMonth(req) {
       month: parsed.month
     };
   }
-  const currentMonthKey = getMonthKey(new Date());
+  const currentMonthKey = getMonthKey();
   const currentParsed = parseMonthKey(currentMonthKey);
   return {
     monthKey: currentMonthKey,
@@ -48,10 +49,7 @@ function getSelectedMonth(req) {
 }
 
 function monthLabel(year, month) {
-  return new Date(year, month - 1, 1).toLocaleDateString('pt-BR', {
-    month: 'long',
-    year: 'numeric'
-  });
+  return getMonthLabel(`${year}-${String(month).padStart(2, '0')}`);
 }
 
 async function getExpenseCategories(userId) {
@@ -78,7 +76,7 @@ function normalizeStatusFilter(status) {
 
 function buildFixedExpenseRedirect(month, status, extra = {}) {
   const params = new URLSearchParams();
-  params.set('month', month || getMonthKey(new Date()));
+  params.set('month', month || getMonthKey());
   params.set('status', normalizeStatusFilter(status));
   Object.entries(extra).forEach(([key, value]) => {
     if (value) params.set(key, value);
@@ -144,7 +142,7 @@ async function loadFixedExpensePageData(userId, monthKey, statusFilter) {
     console.warn('Could not load month options from monthly fixed expenses:', error.message);
   }
 
-  const currentMonthKey = getMonthKey(new Date());
+  const currentMonthKey = getMonthKey();
   const monthOptions = monthRows.map((row) => row.month_key).filter(Boolean);
   if (!monthOptions.includes(currentMonthKey)) monthOptions.unshift(currentMonthKey);
   if (!monthOptions.includes(monthKey)) monthOptions.unshift(monthKey);

@@ -4,6 +4,7 @@ const crypto = require('crypto');
 const session = require('express-session');
 const db = require('./db'); // Adiciona a conexao com o banco
 const helpers = require('./helpers'); // Import helpers
+const { nowInTz } = require('./utils/datetime');
 const app = express();
 const isProduction = process.env.NODE_ENV === 'production';
 const sessionSecret = process.env.SESSION_SECRET || crypto.randomBytes(48).toString('hex');
@@ -54,7 +55,7 @@ app.use((req, res, next) => {
     : null;
 
   res.locals.user = sessionUser || fallbackUser;
-  res.locals.currentDate = new Date().toLocaleDateString('pt-BR', {
+  res.locals.currentDate = nowInTz().toDate().toLocaleDateString('pt-BR', {
     day: '2-digit',
     month: '2-digit',
     year: 'numeric'
