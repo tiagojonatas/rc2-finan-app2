@@ -26,7 +26,7 @@
           </label>
           <label class="inline-flex items-center gap-2 text-sm text-slate-200">
             <input id="valueTypeVariable" type="radio" name="value_type" value="variable" <%= selectedValueType === 'variable' ? 'checked' : '' %> class="text-emerald-500 focus:ring-emerald-500" />
-            Variavel (ex: energia, agua)
+            Variavel (ex: energia, fatura)
           </label>
         </div>
       </div>
@@ -34,8 +34,9 @@
       <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div>
           <label for="amountDisplay" class="text-sm text-slate-400">Valor base</label>
-          <input id="amountDisplay" type="text" inputmode="numeric" placeholder="Deixe vazio para valor variavel" class="w-full mt-1 bg-slate-800 border border-slate-700 rounded-lg px-3 h-12 text-white focus:outline-none focus:ring-2 focus:ring-emerald-500 transition" />
+          <input id="amountDisplay" type="text" inputmode="numeric" placeholder="Opcional para valores variaveis (ex: energia, fatura)" class="w-full mt-1 bg-slate-800 border border-slate-700 rounded-lg px-3 h-12 text-white focus:outline-none focus:ring-2 focus:ring-emerald-500 transition" />
           <input id="amount" name="amount" type="hidden" value="<%= safeFormData.amount || '' %>" />
+          <p id="amountHelper" class="text-xs text-slate-500 mt-1">Para tipo Fixo, o valor e obrigatorio.</p>
         </div>
         <div>
           <label for="due_day" class="text-sm text-slate-400">Dia do vencimento</label>
@@ -117,11 +118,11 @@
 
     function applyValueTypeRules() {
       const isVariable = valueTypeVariable.checked;
-      amountDisplay.disabled = isVariable;
-      amountDisplay.classList.toggle('opacity-60', isVariable);
-      if (isVariable) {
-        amountDisplay.value = '';
-        amountInput.value = '';
+      const amountHelper = document.getElementById('amountHelper');
+      if (amountHelper) {
+        amountHelper.textContent = isVariable
+          ? 'Para tipo Variavel, o valor e opcional.'
+          : 'Para tipo Fixo, o valor e obrigatorio.';
       }
     }
 

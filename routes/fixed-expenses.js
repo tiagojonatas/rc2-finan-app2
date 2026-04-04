@@ -245,10 +245,13 @@ router.post('/add', requireAuth, async (req, res) => {
   const categoryId = category_id ? parseInt(category_id, 10) : null;
   const normalizedDescription = (description || '').trim();
   const normalizedValueType = value_type === 'variable' ? 'variable' : 'fixed';
-  const hasAmount = normalizedValueType === 'fixed' && String(amount || '').trim() !== '';
+  const hasAmount = String(amount || '').trim() !== '';
   const parsedAmount = hasAmount ? parseCurrencyInput(amount) : null;
 
-  if (!normalizedDescription || !dueDay || dueDay < 1 || dueDay > 31 || (normalizedValueType === 'fixed' && !isValidPositiveAmount(parsedAmount))) {
+  const isInvalidFixedAmount = normalizedValueType === 'fixed' && !isValidPositiveAmount(parsedAmount);
+  const isInvalidOptionalAmount = hasAmount && !isValidPositiveAmount(parsedAmount);
+
+  if (!normalizedDescription || !dueDay || dueDay < 1 || dueDay > 31 || isInvalidFixedAmount || isInvalidOptionalAmount) {
     const categories = await getExpenseCategories(userId).catch(() => []);
     return renderWithBase(res, {
       title: 'Nova Despesa Fixa - RC2 Finance',
@@ -258,7 +261,9 @@ router.post('/add', requireAuth, async (req, res) => {
           ? 'Descricao e obrigatoria'
           : (!dueDay || dueDay < 1 || dueDay > 31)
             ? 'Dia de vencimento deve estar entre 1 e 31'
-            : 'Para tipo Fixo, informe um valor base maior que zero',
+            : isInvalidFixedAmount
+              ? 'Para tipo Fixo, informe um valor base maior que zero'
+              : 'Se informar valor para tipo Variavel, use um valor maior que zero',
         categories,
         formData: req.body
       }
@@ -278,7 +283,7 @@ router.post('/add', requireAuth, async (req, res) => {
 
     await db.query(
       'INSERT INTO fixed_expenses (user_id, description, amount, category_id, due_day, is_active) VALUES (?, ?, ?, ?, ?, ?)',
-      [userId, normalizedDescription, normalizedValueType === 'fixed' ? parsedAmount : null, Number.isNaN(categoryId) ? null : categoryId, dueDay, active]
+      [userId, normalizedDescription, hasAmount ? parsedAmount : null, Number.isNaN(categoryId) ? null : categoryId, dueDay, active]
     );
 
     return res.redirect('/fixed-expenses');
@@ -323,10 +328,13 @@ router.post('/edit/:id', requireAuth, async (req, res) => {
   const categoryId = category_id ? parseInt(category_id, 10) : null;
   const normalizedDescription = (description || '').trim();
   const normalizedValueType = value_type === 'variable' ? 'variable' : 'fixed';
-  const hasAmount = normalizedValueType === 'fixed' && String(amount || '').trim() !== '';
+  const hasAmount = String(amount || '').trim() !== '';
   const parsedAmount = hasAmount ? parseCurrencyInput(amount) : null;
 
-  if (!normalizedDescription || !dueDay || dueDay < 1 || dueDay > 31 || (normalizedValueType === 'fixed' && !isValidPositiveAmount(parsedAmount))) {
+  const isInvalidFixedAmount = normalizedValueType === 'fixed' && !isValidPositiveAmount(parsedAmount);
+  const isInvalidOptionalAmount = hasAmount && !isValidPositiveAmount(parsedAmount);
+
+  if (!normalizedDescription || !dueDay || dueDay < 1 || dueDay > 31 || isInvalidFixedAmount || isInvalidOptionalAmount) {
     const [expenses] = await db.query('SELECT * FROM fixed_expenses WHERE id = ? AND user_id = ?', [expenseId, userId]);
     const categories = await getExpenseCategories(userId).catch(() => []);
     return renderWithBase(res, {
@@ -339,7 +347,9 @@ router.post('/edit/:id', requireAuth, async (req, res) => {
           ? 'Descricao e obrigatoria'
           : (!dueDay || dueDay < 1 || dueDay > 31)
             ? 'Dia de vencimento deve estar entre 1 e 31'
-            : 'Para tipo Fixo, informe um valor base maior que zero'
+            : isInvalidFixedAmount
+              ? 'Para tipo Fixo, informe um valor base maior que zero'
+              : 'Se informar valor para tipo Variavel, use um valor maior que zero'
       }
     });
   }
@@ -364,7 +374,7 @@ router.post('/edit/:id', requireAuth, async (req, res) => {
       `UPDATE fixed_expenses
        SET description = ?, amount = ?, category_id = ?, due_day = ?, is_active = ?
        WHERE id = ? AND user_id = ?`,
-      [normalizedDescription, normalizedValueType === 'fixed' ? parsedAmount : null, Number.isNaN(categoryId) ? null : categoryId, dueDay, active, expenseId, userId]
+      [normalizedDescription, hasAmount ? parsedAmount : null, Number.isNaN(categoryId) ? null : categoryId, dueDay, active, expenseId, userId]
     );
 
     return res.redirect('/fixed-expenses');
