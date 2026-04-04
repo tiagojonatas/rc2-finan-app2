@@ -46,7 +46,11 @@
     <!-- Featured Balance Section -->
     <% const breakdown = (typeof financialBreakdown !== 'undefined' && financialBreakdown) ? financialBreakdown : {}; %>
     <% const currentRealBalance = parseFloat(typeof breakdown.currentRealBalance !== 'undefined' ? breakdown.currentRealBalance : (balance || 0)); %>
-    <% const projectedMonthBalance = parseFloat(typeof breakdown.projectedBalance !== 'undefined' ? breakdown.projectedBalance : (balance || 0)); %>
+    <% const projectedMonthBalance = parseFloat(
+      typeof breakdown.projectedRealBalance !== 'undefined'
+        ? breakdown.projectedRealBalance
+        : (balance || 0)
+    ); %>
     <% const saldoNegativo = currentRealBalance < 0; %>
     <div class="rounded-2xl p-6 sm:p-7 shadow-lg transition-all duration-300 <%= saldoNegativo ? 'bg-rose-600/20 border border-rose-500/40 text-rose-300' : 'bg-gradient-to-r from-emerald-500/90 to-teal-500/90 text-white' %>">
       <div class="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6 items-center">
@@ -202,11 +206,16 @@
         <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4 mb-5">
           <div class="rounded-lg border border-gray-800 bg-[#111827] p-4">
             <p class="text-xs uppercase tracking-wide text-slate-400 mb-1">Despesas pendentes</p>
-            <p class="text-lg font-semibold tracking-tight text-white"><%= formatCurrency(projection.fixedExpenses || 0) %></p>
+            <p class="text-lg font-semibold tracking-tight text-white"><%= formatCurrency(projection.pendingFixedExpenses || 0) %></p>
           </div>
           <div class="rounded-lg border border-gray-800 bg-[#111827] p-4">
             <p class="text-xs uppercase tracking-wide text-slate-400 mb-1">Fixas do mes (total)</p>
             <p class="text-lg font-semibold tracking-tight text-white"><%= formatCurrency(projection.totalFixedExpenses || 0) %></p>
+          </div>
+          <div class="rounded-lg border border-gray-800 bg-[#111827] p-4">
+            <p class="text-xs uppercase tracking-wide text-slate-400 mb-1">Saldo projetado (real)</p>
+            <p class="text-lg font-semibold tracking-tight <%= projection.isRealPositive ? 'text-emerald-300' : 'text-rose-300' %>"><%= formatCurrency(projection.realProjectedBalance || 0) %></p>
+            <p class="text-[11px] text-slate-400 mt-1">Baseado em despesas reais cadastradas</p>
           </div>
           <div class="rounded-lg border border-gray-800 bg-[#111827] p-4">
             <p class="text-xs uppercase tracking-wide text-slate-400 mb-1">Media variavel (3m)</p>
@@ -214,13 +223,14 @@
             <p class="text-[11px] text-slate-400 mt-1">Baseado nos ultimos 3 meses</p>
           </div>
           <div class="rounded-lg border border-gray-800 bg-[#111827] p-4">
-            <p class="text-xs uppercase tracking-wide text-slate-400 mb-1">Estimativa total do mes</p>
-            <p class="text-lg font-semibold tracking-tight text-white"><%= formatCurrency(projection.estimatedTotalMonthExpense || 0) %></p>
+            <p class="text-xs uppercase tracking-wide text-slate-400 mb-1">Estimativa do mes (historico)</p>
+            <p class="text-lg font-semibold tracking-tight text-white"><%= formatCurrency(projection.historicalEstimatedExpense || 0) %></p>
+            <p class="text-[11px] text-slate-400 mt-1">Nao representa despesas ja cadastradas</p>
           </div>
         </div>
-        <div class="<%= projection.isPositive ? 'bg-green-900/40 border border-green-700 p-4 rounded-lg text-green-300 text-xl font-bold' : 'bg-rose-900/40 border border-rose-700 p-4 rounded-lg text-rose-300 text-xl font-bold' %>">
-          <p class="text-xs uppercase tracking-wide mb-1 <%= projection.isPositive ? 'text-green-300' : 'text-rose-300' %>">Saldo projetado</p>
-          <p class="text-3xl font-bold <%= projection.isPositive ? 'text-green-300' : 'text-rose-300' %>"><%= formatCurrency(projection.projectedBalance || 0) %></p>
+        <div class="<%= projection.isHistoricalPositive ? 'bg-cyan-900/30 border border-cyan-700 p-4 rounded-lg' : 'bg-amber-900/30 border border-amber-700 p-4 rounded-lg' %>">
+          <p class="text-xs uppercase tracking-wide mb-1 <%= projection.isHistoricalPositive ? 'text-cyan-300' : 'text-amber-300' %>">Saldo estimado (historico)</p>
+          <p class="text-2xl font-semibold <%= projection.isHistoricalPositive ? 'text-cyan-200' : 'text-amber-200' %>"><%= formatCurrency(projection.historicalEstimatedBalance || 0) %></p>
         </div>
       </div>
     </div>
@@ -412,15 +422,16 @@
                                class="bg-[#111827] text-gray-300 border border-gray-700 hover:bg-gray-800 rounded-lg px-4 py-3 text-sm h-12 inline-flex items-center transition-all duration-200">
                               Editar
                             </a>
+                            <% const isExpenseInstallment = transaction && transaction.type === 'expense' && Number(transaction.installment_total || 1) > 1; %>
                             <form action="/transactions/delete/<%= transaction && transaction.id ? transaction.id : '' %>" method="POST" class="inline"
-                                  data-confirm-title="Excluir transacao"
-                                  data-confirm-message="Tem certeza que deseja excluir apenas esta parcela?">
+                                  data-confirm-title="<%= isExpenseInstallment ? 'Excluir parcela' : 'Excluir transacao' %>"
+                                  data-confirm-message="<%= isExpenseInstallment ? 'Tem certeza que deseja excluir apenas esta parcela?' : 'Tem certeza que deseja excluir esta transacao?' %>">
                               <button type="submit"
                                       class="bg-[#111827] text-gray-300 border border-gray-700 hover:bg-gray-800 rounded-lg px-4 py-3 text-sm h-12 inline-flex items-center transition-all duration-200">
-                                Excluir parcela
+                                <%= isExpenseInstallment ? 'Excluir parcela' : 'Excluir' %>
                               </button>
                             </form>
-                            <% if (transaction && Number(transaction.installment_total || 1) > 1) { %>
+                            <% if (transaction && transaction.type === 'expense' && Number(transaction.installment_total || 1) > 1) { %>
                               <form action="/transactions/delete/<%= transaction && transaction.id ? transaction.id : '' %>" method="POST" class="inline"
                                     data-confirm-title="Excluir compra parcelada"
                                     data-confirm-message="Tem certeza que deseja excluir todas as parcelas desta compra?">

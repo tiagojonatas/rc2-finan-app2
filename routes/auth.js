@@ -98,7 +98,17 @@ function setLastLoginEmailCookie(res, email) {
 
 function normalizeMonthOptions(monthOptions, selectedMonth, currentMonth, maxItems = MAX_MONTH_FILTER_OPTIONS) {
   const uniqueSorted = Array.from(new Set((monthOptions || []).filter(Boolean))).sort().reverse();
-  const topItems = uniqueSorted.slice(0, maxItems);
+  const [currentYear, currentMonthNumber] = String(currentMonth || '').split('-').map(Number);
+  const currentIndex = (currentYear * 12) + currentMonthNumber;
+
+  const filtered = uniqueSorted.filter((monthKey) => {
+    const [year, month] = String(monthKey || '').split('-').map(Number);
+    if (!year || !month) return false;
+    const monthIndex = (year * 12) + month;
+    return monthIndex >= (currentIndex - 6) && monthIndex <= (currentIndex + 12);
+  });
+
+  const topItems = filtered.slice(0, maxItems);
 
   if (selectedMonth && !topItems.includes(selectedMonth)) {
     topItems.push(selectedMonth);
@@ -109,6 +119,29 @@ function normalizeMonthOptions(monthOptions, selectedMonth, currentMonth, maxIte
   }
 
   return Array.from(new Set(topItems)).sort().reverse();
+}
+
+function removeOutliers(values) {
+  if (!Array.isArray(values) || values.length < 3) return values;
+  const sorted = [...values].sort((a, b) => a - b);
+  const q1 = sorted[Math.floor((sorted.length - 1) * 0.25)];
+  const q3 = sorted[Math.floor((sorted.length - 1) * 0.75)];
+  const iqr = q3 - q1;
+  const lowerBound = q1 - (1.5 * iqr);
+  const upperBound = q3 + (1.5 * iqr);
+  const filtered = values.filter((value) => value >= lowerBound && value <= upperBound);
+  return filtered.length ? filtered : values;
+}
+
+function getAverageFromRecentValidMonths(variableRows) {
+  const validRows = (variableRows || [])
+    .map((row) => parseFloat(row.total || 0))
+    .filter((value) => Number.isFinite(value) && value > 0)
+    .slice(0, 3);
+
+  if (!validRows.length) return 0;
+  const valuesForAverage = removeOutliers(validRows);
+  return valuesForAverage.reduce((sum, value) => sum + value, 0) / valuesForAverage.length;
 }
 
 // Middleware to check if user is authenticated
@@ -435,7 +468,7 @@ router.get('/dashboard', requireAuth, async (req, res) => {
       upcomingDueAccounts = [];
     }
 
-    const projectionWindowStart = addMonths(fromParts(selectedYear, selectedMonthNumber, 1), -3).format('YYYY-MM-DD');
+    const projectionWindowStart = addMonths(fromParts(selectedYear, selectedMonthNumber, 1), -12).format('YYYY-MM-DD');
     const [variableRows] = await db.query(
       `SELECT DATE_FORMAT(date, '%Y-%m') AS month_key, COALESCE(SUM(amount), 0) AS total
        FROM transactions
@@ -445,46 +478,53 @@ router.get('/dashboard', requireAuth, async (req, res) => {
       [userId, projectionWindowStart, endDate]
     );
 
-    const recentVariableRows = variableRows.slice(0, 3);
-    let averageVariableExpenses = recentVariableRows.length > 0
-      ? recentVariableRows.reduce((sum, row) => sum + parseFloat(row.total || 0), 0) / recentVariableRows.length
-      : 0;
+    let averageVariableExpenses = getAverageFromRecentValidMonths(variableRows);
 
     const hasCurrentMonthMovement = transactions.some((transaction) => Number(transaction.affects_balance ?? 1) === 1) || fixedTransactions.length > 0;
     if (!hasCurrentMonthMovement) {
       averageVariableExpenses = 0;
     }
 
-    const estimatedTotalMonthExpense = pendingFixedExpenses + averageVariableExpenses;
-    let projectedBalance = totalIncomeForBalance - estimatedTotalMonthExpense;
+    const realCommittedExpenses = totalExpensesForBalance + totalFixedExpenses;
+    let realProjectedBalance = totalIncomeForBalance - realCommittedExpenses;
+    const historicalEstimatedExpense = totalFixedExpenses + averageVariableExpenses;
+    let historicalEstimatedBalance = totalIncomeForBalance - historicalEstimatedExpense;
     const shouldResetProjection = totalIncomeForBalance === 0
       && totalExpensesForBalance === 0
       && totalFixedExpenses === 0
       && pendingFixedExpenses === 0;
 
-    let finalFixedProjection = pendingFixedExpenses;
+    let finalPendingFixedProjection = pendingFixedExpenses;
+    let finalTotalFixedProjection = totalFixedExpenses;
     let finalAverageVariableProjection = averageVariableExpenses;
-    let finalEstimatedTotalMonthExpense = estimatedTotalMonthExpense;
+    let finalRealCommittedExpenses = realCommittedExpenses;
+    let finalHistoricalEstimatedExpense = historicalEstimatedExpense;
 
     if (shouldResetProjection) {
-      projectedBalance = 0;
-      finalFixedProjection = 0;
+      realProjectedBalance = 0;
+      historicalEstimatedBalance = 0;
+      finalPendingFixedProjection = 0;
+      finalTotalFixedProjection = 0;
       finalAverageVariableProjection = 0;
-      finalEstimatedTotalMonthExpense = 0;
+      finalRealCommittedExpenses = 0;
+      finalHistoricalEstimatedExpense = 0;
     }
 
     const monthlyProjection = {
-      fixedExpenses: finalFixedProjection,
-      totalFixedExpenses: shouldResetProjection ? 0 : totalFixedExpenses,
+      pendingFixedExpenses: finalPendingFixedProjection,
+      totalFixedExpenses: finalTotalFixedProjection,
       averageVariableExpenses: finalAverageVariableProjection,
-      estimatedTotalMonthExpense: finalEstimatedTotalMonthExpense,
-      projectedBalance,
-      isPositive: projectedBalance >= 0
+      realCommittedExpenses: finalRealCommittedExpenses,
+      realProjectedBalance,
+      historicalEstimatedExpense: finalHistoricalEstimatedExpense,
+      historicalEstimatedBalance,
+      isRealPositive: realProjectedBalance >= 0,
+      isHistoricalPositive: historicalEstimatedBalance >= 0
     };
 
     const totalExpensesWithFixed = totalExpenses + totalFixedExpenses;
     const totalExpensesForBalanceWithFixed = totalExpensesForBalance + totalFixedExpenses;
-    const balance = totalIncomeForBalance - totalExpensesForBalanceWithFixed;
+    const balance = totalIncomeForBalance - totalExpensesForBalance;
 
     let realizedIncome = 0;
     let realizedExpenses = 0;
@@ -516,15 +556,17 @@ router.get('/dashboard', requireAuth, async (req, res) => {
     const realizedExpensesWithFixed = realizedExpenses + paidFixedExpenses;
     const futureCommitments = futureExpenseCommitments + pendingFixedExpenses;
     const totalCommittedMonth = realizedExpensesWithFixed + futureCommitments;
-    const currentRealBalance = realizedIncome - (realizedExpenses + paidFixedExpenses);
-    const projectedBalanceValue = Number(monthlyProjection && monthlyProjection.projectedBalance ? monthlyProjection.projectedBalance : 0);
+    const currentRealBalance = balance;
+    const projectedRealBalanceValue = Number(monthlyProjection && monthlyProjection.realProjectedBalance ? monthlyProjection.realProjectedBalance : 0);
+    const estimatedHistoricalBalanceValue = Number(monthlyProjection && monthlyProjection.historicalEstimatedBalance ? monthlyProjection.historicalEstimatedBalance : 0);
     const financialBreakdown = {
       realizedExpenses: realizedExpensesWithFixed,
       futureCommitments,
       installmentCommitments,
       totalCommittedMonth,
       currentRealBalance,
-      projectedBalance: projectedBalanceValue
+      projectedRealBalance: projectedRealBalanceValue,
+      estimatedHistoricalBalance: estimatedHistoricalBalanceValue
     };
 
     const previousMonthDate = addMonths(fromParts(selectedYear, selectedMonthNumber, 1), -1);
@@ -611,24 +653,6 @@ router.get('/dashboard', requireAuth, async (req, res) => {
       }
       monthlyMap.set(key, bucket);
     });
-
-    try {
-      const [fixedMonthlyRows] = await db.query(
-        `SELECT CONCAT(year, '-', LPAD(month, 2, '0')) AS month_key, COALESCE(SUM(amount), 0) AS total
-         FROM monthly_fixed_expenses
-         WHERE user_id = ?
-         GROUP BY year, month`,
-        [userId]
-      );
-      fixedMonthlyRows.forEach((row) => {
-        const key = row.month_key;
-        const bucket = monthlyMap.get(key) || { income: 0, expense: 0 };
-        bucket.expense += parseFloat(row.total || 0);
-        monthlyMap.set(key, bucket);
-      });
-    } catch (monthlyFixedBalanceError) {
-      console.warn('Monthly fixed expenses unavailable for balance chart.');
-    }
 
     const monthKeys = Array.from(monthlyMap.keys()).sort().slice(-12);
     const monthlyBalanceData = monthKeys.map((key) => {
@@ -779,11 +803,15 @@ router.get('/dashboard', requireAuth, async (req, res) => {
       totalExpenses: '0.00',
       totalFixedExpenses: '0.00',
       monthlyProjection: {
-        fixedExpenses: 0,
+        pendingFixedExpenses: 0,
+        totalFixedExpenses: 0,
         averageVariableExpenses: 0,
-        estimatedTotalMonthExpense: 0,
-        projectedBalance: 0,
-        isPositive: true
+        realCommittedExpenses: 0,
+        realProjectedBalance: 0,
+        historicalEstimatedExpense: 0,
+        historicalEstimatedBalance: 0,
+        isRealPositive: true,
+        isHistoricalPositive: true
       },
       balance: '0.00',
       selectedMonth: null,
@@ -824,7 +852,8 @@ router.get('/dashboard', requireAuth, async (req, res) => {
         installmentCommitments: 0,
         totalCommittedMonth: 0,
         currentRealBalance: 0,
-        projectedBalance: 0
+        projectedRealBalance: 0,
+        estimatedHistoricalBalance: 0
       }
     });
   }

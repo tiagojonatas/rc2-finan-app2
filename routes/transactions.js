@@ -1,6 +1,7 @@
 const express = require('express');
 const db = require('../db');
 const { parseCurrencyInput, isValidPositiveAmount } = require('../utils/currency');
+const { nowInTz, toTzDate } = require('../utils/datetime');
 const router = express.Router();
 
 function renderWithBase(res, options = {}) {
@@ -103,6 +104,41 @@ function splitAmountIntoInstallments(totalAmount, totalInstallments) {
   return parts;
 }
 
+function getAllowedDateRange() {
+  const now = nowInTz();
+  return {
+    minDate: now.subtract(3, 'month').startOf('day'),
+    maxDate: now.add(12, 'month').endOf('day')
+  };
+}
+
+function isValidDateInput(dateValue) {
+  return /^\d{4}-\d{2}-\d{2}$/.test(String(dateValue || ''));
+}
+
+function isDateWithinAllowedRange(dateValue) {
+  if (!isValidDateInput(dateValue)) return false;
+  const parsedDate = toTzDate(dateValue);
+  if (!parsedDate.isValid()) return false;
+  const { minDate, maxDate } = getAllowedDateRange();
+  return !parsedDate.isBefore(minDate, 'day') && !parsedDate.isAfter(maxDate, 'day');
+}
+
+function validateTransactionDate(dateValue, installmentTotal = 1) {
+  if (!isDateWithinAllowedRange(dateValue)) {
+    return 'Data fora do intervalo permitido (ate 3 meses no passado e 12 meses no futuro)';
+  }
+
+  if (Number(installmentTotal || 1) > 1) {
+    const lastInstallmentDate = addMonthsKeepingDay(dateValue, Number(installmentTotal) - 1);
+    if (!isDateWithinAllowedRange(lastInstallmentDate)) {
+      return 'Parcelamento excede o limite de 12 meses no futuro';
+    }
+  }
+
+  return null;
+}
+
 router.get('/add', requireAuth, async (req, res) => {
   const userId = req.session.userId;
   const requestedType = req.query.type;
@@ -173,6 +209,21 @@ router.post('/add', requireAuth, async (req, res) => {
         currentPath: '/dashboard',
         data: {
           error: 'Informe um valor valido maior que zero',
+          defaultType,
+          categories,
+          formData: { ...req.body, affects_balance: normalizedAffectsBalance }
+        }
+      });
+    }
+
+    const dateValidationError = validateTransactionDate(date, normalizedInstallmentTotal);
+    if (dateValidationError) {
+      return renderWithBase(res, {
+        title: 'Nova Transacao - RC2 Finance',
+        content: 'partials/pages/add-transaction-content',
+        currentPath: '/dashboard',
+        data: {
+          error: dateValidationError,
           defaultType,
           categories,
           formData: { ...req.body, affects_balance: normalizedAffectsBalance }
@@ -375,6 +426,29 @@ router.post('/edit/:id', requireAuth, async (req, res) => {
           },
           categories,
           error: 'Informe um valor valido maior que zero'
+        }
+      });
+    }
+
+    const editDateValidationError = validateTransactionDate(date, 1);
+    if (editDateValidationError) {
+      const [transactions] = await db.query('SELECT * FROM transactions WHERE id = ? AND user_id = ?', [transactionId, userId]);
+      return renderWithBase(res, {
+        title: 'Editar Transacao - RC2 Finance',
+        content: 'partials/pages/edit-transaction-content',
+        currentPath: '/dashboard',
+        data: {
+          transaction: {
+            ...(transactions[0] || {}),
+            ...req.body,
+            id: transactionId,
+            type: normalizedType,
+            payment_method: normalizedPaymentMethod,
+            is_recurring: normalizedRecurring,
+            affects_balance: normalizedAffectsBalance
+          },
+          categories,
+          error: editDateValidationError
         }
       });
     }

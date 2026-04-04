@@ -12,6 +12,32 @@ const {
 } = require('../utils/datetime');
 
 const router = express.Router();
+const MAX_MONTH_FILTER_OPTIONS = 18;
+
+function normalizeMonthOptions(monthOptions, selectedMonth, currentMonth, maxItems = MAX_MONTH_FILTER_OPTIONS) {
+  const uniqueSorted = Array.from(new Set((monthOptions || []).filter(Boolean))).sort().reverse();
+  const [currentYear, currentMonthNumber] = String(currentMonth || '').split('-').map(Number);
+  const currentIndex = (currentYear * 12) + currentMonthNumber;
+
+  const filtered = uniqueSorted.filter((monthKey) => {
+    const [year, month] = String(monthKey || '').split('-').map(Number);
+    if (!year || !month) return false;
+    const monthIndex = (year * 12) + month;
+    return monthIndex >= (currentIndex - 6) && monthIndex <= (currentIndex + 12);
+  });
+
+  const topItems = filtered.slice(0, maxItems);
+
+  if (selectedMonth && !topItems.includes(selectedMonth)) {
+    topItems.push(selectedMonth);
+  }
+
+  if (currentMonth && !topItems.includes(currentMonth)) {
+    topItems.push(currentMonth);
+  }
+
+  return Array.from(new Set(topItems)).sort().reverse();
+}
 
 function requireAuth(req, res, next) {
   if (req.session.userId) return next();
@@ -63,8 +89,7 @@ router.get('/', requireAuth, async (req, res) => {
       console.warn('Monthly fixed expenses unavailable for report month options.');
     }
 
-    if (!monthOptions.includes(currentMonthKey)) monthOptions.unshift(currentMonthKey);
-    if (!monthOptions.includes(selectedMonth)) monthOptions.unshift(selectedMonth);
+    monthOptions = normalizeMonthOptions(monthOptions, selectedMonth, currentMonthKey);
 
     const [transactions] = await db.query(
       `SELECT t.*, c.name AS category_name, c.color AS category_color
@@ -140,24 +165,6 @@ router.get('/', requireAuth, async (req, res) => {
         expense: parseFloat(row.expense_total || 0)
       });
     });
-
-    try {
-      const [fixedMonthlyRows] = await db.query(
-        `SELECT CONCAT(year, '-', LPAD(month, 2, '0')) AS month_key, COALESCE(SUM(amount), 0) AS total
-         FROM monthly_fixed_expenses
-         WHERE user_id = ?
-         GROUP BY year, month`,
-        [userId]
-      );
-
-      fixedMonthlyRows.forEach((row) => {
-        const bucket = monthlyMap.get(row.month_key) || { income: 0, expense: 0 };
-        bucket.expense += parseFloat(row.total || 0);
-        monthlyMap.set(row.month_key, bucket);
-      });
-    } catch (fixedMonthlyError) {
-      console.warn('Monthly fixed expenses unavailable for reports balance chart.');
-    }
 
     const monthlyBalanceData = Array.from(monthlyMap.entries())
       .sort((a, b) => a[0].localeCompare(b[0]))
