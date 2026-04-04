@@ -241,11 +241,12 @@
 
     <!-- Credit Card Financial Summary -->
     <% const summary = (typeof creditCardSummary !== 'undefined' && creditCardSummary) ? creditCardSummary : {}; %>
+    <% const cardItems = Array.isArray(summary.cards) ? summary.cards : []; %>
     <div class="border-t border-slate-800/50 pt-6">
       <div class="bg-slate-900/60 backdrop-blur border border-slate-800 rounded-xl p-4 shadow-md hover:shadow-lg hover:border-emerald-500/30 transition-all duration-200 hover:scale-[1.01] text-white <%= summary.isRisk ? 'border-rose-700' : 'border-slate-800' %>">
         <div class="px-6 py-4 bg-[#111827] border-b border-gray-800">
           <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-            <h2 class="text-xl font-semibold tracking-tight text-white">Resumo do Cartao</h2>
+            <h2 class="text-xl font-semibold tracking-tight text-white">Painel de cartoes</h2>
             <a href="/credit-cards" class="text-sm font-medium <%= summary.isRisk ? 'text-rose-600 hover:text-rose-700' : 'text-brand-purple hover:text-brand-cyan-dark' %>">
               Gerenciar cartoes
             </a>
@@ -261,61 +262,74 @@
           </div>
         <% } else { %>
           <div class="p-6">
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
               <div class="rounded-lg border border-gray-800 bg-[#111827] p-4">
-                <p class="text-xs uppercase tracking-wide mb-1 text-slate-400">Limite total</p>
+                <p class="text-xs uppercase tracking-wide mb-1 text-slate-400">Limite total (geral)</p>
                 <p class="text-lg font-semibold tracking-tight text-white"><%= formatCurrency(summary.totalLimit) %></p>
               </div>
 
               <div class="rounded-lg border border-gray-800 bg-[#111827] p-4">
-                <p class="text-xs uppercase tracking-wide mb-1 text-slate-400">Valor usado</p>
+                <p class="text-xs uppercase tracking-wide mb-1 text-slate-400">Utilizado total</p>
                 <p class="text-lg font-semibold tracking-tight <%= summary.isRisk ? 'text-rose-300' : 'text-white' %>"><%= formatCurrency(summary.currentInvoice) %></p>
-              </div>
-
-              <div class="rounded-lg border border-gray-800 bg-[#111827] p-4">
-                <p class="text-xs uppercase tracking-wide mb-1 text-slate-400">Disponivel</p>
-                <p class="text-lg font-semibold tracking-tight text-emerald-300"><%= formatCurrency(summary.availableLimit) %></p>
+                <p class="text-xs text-slate-400 mt-1">Disponivel geral: <span class="text-emerald-300 font-semibold"><%= formatCurrency(summary.availableLimit) %></span></p>
               </div>
             </div>
 
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-              <div class="rounded-lg border border-gray-800 bg-[#111827] p-4">
-                <p class="text-xs uppercase tracking-wide mb-1 text-slate-400">Fechamento</p>
-                <p class="text-lg font-semibold tracking-tight text-white">
-                  <%= summary.nextClosingDate ? formatDate(summary.nextClosingDate) : '-' %>
-                </p>
-              </div>
-              <div class="rounded-lg border border-gray-800 bg-[#111827] p-4">
-                <p class="text-xs uppercase tracking-wide mb-1 text-slate-400">Vencimento</p>
-                <p class="text-lg font-semibold tracking-tight text-white">
-                  <%= summary.nextDueDate ? formatDate(summary.nextDueDate) : '-' %>
-                </p>
-              </div>
-            </div>
+            <div class="space-y-4">
+              <% cardItems.forEach((card) => { %>
+                <div class="rounded-xl border <%= card.isRisk ? 'border-rose-700/70 bg-rose-900/20' : 'border-gray-800 bg-[#111827]' %> p-4">
+                  <div class="flex items-center justify-between gap-3 mb-4">
+                    <p class="text-base font-semibold text-white"><%= card.name %></p>
+                    <span class="text-xs font-semibold px-2 py-1 rounded-full <%= card.isRisk ? 'bg-rose-900/40 text-rose-300 border border-rose-700' : 'bg-emerald-900/40 text-emerald-300 border border-emerald-700' %>">
+                      <%= card.isRisk ? 'Atencao de limite' : 'Dentro do limite' %>
+                    </span>
+                  </div>
 
-            <div class="rounded-lg border <%= summary.isRisk ? 'border-rose-700 bg-rose-900/30' : 'border-gray-800 bg-[#111827]' %> p-4">
-              <div class="flex items-center justify-between mb-2">
-                <p class="text-sm font-medium <%= summary.isRisk ? 'text-rose-700' : 'text-gray-300' %>">Limite Utilizado</p>
-                <p class="text-sm font-bold <%= summary.isRisk ? 'text-rose-700' : 'text-brand-purple' %>"><%= Math.round(summary.usedPercent || 0) %>%</p>
-              </div>
+                  <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-5 gap-3 mb-4">
+                    <div class="rounded-lg border border-gray-800 bg-slate-900/60 p-3">
+                      <p class="text-[11px] uppercase tracking-wide text-slate-400 mb-1">Limite total</p>
+                      <p class="text-sm font-semibold text-white"><%= formatCurrency(card.limitAmount) %></p>
+                    </div>
+                    <div class="rounded-lg border border-gray-800 bg-slate-900/60 p-3">
+                      <p class="text-[11px] uppercase tracking-wide text-slate-400 mb-1">Valor utilizado</p>
+                      <p class="text-sm font-semibold <%= card.isRisk ? 'text-rose-300' : 'text-slate-100' %>"><%= formatCurrency(card.usedAmount) %></p>
+                    </div>
+                    <div class="rounded-lg border border-gray-800 bg-slate-900/60 p-3">
+                      <p class="text-[11px] uppercase tracking-wide text-slate-400 mb-1">Disponivel</p>
+                      <p class="text-sm font-semibold text-emerald-300"><%= formatCurrency(card.availableAmount) %></p>
+                    </div>
+                    <div class="rounded-lg border border-gray-800 bg-slate-900/60 p-3">
+                      <p class="text-[11px] uppercase tracking-wide text-slate-400 mb-1">Fechamento</p>
+                      <p class="text-sm font-semibold text-white"><%= card.nextClosingDate ? formatDate(card.nextClosingDate) : '-' %></p>
+                    </div>
+                    <div class="rounded-lg border border-gray-800 bg-slate-900/60 p-3">
+                      <p class="text-[11px] uppercase tracking-wide text-slate-400 mb-1">Vencimento</p>
+                      <p class="text-sm font-semibold text-white"><%= card.nextDueDate ? formatDate(card.nextDueDate) : '-' %></p>
+                    </div>
+                  </div>
 
-              <div class="w-full h-3 rounded-full bg-gray-200 overflow-hidden">
-                <div
-                  class="h-full rounded-full transition-all duration-500 <%= summary.isRisk ? 'bg-gradient-to-r from-rose-500 to-red-600' : 'bg-[#00C9A7]' %>"
-                  style="width: <%= Math.max(0, Math.min(100, summary.progressPercent || 0)) %>%;">
+                  <div class="flex items-center justify-between mb-2">
+                    <p class="text-xs font-medium text-slate-400 uppercase tracking-wide">Uso do limite</p>
+                    <p class="text-xs font-bold <%= card.isRisk ? 'text-rose-300' : 'text-cyan-300' %>"><%= Math.round(card.usedPercent || 0) %>%</p>
+                  </div>
+                  <div class="w-full h-2.5 rounded-full bg-gray-800 overflow-hidden">
+                    <div
+                      class="h-full rounded-full transition-all duration-500 <%= card.isRisk ? 'bg-gradient-to-r from-rose-500 to-red-600' : 'bg-[#00C9A7]' %>"
+                      style="width: <%= Math.max(0, Math.min(100, card.progressPercent || 0)) %>%;">
+                    </div>
+                  </div>
                 </div>
-              </div>
-
-              <div class="flex items-center justify-between mt-3 text-xs">
-                <span class="<%= summary.isRisk ? 'text-rose-600' : 'text-slate-400' %>">
-                  Limite total: <strong><%= formatCurrency(summary.totalLimit) %></strong>
-                </span>
-                <% if (summary.isRisk) { %>
-                  <span class="font-semibold text-rose-700">Risco de estouro</span>
-                <% } else { %>
-                  <span class="font-semibold text-emerald-600">Dentro do planejado</span>
-                <% } %>
-              </div>
+              <% }); %>
+            </div>
+            <div class="mt-4 flex items-center justify-between text-xs">
+              <span class="text-slate-400">
+                Cartoes cadastrados: <strong class="text-slate-200"><%= cardItems.length %></strong>
+              </span>
+              <% if (summary.isRisk) { %>
+                <span class="font-semibold text-rose-300">Ha cartao acima de 80% do limite</span>
+              <% } else { %>
+                <span class="font-semibold text-emerald-300">Todos os cartoes dentro da faixa segura</span>
+              <% } %>
             </div>
           </div>
         <% } %>

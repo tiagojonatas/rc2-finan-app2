@@ -714,7 +714,8 @@ router.get('/dashboard', requireAuth, async (req, res) => {
       progressPercent: 0,
       isRisk: false,
       nextClosingDate: null,
-      nextDueDate: null
+      nextDueDate: null,
+      cards: []
     };
 
     if (creditCards.length > 0) {
@@ -732,6 +733,27 @@ router.get('/dashboard', requireAuth, async (req, res) => {
         totalsByCard.set(Number(row.card_id), parseFloat(row.total));
       });
 
+      const cards = creditCards.map((card) => {
+        const limitAmount = parseFloat(card.limit_amount || 0);
+        const usedAmount = totalsByCard.get(Number(card.id)) || 0;
+        const availableAmount = Math.max(limitAmount - usedAmount, 0);
+        const usedPercentByCard = limitAmount > 0 ? (usedAmount / limitAmount) * 100 : 0;
+        return {
+          id: Number(card.id),
+          name: card.name,
+          limitAmount,
+          usedAmount,
+          availableAmount,
+          usedPercent: usedPercentByCard,
+          progressPercent: Math.max(0, Math.min(100, usedPercentByCard)),
+          isRisk: usedPercentByCard >= 80,
+          closingDay: Number(card.closing_day || 0),
+          dueDay: Number(card.due_day || 0),
+          nextClosingDate: getNextOccurrence(card.closing_day, now),
+          nextDueDate: getNextOccurrence(card.due_day, now)
+        };
+      });
+
       const totalLimit = creditCards.reduce((acc, card) => acc + parseFloat(card.limit_amount || 0), 0);
       const currentInvoice = creditCards.reduce((acc, card) => acc + (totalsByCard.get(Number(card.id)) || 0), 0);
       const usedPercent = totalLimit > 0 ? (currentInvoice / totalLimit) * 100 : 0;
@@ -739,9 +761,9 @@ router.get('/dashboard', requireAuth, async (req, res) => {
       let nextClosingDate = null;
       let nextDueDate = null;
 
-      creditCards.forEach((card) => {
-        const closing = getNextOccurrence(card.closing_day, now);
-        const due = getNextOccurrence(card.due_day, now);
+      cards.forEach((card) => {
+        const closing = card.nextClosingDate;
+        const due = card.nextDueDate;
 
         if (closing && (!nextClosingDate || closing < nextClosingDate)) {
           nextClosingDate = closing;
@@ -759,9 +781,10 @@ router.get('/dashboard', requireAuth, async (req, res) => {
         availableLimit: Math.max(totalLimit - currentInvoice, 0),
         usedPercent,
         progressPercent: Math.min(100, usedPercent),
-        isRisk: usedPercent >= 80,
+        isRisk: usedPercent >= 80 || cards.some((card) => card.isRisk),
         nextClosingDate,
-        nextDueDate
+        nextDueDate,
+        cards
       };
     }
 
@@ -825,7 +848,8 @@ router.get('/dashboard', requireAuth, async (req, res) => {
         progressPercent: 0,
         isRisk: false,
         nextClosingDate: null,
-        nextDueDate: null
+        nextDueDate: null,
+        cards: []
       },
       dashboardCards: [],
       financialInsight: {
