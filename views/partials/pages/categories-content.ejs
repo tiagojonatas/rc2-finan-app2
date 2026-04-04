@@ -7,6 +7,30 @@
   <div class="mb-4 rounded-xl border border-rose-800 bg-rose-900/30 text-rose-300 px-4 py-3"><%= error %></div>
 <% } %>
 
+<form action="/categories" method="GET" class="mb-4 flex flex-col sm:flex-row gap-2">
+  <select
+    name="type"
+    class="w-full sm:w-44 h-12 bg-slate-900 border border-slate-700 rounded-lg px-3 text-slate-100 focus:outline-none focus:ring-2 focus:ring-[#00C9A7]/50"
+  >
+    <option value="" <%= !selectedType ? 'selected' : '' %>>Todos os tipos</option>
+    <option value="income" <%= selectedType === 'income' ? 'selected' : '' %>>Entrada</option>
+    <option value="expense" <%= selectedType === 'expense' ? 'selected' : '' %>>Despesa</option>
+  </select>
+  <input
+    type="text"
+    name="q"
+    value="<%= searchQuery || '' %>"
+    placeholder="Pesquisar categoria por nome"
+    class="w-full h-12 bg-slate-900 border border-slate-700 rounded-lg px-4 text-slate-100 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-[#00C9A7]/50"
+  />
+  <button type="submit" class="h-12 px-5 rounded-lg bg-[#00C9A7] hover:bg-[#009e83] text-white font-medium transition">
+    Pesquisar
+  </button>
+  <a href="/categories" class="h-12 px-5 rounded-lg border border-slate-700 text-slate-300 hover:bg-slate-800 inline-flex items-center justify-center transition">
+    Limpar
+  </a>
+</form>
+
 <div class="bg-gray-900 rounded-2xl border border-gray-800 overflow-hidden shadow-md">
   <div class="grid grid-cols-12 px-5 py-3 bg-gray-950 border-b border-gray-800 text-xs font-semibold uppercase tracking-wide text-gray-400">
     <div class="col-span-5">Nome</div>

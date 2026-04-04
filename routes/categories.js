@@ -40,20 +40,57 @@ function isBlockedCategoryName(name) {
   return (name || '').trim().toLowerCase() === 'outros';
 }
 
+async function categoryNameExists(userId, type, name, excludeId = null) {
+  const params = [userId, type, name];
+  let sql = `
+    SELECT id
+    FROM categories
+    WHERE user_id = ?
+      AND type = ?
+      AND LOWER(TRIM(name)) = LOWER(TRIM(?))
+  `;
+
+  if (excludeId !== null) {
+    sql += ' AND id <> ?';
+    params.push(excludeId);
+  }
+
+  sql += ' LIMIT 1';
+
+  const [rows] = await db.query(sql, params);
+  return rows.length > 0;
+}
+
 router.get('/', requireAuth, async (req, res) => {
   const userId = req.session.userId;
+  const search = (req.query.q || '').trim();
+  const rawType = (req.query.type || '').trim();
+  const selectedType = rawType === 'income' || rawType === 'expense' ? rawType : '';
+
   try {
-    const [categories] = await db.query(
-      `SELECT * FROM categories
-       WHERE user_id = ?
-       ORDER BY type ASC, name ASC`,
-      [userId]
-    );
+    const hasSearch = search.length > 0;
+    const hasTypeFilter = selectedType.length > 0;
+    let sql = `SELECT * FROM categories WHERE user_id = ?`;
+    const params = [userId];
+
+    if (hasTypeFilter) {
+      sql += ' AND type = ?';
+      params.push(selectedType);
+    }
+
+    if (hasSearch) {
+      sql += ' AND name LIKE ?';
+      params.push(`%${search}%`);
+    }
+
+    sql += ' ORDER BY type ASC, name ASC';
+    const [categories] = await db.query(sql, params);
+
     renderWithBase(res, {
       title: 'Categorias - RC2 Finance',
       content: 'partials/pages/categories-content',
       currentPath: '/categories',
-      data: { categories, error: null }
+      data: { categories, error: null, searchQuery: search, selectedType }
     });
   } catch (error) {
     console.error(error);
@@ -61,7 +98,7 @@ router.get('/', requireAuth, async (req, res) => {
       title: 'Categorias - RC2 Finance',
       content: 'partials/pages/categories-content',
       currentPath: '/categories',
-      data: { categories: [], error: 'Erro ao carregar categorias' }
+      data: { categories: [], error: 'Erro ao carregar categorias', searchQuery: search, selectedType }
     });
   }
 });
@@ -100,6 +137,16 @@ router.post('/add', requireAuth, async (req, res) => {
   }
 
   try {
+    const alreadyExists = await categoryNameExists(userId, normalizedType, normalizedName);
+    if (alreadyExists) {
+      return renderWithBase(res, {
+        title: 'Nova Categoria - RC2 Finance',
+        content: 'partials/pages/add-category-content',
+        currentPath: '/categories',
+        data: { error: 'Categoria ja existe para este tipo' }
+      });
+    }
+
     await db.query(
       'INSERT INTO categories (user_id, name, type, color) VALUES (?, ?, ?, ?)',
       [userId, normalizedName, normalizedType, normalizedColor]
@@ -177,6 +224,7 @@ router.post('/edit/:id', requireAuth, async (req, res) => {
     }
 
     category = rows[0];
+    const categoryType = category.type === 'income' ? 'income' : 'expense';
 
     if (!normalizedName) {
       return renderWithBase(res, {
@@ -205,6 +253,23 @@ router.post('/edit/:id', requireAuth, async (req, res) => {
             color: normalizedColor
           },
           error: 'Categoria Outros nao e permitida'
+        }
+      });
+    }
+
+    const alreadyExists = await categoryNameExists(userId, categoryType, normalizedName, categoryId);
+    if (alreadyExists) {
+      return renderWithBase(res, {
+        title: 'Editar Categoria - RC2 Finance',
+        content: 'partials/pages/edit-category-content',
+        currentPath: '/categories',
+        data: {
+          category: {
+            ...category,
+            name: normalizedName,
+            color: normalizedColor
+          },
+          error: 'Ja existe categoria com esse nome nesse tipo'
         }
       });
     }
