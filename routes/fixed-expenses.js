@@ -282,8 +282,8 @@ router.post('/add', requireAuth, async (req, res) => {
     }
 
     await db.query(
-      'INSERT INTO fixed_expenses (user_id, description, amount, category_id, due_day, is_active) VALUES (?, ?, ?, ?, ?, ?)',
-      [userId, normalizedDescription, hasAmount ? parsedAmount : null, Number.isNaN(categoryId) ? null : categoryId, dueDay, active]
+      'INSERT INTO fixed_expenses (user_id, description, amount, value_type, category_id, due_day, is_active) VALUES (?, ?, ?, ?, ?, ?, ?)',
+      [userId, normalizedDescription, hasAmount ? parsedAmount : null, normalizedValueType, Number.isNaN(categoryId) ? null : categoryId, dueDay, active]
     );
 
     return res.redirect('/fixed-expenses');
@@ -372,9 +372,9 @@ router.post('/edit/:id', requireAuth, async (req, res) => {
 
     await db.query(
       `UPDATE fixed_expenses
-       SET description = ?, amount = ?, category_id = ?, due_day = ?, is_active = ?
+       SET description = ?, amount = ?, value_type = ?, category_id = ?, due_day = ?, is_active = ?
        WHERE id = ? AND user_id = ?`,
-      [normalizedDescription, hasAmount ? parsedAmount : null, Number.isNaN(categoryId) ? null : categoryId, dueDay, active, expenseId, userId]
+      [normalizedDescription, hasAmount ? parsedAmount : null, normalizedValueType, Number.isNaN(categoryId) ? null : categoryId, dueDay, active, expenseId, userId]
     );
 
     return res.redirect('/fixed-expenses');

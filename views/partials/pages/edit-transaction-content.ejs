@@ -1,5 +1,8 @@
 <% const safeCategories = Array.isArray(categories) ? categories : []; %>
-<% const selectedPaymentMethod = transaction && transaction.payment_method ? transaction.payment_method : 'cash'; %>
+<% const safeCards = Array.isArray(cards) ? cards : []; %>
+<% const selectedPaymentMethodRaw = transaction && transaction.payment_method ? transaction.payment_method : 'cash'; %>
+<% const selectedPaymentMethod = selectedPaymentMethodRaw === 'debit' ? 'pix' : selectedPaymentMethodRaw; %>
+<% const selectedCardId = String((transaction && transaction.card_id) || ''); %>
 <% const isRecurringSelected = Number((transaction && transaction.is_recurring) || 0) === 1 || String((transaction && transaction.is_recurring) || '') === '1' || String((transaction && transaction.is_recurring) || '') === 'on'; %>
 <% const transactionDate = transaction && transaction.date ? new Date(transaction.date).toISOString().split('T')[0] : ''; %>
 <% const affectsBalanceSelected = transaction && transaction.type === 'income'
@@ -48,10 +51,20 @@
             <label for="payment_method" class="text-sm text-slate-400">Forma de pagamento</label>
             <select id="payment_method" name="payment_method" required class="w-full mt-1 bg-slate-800 border border-slate-700 rounded-lg px-3 h-12 text-white focus:outline-none focus:ring-2 focus:ring-emerald-500 transition">
               <option value="cash" <%= selectedPaymentMethod === 'cash' ? 'selected' : '' %>>Dinheiro</option>
-              <option value="debit" <%= selectedPaymentMethod === 'debit' ? 'selected' : '' %>>Debito</option>
-              <option value="credit" <%= selectedPaymentMethod === 'credit' ? 'selected' : '' %>>Credito</option>
+              <option value="pix" <%= selectedPaymentMethod === 'pix' ? 'selected' : '' %>>Pix</option>
+              <option value="credit" <%= selectedPaymentMethod === 'credit' ? 'selected' : '' %>>Cartao</option>
             </select>
           </div>
+        </div>
+
+        <div id="cardWrapper">
+          <label for="card_id" class="text-sm text-slate-400">Cartao</label>
+          <select id="card_id" name="card_id" class="w-full mt-1 bg-slate-800 border border-slate-700 rounded-lg px-3 h-12 text-white focus:outline-none focus:ring-2 focus:ring-emerald-500 transition">
+            <option value="">Selecione um cartao</option>
+            <% safeCards.forEach((card) => { %>
+              <option value="<%= card.id %>" <%= selectedCardId === String(card.id) ? 'selected' : '' %>><%= card.name %></option>
+            <% }); %>
+          </select>
         </div>
 
         <div>
@@ -104,8 +117,11 @@
     const recurringTypeSelect = document.getElementById('is_recurring');
     const affectsBalanceWrapper = document.getElementById('affectsBalanceWrapper');
     const affectsBalanceInput = document.getElementById('affects_balance');
+    const paymentMethodSelect = document.getElementById('payment_method');
+    const cardWrapper = document.getElementById('cardWrapper');
+    const cardSelect = document.getElementById('card_id');
 
-    if (!amountDisplay || !amountInput || !typeSelect || !categorySelect || !recurringWrapper || !recurringTypeSelect || !affectsBalanceWrapper || !affectsBalanceInput) return;
+    if (!amountDisplay || !amountInput || !typeSelect || !categorySelect || !recurringWrapper || !recurringTypeSelect || !affectsBalanceWrapper || !affectsBalanceInput || !paymentMethodSelect || !cardWrapper || !cardSelect) return;
 
     function formatBRL(value) {
       return value.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -151,6 +167,15 @@
       }
     }
 
+    function updateCardVisibility() {
+      const isCredit = paymentMethodSelect.value === 'credit';
+      cardWrapper.style.display = isCredit ? '' : 'none';
+      cardSelect.required = isCredit;
+      if (!isCredit) {
+        cardSelect.value = '';
+      }
+    }
+
     amountDisplay.addEventListener('input', function(event) {
       const digits = event.target.value.replace(/\D/g, '');
       if (!digits) {
@@ -177,8 +202,10 @@
     updateCategoryOptions();
     updateRecurringVisibility();
     updateAffectsBalanceVisibility();
+    updateCardVisibility();
     typeSelect.addEventListener('change', updateCategoryOptions);
     typeSelect.addEventListener('change', updateRecurringVisibility);
     typeSelect.addEventListener('change', updateAffectsBalanceVisibility);
+    paymentMethodSelect.addEventListener('change', updateCardVisibility);
   })();
 </script>

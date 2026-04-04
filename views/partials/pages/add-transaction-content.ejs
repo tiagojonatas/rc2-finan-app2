@@ -1,7 +1,10 @@
 <% const safeCategories = Array.isArray(categories) ? categories : []; %>
 <% const safeFormData = formData || {}; %>
 <% const selectedType = safeFormData.type || defaultType || 'expense'; %>
-<% const selectedPaymentMethod = safeFormData.payment_method || 'cash'; %>
+<% const selectedPaymentMethodRaw = safeFormData.payment_method || 'cash'; %>
+<% const selectedPaymentMethod = selectedPaymentMethodRaw === 'debit' ? 'pix' : selectedPaymentMethodRaw; %>
+<% const safeCards = Array.isArray(cards) ? cards : []; %>
+<% const selectedCardId = String(safeFormData.card_id || ''); %>
 <% const isRecurringSelected = String(safeFormData.is_recurring || '') === '1' || String(safeFormData.is_recurring || '') === 'on'; %>
 <% const isInstallmentSelected = String(safeFormData.is_installment || '') === '1' || String(safeFormData.is_installment || '') === 'on'; %>
 <% const selectedInstallmentTotal = safeFormData.installment_total || 2; %>
@@ -50,10 +53,20 @@
             <label for="payment_method" class="text-sm text-slate-400">Forma de pagamento</label>
             <select id="payment_method" name="payment_method" required class="w-full mt-1 bg-slate-800 border border-slate-700 rounded-lg px-3 h-12 text-white focus:outline-none focus:ring-2 focus:ring-emerald-500 transition">
               <option value="cash" <%= selectedPaymentMethod === 'cash' ? 'selected' : '' %>>Dinheiro</option>
-              <option value="debit" <%= selectedPaymentMethod === 'debit' ? 'selected' : '' %>>Debito</option>
-              <option value="credit" <%= selectedPaymentMethod === 'credit' ? 'selected' : '' %>>Credito</option>
+              <option value="pix" <%= selectedPaymentMethod === 'pix' ? 'selected' : '' %>>Pix</option>
+              <option value="credit" <%= selectedPaymentMethod === 'credit' ? 'selected' : '' %>>Cartao</option>
             </select>
           </div>
+        </div>
+
+        <div id="cardWrapper">
+          <label for="card_id" class="text-sm text-slate-400">Cartao</label>
+          <select id="card_id" name="card_id" class="w-full mt-1 bg-slate-800 border border-slate-700 rounded-lg px-3 h-12 text-white focus:outline-none focus:ring-2 focus:ring-emerald-500 transition">
+            <option value="">Selecione um cartao</option>
+            <% safeCards.forEach((card) => { %>
+              <option value="<%= card.id %>" <%= selectedCardId === String(card.id) ? 'selected' : '' %>><%= card.name %></option>
+            <% }); %>
+          </select>
         </div>
 
         <div>
@@ -132,12 +145,15 @@
     const recurringTypeSelect = document.getElementById('is_recurring');
     const affectsBalanceWrapper = document.getElementById('affectsBalanceWrapper');
     const affectsBalanceInput = document.getElementById('affects_balance');
+    const paymentMethodSelect = document.getElementById('payment_method');
+    const cardWrapper = document.getElementById('cardWrapper');
+    const cardSelect = document.getElementById('card_id');
     const installmentWrapper = document.getElementById('installmentWrapper');
     const installmentInput = document.getElementById('is_installment');
     const installmentTotalWrapper = document.getElementById('installmentTotalWrapper');
     const installmentTotalInput = document.getElementById('installment_total');
 
-    if (!amountDisplay || !amountInput || !typeSelect || !categorySelect || !recurringWrapper || !recurringTypeSelect || !affectsBalanceWrapper || !affectsBalanceInput || !installmentWrapper || !installmentInput || !installmentTotalWrapper || !installmentTotalInput) return;
+    if (!amountDisplay || !amountInput || !typeSelect || !categorySelect || !recurringWrapper || !recurringTypeSelect || !affectsBalanceWrapper || !affectsBalanceInput || !paymentMethodSelect || !cardWrapper || !cardSelect || !installmentWrapper || !installmentInput || !installmentTotalWrapper || !installmentTotalInput) return;
 
     function formatBRL(value) {
       return value.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -192,6 +208,15 @@
       updateInstallmentTotalVisibility();
     }
 
+    function updateCardVisibility() {
+      const isCredit = paymentMethodSelect.value === 'credit';
+      cardWrapper.style.display = isCredit ? '' : 'none';
+      cardSelect.required = isCredit;
+      if (!isCredit) {
+        cardSelect.value = '';
+      }
+    }
+
     function updateInstallmentTotalVisibility() {
       const shouldShowTotal = typeSelect.value === 'expense' && installmentInput.checked;
       installmentTotalWrapper.style.display = shouldShowTotal ? '' : 'none';
@@ -230,11 +255,13 @@
     updateCategoryOptions();
     updateRecurringVisibility();
     updateAffectsBalanceVisibility();
+    updateCardVisibility();
     updateInstallmentVisibility();
     typeSelect.addEventListener('change', updateCategoryOptions);
     typeSelect.addEventListener('change', updateRecurringVisibility);
     typeSelect.addEventListener('change', updateAffectsBalanceVisibility);
     typeSelect.addEventListener('change', updateInstallmentVisibility);
+    paymentMethodSelect.addEventListener('change', updateCardVisibility);
     installmentInput.addEventListener('change', updateInstallmentTotalVisibility);
   })();
 </script>

@@ -1,5 +1,7 @@
 <% const safeCategories = Array.isArray(categories) ? categories : []; %>
-<% const selectedValueType = (expense && expense.amount == null) ? 'variable' : 'fixed'; %>
+<% const selectedValueType = (expense && expense.value_type)
+  ? expense.value_type
+  : ((expense && expense.amount == null) ? 'variable' : 'fixed'); %>
 
 <div class="flex justify-center items-start min-h-[70vh] pt-10">
   <div class="w-full max-w-2xl">
