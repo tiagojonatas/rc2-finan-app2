@@ -24,6 +24,7 @@ router.get('/', requireAuth, async (req, res) => {
     const requestedMonth = req.query.month;
     const currentMonthKey = getMonthKey(nowInTz());
     const selectedMonth = isValidMonthKey(requestedMonth) ? requestedMonth : currentMonthKey;
+    const isFutureMonth = selectedMonth > currentMonthKey;
     const parsedMonth = selectedMonth.split('-').map(Number);
     const selectedYear = parsedMonth[0];
     const selectedMonthNumber = parsedMonth[1];
@@ -169,6 +170,7 @@ router.get('/', requireAuth, async (req, res) => {
     return res.render('reports', {
       selectedMonth,
       selectedMonthLabel,
+      isFutureMonth,
       monthOptions,
       expenseCategoryReport,
       monthlyBalanceData,
@@ -179,6 +181,7 @@ router.get('/', requireAuth, async (req, res) => {
     return res.render('reports', {
       selectedMonth: null,
       selectedMonthLabel: '',
+      isFutureMonth: false,
       monthOptions: [],
       expenseCategoryReport: [],
       monthlyBalanceData: [],

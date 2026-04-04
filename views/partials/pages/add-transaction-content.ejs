@@ -3,6 +3,8 @@
 <% const selectedType = safeFormData.type || defaultType || 'expense'; %>
 <% const selectedPaymentMethod = safeFormData.payment_method || 'cash'; %>
 <% const isRecurringSelected = String(safeFormData.is_recurring || '') === '1' || String(safeFormData.is_recurring || '') === 'on'; %>
+<% const isInstallmentSelected = String(safeFormData.is_installment || '') === '1' || String(safeFormData.is_installment || '') === 'on'; %>
+<% const selectedInstallmentTotal = safeFormData.installment_total || 2; %>
 <% const affectsBalanceSelected = selectedType === 'income'
   ? true
   : (typeof safeFormData.affects_balance === 'undefined'
@@ -73,6 +75,32 @@
           </select>
         </div>
 
+        <label id="installmentWrapper" class="flex items-center gap-3 rounded-lg border border-slate-700 bg-slate-800/70 px-3 py-3 text-sm text-slate-300">
+          <input
+            id="is_installment"
+            name="is_installment"
+            type="checkbox"
+            value="1"
+            <%= isInstallmentSelected ? 'checked' : '' %>
+            class="h-4 w-4 rounded border-slate-600 bg-slate-900 text-emerald-500 focus:ring-emerald-500"
+          />
+          <span>Compra parcelada</span>
+        </label>
+
+        <div id="installmentTotalWrapper">
+          <label for="installment_total" class="text-sm text-slate-400">Numero de parcelas</label>
+          <input
+            id="installment_total"
+            name="installment_total"
+            type="number"
+            min="2"
+            max="60"
+            step="1"
+            value="<%= selectedInstallmentTotal %>"
+            class="w-full mt-1 bg-slate-800 border border-slate-700 rounded-lg px-3 h-12 text-white focus:outline-none focus:ring-2 focus:ring-emerald-500 transition"
+          />
+        </div>
+
         <label id="affectsBalanceWrapper" class="flex items-center gap-3 rounded-lg border border-slate-700 bg-slate-800/70 px-3 py-3 text-sm text-slate-300">
           <input
             id="affects_balance"
@@ -104,8 +132,12 @@
     const recurringTypeSelect = document.getElementById('is_recurring');
     const affectsBalanceWrapper = document.getElementById('affectsBalanceWrapper');
     const affectsBalanceInput = document.getElementById('affects_balance');
+    const installmentWrapper = document.getElementById('installmentWrapper');
+    const installmentInput = document.getElementById('is_installment');
+    const installmentTotalWrapper = document.getElementById('installmentTotalWrapper');
+    const installmentTotalInput = document.getElementById('installment_total');
 
-    if (!amountDisplay || !amountInput || !typeSelect || !categorySelect || !recurringWrapper || !recurringTypeSelect || !affectsBalanceWrapper || !affectsBalanceInput) return;
+    if (!amountDisplay || !amountInput || !typeSelect || !categorySelect || !recurringWrapper || !recurringTypeSelect || !affectsBalanceWrapper || !affectsBalanceInput || !installmentWrapper || !installmentInput || !installmentTotalWrapper || !installmentTotalInput) return;
 
     function formatBRL(value) {
       return value.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -151,6 +183,27 @@
       }
     }
 
+    function updateInstallmentVisibility() {
+      const isExpense = typeSelect.value === 'expense';
+      installmentWrapper.style.display = isExpense ? '' : 'none';
+      if (!isExpense) {
+        installmentInput.checked = false;
+      }
+      updateInstallmentTotalVisibility();
+    }
+
+    function updateInstallmentTotalVisibility() {
+      const shouldShowTotal = typeSelect.value === 'expense' && installmentInput.checked;
+      installmentTotalWrapper.style.display = shouldShowTotal ? '' : 'none';
+      installmentTotalInput.required = shouldShowTotal;
+      installmentTotalInput.disabled = !shouldShowTotal;
+      if (!shouldShowTotal) {
+        installmentTotalInput.value = '2';
+      } else if (!installmentTotalInput.value || Number(installmentTotalInput.value) < 2) {
+        installmentTotalInput.value = '2';
+      }
+    }
+
     amountDisplay.addEventListener('input', function(event) {
       const digits = event.target.value.replace(/\D/g, '');
       if (!digits) {
@@ -177,8 +230,11 @@
     updateCategoryOptions();
     updateRecurringVisibility();
     updateAffectsBalanceVisibility();
+    updateInstallmentVisibility();
     typeSelect.addEventListener('change', updateCategoryOptions);
     typeSelect.addEventListener('change', updateRecurringVisibility);
     typeSelect.addEventListener('change', updateAffectsBalanceVisibility);
+    typeSelect.addEventListener('change', updateInstallmentVisibility);
+    installmentInput.addEventListener('change', updateInstallmentTotalVisibility);
   })();
 </script>

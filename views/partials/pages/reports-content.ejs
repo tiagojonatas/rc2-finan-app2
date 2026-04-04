@@ -6,9 +6,16 @@
   <div>
     <h1 class="text-2xl sm:text-3xl font-semibold text-white">Relatorios</h1>
     <p class="text-sm text-gray-400 mt-1"><%= selectedMonthLabel || '' %></p>
+    <% if (typeof isFutureMonth !== 'undefined' && isFutureMonth) { %>
+      <span class="mt-2 inline-flex items-center rounded-full px-2.5 py-0.5 text-[11px] font-semibold border border-cyan-700 bg-cyan-900/30 text-cyan-300">
+        Mes futuro (projetado)
+      </span>
+    <% } %>
   </div>
   <form id="monthFilterForm" action="/reports" method="GET" class="bg-gray-900 border border-gray-800 rounded-lg px-3 py-2 flex items-center gap-2 shadow-sm">
     <label for="monthFilter" class="text-xs font-semibold text-gray-400 uppercase tracking-wide">Periodo</label>
+    <span class="inline-flex h-4 w-4 items-center justify-center rounded-full border border-slate-600 text-[10px] text-slate-400 cursor-help"
+          title="Meses futuros mostram despesas ja comprometidas (parcelas e recorrencias).">i</span>
     <select id="monthFilter" name="month" class="bg-transparent text-sm font-semibold text-gray-200 focus:outline-none">
       <% safeMonthOptions.forEach((monthKey) => { %>
         <% const [year, month] = monthKey.split('-').map(Number); %>
@@ -19,8 +26,12 @@
   </form>
 </div>
 
+<% const projectedVisualClass = (typeof isFutureMonth !== 'undefined' && isFutureMonth)
+  ? 'border-cyan-800/70 bg-cyan-950/10'
+  : 'border-gray-800'; %>
+
 <div class="grid grid-cols-1 xl:grid-cols-2 gap-6 mb-6">
-  <div class="bg-gray-900 rounded-xl border border-gray-800 shadow-md p-5">
+  <div class="bg-gray-900 rounded-xl border <%= projectedVisualClass %> shadow-md p-5">
     <div class="flex items-center justify-between mb-4">
       <h2 class="text-lg font-semibold text-white">Gastos por categoria</h2>
       <span class="text-xs font-medium text-emerald-300 bg-emerald-900/30 border border-emerald-800 px-2 py-1 rounded-full">Pizza</span>
@@ -34,7 +45,7 @@
     <% } %>
   </div>
 
-  <div class="bg-gray-900 rounded-xl border border-gray-800 shadow-md p-5">
+  <div class="bg-gray-900 rounded-xl border <%= projectedVisualClass %> shadow-md p-5">
     <div class="flex items-center justify-between mb-4">
       <h2 class="text-lg font-semibold text-white">Evolucao de saldo</h2>
       <span class="text-xs font-medium text-sky-300 bg-sky-900/30 border border-sky-800 px-2 py-1 rounded-full">Linha</span>
@@ -49,7 +60,7 @@
   </div>
 </div>
 
-<div class="bg-gray-900 rounded-xl border border-gray-800 shadow-md p-5">
+<div class="bg-gray-900 rounded-xl border <%= projectedVisualClass %> shadow-md p-5">
   <div class="flex items-center justify-between mb-4">
     <h2 class="text-lg font-semibold text-white">Ranking de categorias</h2>
     <span class="text-sm font-semibold text-gray-300">Total: <%= formatCurrency(totalExpenses) %></span>

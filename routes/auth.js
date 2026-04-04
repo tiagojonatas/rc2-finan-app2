@@ -22,6 +22,7 @@ const DEFAULT_INCOME_CATEGORIES = [
   { name: 'Michele', color: '#06B6D4' },
   { name: 'Forex', color: '#F59E0B' }
 ];
+const MAX_MONTH_FILTER_OPTIONS = 18;
 
 async function createDefaultCategoriesForUser(userId) {
   for (const category of DEFAULT_EXPENSE_CATEGORIES) {
@@ -93,6 +94,21 @@ function setLastLoginEmailCookie(res, email) {
     secure: isProduction,
     maxAge: 1000 * 60 * 60 * 24 * 30
   });
+}
+
+function normalizeMonthOptions(monthOptions, selectedMonth, currentMonth, maxItems = MAX_MONTH_FILTER_OPTIONS) {
+  const uniqueSorted = Array.from(new Set((monthOptions || []).filter(Boolean))).sort().reverse();
+  const topItems = uniqueSorted.slice(0, maxItems);
+
+  if (selectedMonth && !topItems.includes(selectedMonth)) {
+    topItems.push(selectedMonth);
+  }
+
+  if (currentMonth && !topItems.includes(currentMonth)) {
+    topItems.push(currentMonth);
+  }
+
+  return Array.from(new Set(topItems)).sort().reverse();
 }
 
 // Middleware to check if user is authenticated
@@ -210,7 +226,9 @@ router.get('/dashboard', requireAuth, async (req, res) => {
     const requestedMonth = req.query.month;
     const now = nowInTz();
     const currentMonthKey = getMonthKey(now);
+    const todayDate = getDateKey(now);
     const selectedMonth = isValidMonthKey(requestedMonth) ? requestedMonth : currentMonthKey;
+    const isFutureMonth = selectedMonth > currentMonthKey;
     const [selectedYear, selectedMonthNumber] = selectedMonth.split('-').map(Number);
     const startDate = getMonthStart(selectedMonth);
     const endDate = getMonthEnd(selectedMonth);
@@ -267,6 +285,10 @@ router.get('/dashboard', requireAuth, async (req, res) => {
         category_color: expense.category_color || '#00C9A7',
         payment_method: 'fixed',
         is_recurring: 1,
+        installment_total: 1,
+        installment_number: 1,
+        parent_transaction_id: null,
+        is_future: getDateKey(expense.due_date) > todayDate,
         fixed_status: expense.status
       }));
     } catch (fixedTxError) {
@@ -274,7 +296,12 @@ router.get('/dashboard', requireAuth, async (req, res) => {
       fixedTransactions = [];
     }
 
-    const monthTransactions = [...transactions, ...fixedTransactions].sort(
+    const normalizedTransactions = transactions.map((transaction) => ({
+      ...transaction,
+      is_future: getDateKey(transaction.date) > todayDate
+    }));
+
+    const monthTransactions = [...normalizedTransactions, ...fixedTransactions].sort(
       (a, b) => toTzDate(b.date).valueOf() - toTzDate(a.date).valueOf()
     );
 
@@ -302,8 +329,7 @@ router.get('/dashboard', requireAuth, async (req, res) => {
       console.warn('Monthly fixed expenses unavailable for month options.');
     }
 
-    if (!monthOptions.includes(currentMonthKey)) monthOptions.unshift(currentMonthKey);
-    if (!monthOptions.includes(selectedMonth)) monthOptions.unshift(selectedMonth);
+    monthOptions = normalizeMonthOptions(monthOptions, selectedMonth, currentMonthKey);
 
     let totalIncome = 0;
     let totalExpenses = 0;
@@ -329,6 +355,7 @@ router.get('/dashboard', requireAuth, async (req, res) => {
 
     let totalFixedExpenses = 0;
     let pendingFixedExpenses = 0;
+    let paidFixedExpenses = 0;
     try {
       const [fixedExpenseRows] = await db.query(
         `SELECT COALESCE(SUM(amount), 0) AS total
@@ -345,16 +372,24 @@ router.get('/dashboard', requireAuth, async (req, res) => {
         [userId, selectedYear, selectedMonthNumber]
       );
       pendingFixedExpenses = parseFloat((pendingFixedRows[0] && pendingFixedRows[0].total) || 0);
+
+      const [paidFixedRows] = await db.query(
+        `SELECT COALESCE(SUM(amount), 0) AS total
+         FROM monthly_fixed_expenses
+         WHERE user_id = ? AND year = ? AND month = ? AND status = 'pago'`,
+        [userId, selectedYear, selectedMonthNumber]
+      );
+      paidFixedExpenses = parseFloat((paidFixedRows[0] && paidFixedRows[0].total) || 0);
     } catch (fixedError) {
       console.warn('Fixed monthly expenses table unavailable. Run: npm run init-fixed-expenses');
       totalFixedExpenses = 0;
       pendingFixedExpenses = 0;
+      paidFixedExpenses = 0;
     }
 
     let overdueAccounts = [];
     let upcomingDueAccounts = [];
     try {
-      const todayDate = getDateKey(now);
       const [overdueRows] = await db.query(
         `SELECT mfe.id, mfe.amount, mfe.due_date, mfe.status, fe.description,
                 DATEDIFF(?, mfe.due_date) AS overdue_days
@@ -450,6 +485,47 @@ router.get('/dashboard', requireAuth, async (req, res) => {
     const totalExpensesWithFixed = totalExpenses + totalFixedExpenses;
     const totalExpensesForBalanceWithFixed = totalExpensesForBalance + totalFixedExpenses;
     const balance = totalIncomeForBalance - totalExpensesForBalanceWithFixed;
+
+    let realizedIncome = 0;
+    let realizedExpenses = 0;
+    let futureExpenseCommitments = 0;
+    let installmentCommitments = 0;
+
+    normalizedTransactions.forEach((transaction) => {
+      const amount = parseFloat(transaction.amount || 0);
+      const transactionDateKey = getDateKey(transaction.date);
+      const isFutureTransaction = transactionDateKey > todayDate;
+
+      if (transaction.type === 'income' && !isFutureTransaction) {
+        realizedIncome += amount;
+      }
+
+      if (transaction.type === 'expense') {
+        if (!isFutureTransaction) {
+          realizedExpenses += amount;
+        } else {
+          futureExpenseCommitments += amount;
+        }
+
+        if (Number(transaction.installment_total || 1) > 1) {
+          installmentCommitments += amount;
+        }
+      }
+    });
+
+    const realizedExpensesWithFixed = realizedExpenses + paidFixedExpenses;
+    const futureCommitments = futureExpenseCommitments + pendingFixedExpenses;
+    const totalCommittedMonth = realizedExpensesWithFixed + futureCommitments;
+    const currentRealBalance = realizedIncome - (realizedExpenses + paidFixedExpenses);
+    const projectedBalanceValue = Number(monthlyProjection && monthlyProjection.projectedBalance ? monthlyProjection.projectedBalance : 0);
+    const financialBreakdown = {
+      realizedExpenses: realizedExpensesWithFixed,
+      futureCommitments,
+      installmentCommitments,
+      totalCommittedMonth,
+      currentRealBalance,
+      projectedBalance: projectedBalanceValue
+    };
 
     const previousMonthDate = addMonths(fromParts(selectedYear, selectedMonthNumber, 1), -1);
     const previousMonthKey = getMonthKey(previousMonthDate);
@@ -682,6 +758,7 @@ router.get('/dashboard', requireAuth, async (req, res) => {
       financialInsight,
       selectedMonth,
       selectedMonthLabel,
+      isFutureMonth,
       monthOptions,
       transactionGroups,
       dashboardToast,
@@ -691,7 +768,8 @@ router.get('/dashboard', requireAuth, async (req, res) => {
       expenseCategoryReport,
       monthlyBalanceData,
       overdueAccounts,
-      upcomingDueAccounts
+      upcomingDueAccounts,
+      financialBreakdown
     });
   } catch (error) {
     console.error('Dashboard error:', error);
@@ -710,6 +788,7 @@ router.get('/dashboard', requireAuth, async (req, res) => {
       balance: '0.00',
       selectedMonth: null,
       selectedMonthLabel: '',
+      isFutureMonth: false,
       monthOptions: [],
       transactionGroups: [],
       dashboardToast: null,
@@ -738,7 +817,15 @@ router.get('/dashboard', requireAuth, async (req, res) => {
       expenseCategoryReport: [],
       monthlyBalanceData: [],
       overdueAccounts: [],
-      upcomingDueAccounts: []
+      upcomingDueAccounts: [],
+      financialBreakdown: {
+        realizedExpenses: 0,
+        futureCommitments: 0,
+        installmentCommitments: 0,
+        totalCommittedMonth: 0,
+        currentRealBalance: 0,
+        projectedBalance: 0
+      }
     });
   }
 });
