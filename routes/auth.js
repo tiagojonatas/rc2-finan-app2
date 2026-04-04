@@ -333,15 +333,16 @@ router.get('/dashboard', requireAuth, async (req, res) => {
       ...transaction,
       is_future: getDateKey(transaction.date) > todayDate
     }));
+    const realTransactions = normalizedTransactions.filter((transaction) => Number(transaction.affects_balance ?? 1) === 1);
 
-    const monthTransactions = [...normalizedTransactions, ...fixedTransactions].sort(
+    const monthTransactions = [...realTransactions, ...fixedTransactions].sort(
       (a, b) => toTzDate(b.date).valueOf() - toTzDate(a.date).valueOf()
     );
 
     const [monthRows] = await db.query(
       `SELECT DISTINCT DATE_FORMAT(date, '%Y-%m') AS month_key
        FROM transactions
-       WHERE user_id = ?
+       WHERE user_id = ? AND COALESCE(affects_balance, 1) = 1
        ORDER BY month_key DESC`,
       [userId]
     );
@@ -369,20 +370,15 @@ router.get('/dashboard', requireAuth, async (req, res) => {
     let totalIncomeForBalance = 0;
     let totalExpensesForBalance = 0;
 
-    transactions.forEach((transaction) => {
+    realTransactions.forEach((transaction) => {
       const amount = parseFloat(transaction.amount || 0);
-      const affectsBalance = Number(transaction.affects_balance ?? 1) === 1;
 
       if (transaction.type === 'income') {
         totalIncome += amount;
-        if (affectsBalance) {
-          totalIncomeForBalance += amount;
-        }
+        totalIncomeForBalance += amount;
       } else if (transaction.type === 'expense') {
         totalExpenses += amount;
-        if (affectsBalance) {
-          totalExpensesForBalance += amount;
-        }
+        totalExpensesForBalance += amount;
       }
     });
 
@@ -480,7 +476,7 @@ router.get('/dashboard', requireAuth, async (req, res) => {
 
     let averageVariableExpenses = getAverageFromRecentValidMonths(variableRows);
 
-    const hasCurrentMonthMovement = transactions.some((transaction) => Number(transaction.affects_balance ?? 1) === 1) || fixedTransactions.length > 0;
+    const hasCurrentMonthMovement = realTransactions.length > 0 || fixedTransactions.length > 0;
     if (!hasCurrentMonthMovement) {
       averageVariableExpenses = 0;
     }
@@ -531,7 +527,7 @@ router.get('/dashboard', requireAuth, async (req, res) => {
     let futureExpenseCommitments = 0;
     let installmentCommitments = 0;
 
-    normalizedTransactions.forEach((transaction) => {
+    realTransactions.forEach((transaction) => {
       const amount = parseFloat(transaction.amount || 0);
       const transactionDateKey = getDateKey(transaction.date);
       const isFutureTransaction = transactionDateKey > todayDate;
@@ -642,8 +638,7 @@ router.get('/dashboard', requireAuth, async (req, res) => {
       .sort((a, b) => b.total - a.total);
 
     const monthlyMap = new Map();
-    transactions.forEach((transaction) => {
-      if (Number(transaction.affects_balance ?? 1) !== 1) return;
+    realTransactions.forEach((transaction) => {
       const key = getMonthKey(transaction.date);
       const bucket = monthlyMap.get(key) || { income: 0, expense: 0 };
       if (transaction.type === 'income') {
@@ -855,6 +850,166 @@ router.get('/dashboard', requireAuth, async (req, res) => {
         projectedRealBalance: 0,
         estimatedHistoricalBalance: 0
       }
+    });
+  }
+});
+
+router.get('/analysis', requireAuth, async (req, res) => {
+  try {
+    if (req.session.userRole === 'admin') {
+      return res.redirect('/admin');
+    }
+
+    const userId = req.session.userId;
+    const requestedMonth = req.query.month;
+    const now = nowInTz();
+    const currentMonthKey = getMonthKey(now);
+    const selectedMonth = isValidMonthKey(requestedMonth) ? requestedMonth : currentMonthKey;
+    const isFutureMonth = selectedMonth > currentMonthKey;
+    const startDate = getMonthStart(selectedMonth);
+    const endDate = getMonthEnd(selectedMonth);
+    const selectedMonthLabel = getMonthLabel(selectedMonth);
+    const todayStr = getDateKey(now);
+    const yesterdayStr = getDateKey(now.subtract(1, 'day'));
+
+    const [transactions] = await db.query(
+      `SELECT t.*, c.name AS category_name, c.color AS category_color
+       FROM transactions t
+       LEFT JOIN categories c ON c.id = t.category_id
+       WHERE t.user_id = ?
+         AND t.date BETWEEN ? AND ?
+         AND COALESCE(t.affects_balance, 1) = 0
+       ORDER BY t.date DESC, t.id DESC`,
+      [userId, startDate, endDate]
+    );
+
+    const [monthRows] = await db.query(
+      `SELECT DISTINCT DATE_FORMAT(date, '%Y-%m') AS month_key
+       FROM transactions
+       WHERE user_id = ?
+         AND COALESCE(affects_balance, 1) = 0
+       ORDER BY month_key DESC`,
+      [userId]
+    );
+    const monthOptions = normalizeMonthOptions(
+      monthRows.map((row) => row.month_key).filter(Boolean),
+      selectedMonth,
+      currentMonthKey
+    );
+
+    const normalizedTransactions = transactions.map((transaction) => ({
+      ...transaction,
+      is_future: getDateKey(transaction.date) > getDateKey(now)
+    }));
+
+    let totalAnalysisExpenses = 0;
+    let creditInvoiceTotal = 0;
+    let debitTotal = 0;
+    let cashTotal = 0;
+    let installmentTotal = 0;
+
+    const categoryMap = new Map();
+    normalizedTransactions.forEach((transaction) => {
+      const amount = parseFloat(transaction.amount || 0);
+      if (transaction.type === 'expense') {
+        totalAnalysisExpenses += amount;
+      }
+
+      if (transaction.payment_method === 'credit') {
+        creditInvoiceTotal += amount;
+      } else if (transaction.payment_method === 'debit') {
+        debitTotal += amount;
+      } else {
+        cashTotal += amount;
+      }
+
+      if (Number(transaction.installment_total || 1) > 1) {
+        installmentTotal += amount;
+      }
+
+      const categoryName = (transaction.category_name || 'Sem categoria').trim() || 'Sem categoria';
+      const categoryColor = transaction.category_color || '#00C9A7';
+      const current = categoryMap.get(categoryName) || { total: 0, color: categoryColor };
+      current.total += amount;
+      if (!current.color && categoryColor) current.color = categoryColor;
+      categoryMap.set(categoryName, current);
+    });
+
+    const categoryReport = Array.from(categoryMap.entries())
+      .map(([name, info]) => ({
+        name,
+        total: info.total,
+        color: info.color || '#00C9A7',
+        percentage: totalAnalysisExpenses > 0 ? (info.total / totalAnalysisExpenses) * 100 : 0
+      }))
+      .sort((a, b) => b.total - a.total);
+
+    const groupedTransactions = {};
+    normalizedTransactions.forEach((transaction) => {
+      const dateKey = getDateKey(transaction.date);
+      if (!groupedTransactions[dateKey]) {
+        groupedTransactions[dateKey] = {
+          date: transaction.date,
+          dateLabel: '',
+          transactions: [],
+          total: 0
+        };
+      }
+
+      groupedTransactions[dateKey].transactions.push(transaction);
+      groupedTransactions[dateKey].total += parseFloat(transaction.amount || 0);
+    });
+
+    const transactionGroups = Object.values(groupedTransactions).sort((a, b) => b.date - a.date);
+    transactionGroups.forEach((group) => {
+      const groupDateKey = getDateKey(group.date);
+      if (groupDateKey === todayStr) {
+        group.dateLabel = 'Hoje';
+        return;
+      }
+      if (groupDateKey === yesterdayStr) {
+        group.dateLabel = 'Ontem';
+        return;
+      }
+      const [year, month, day] = groupDateKey.split('-').map(Number);
+      group.dateLabel = fromParts(year, month, day).format('DD [de] MMMM');
+    });
+
+    return res.render('analysis', {
+      userName: req.session.userName,
+      selectedMonth,
+      selectedMonthLabel,
+      monthOptions,
+      isFutureMonth,
+      analysisSummary: {
+        totalAnalysisExpenses,
+        creditInvoiceTotal,
+        debitTotal,
+        cashTotal,
+        installmentTotal,
+        transactionsCount: normalizedTransactions.length
+      },
+      analysisCategoryReport: categoryReport,
+      analysisTransactionGroups: transactionGroups
+    });
+  } catch (error) {
+    console.error('Analysis page error:', error);
+    return res.render('analysis', {
+      userName: req.session.userName || 'Usuario',
+      selectedMonth: null,
+      selectedMonthLabel: '',
+      monthOptions: [],
+      isFutureMonth: false,
+      analysisSummary: {
+        totalAnalysisExpenses: 0,
+        creditInvoiceTotal: 0,
+        debitTotal: 0,
+        cashTotal: 0,
+        installmentTotal: 0,
+        transactionsCount: 0
+      },
+      analysisCategoryReport: [],
+      analysisTransactionGroups: []
     });
   }
 });
