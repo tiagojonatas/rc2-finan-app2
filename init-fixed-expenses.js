@@ -8,14 +8,6 @@ async function ensureIndex(sql, duplicateCode = 'ER_DUP_KEYNAME') {
   }
 }
 
-async function ensureColumn(sql) {
-  try {
-    await db.query(sql);
-  } catch (error) {
-    if (error.code !== 'ER_DUP_FIELDNAME') throw error;
-  }
-}
-
 async function initFixedExpensesDB() {
   try {
     await db.query(`
@@ -34,15 +26,6 @@ async function initFixedExpensesDB() {
     `);
 
     await db.query(`ALTER TABLE fixed_expenses MODIFY amount DECIMAL(10, 2) NULL`);
-    await ensureColumn(`ALTER TABLE fixed_expenses ADD COLUMN value_type ENUM('fixed', 'variable') NOT NULL DEFAULT 'fixed' AFTER amount`);
-    await db.query(`
-      UPDATE fixed_expenses
-      SET value_type = CASE
-        WHEN amount IS NULL THEN 'variable'
-        ELSE 'fixed'
-      END
-      WHERE value_type IS NULL OR value_type = ''
-    `);
 
     await db.query(`
       CREATE TABLE IF NOT EXISTS monthly_fixed_expenses (

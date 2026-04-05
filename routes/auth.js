@@ -722,13 +722,10 @@ router.get('/dashboard', requireAuth, async (req, res) => {
       const cardIds = creditCards.map((card) => card.id);
       const [monthlyTotals] = await db.query(
         `SELECT card_id, COALESCE(SUM(amount), 0) AS total
-         FROM transactions
-         WHERE user_id = ?
-           AND card_id IN (?)
-           AND type = 'expense'
-           AND date BETWEEN ? AND ?
+         FROM card_transactions
+         WHERE card_id IN (?) AND date BETWEEN ? AND ?
          GROUP BY card_id`,
-        [userId, cardIds, startDate, endDate]
+        [cardIds, startDate, endDate]
       );
 
       const totalsByCard = new Map();
@@ -944,7 +941,7 @@ router.get('/analysis', requireAuth, async (req, res) => {
 
       if (transaction.payment_method === 'credit') {
         creditInvoiceTotal += amount;
-      } else if (transaction.payment_method === 'pix' || transaction.payment_method === 'debit') {
+      } else if (transaction.payment_method === 'debit') {
         debitTotal += amount;
       } else {
         cashTotal += amount;

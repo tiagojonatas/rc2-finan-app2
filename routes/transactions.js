@@ -35,14 +35,6 @@ async function getUserCategories(userId) {
   return categories;
 }
 
-async function getUserCards(userId) {
-  const [cards] = await db.query(
-    'SELECT id, name FROM credit_cards WHERE user_id = ? ORDER BY name ASC',
-    [userId]
-  );
-  return cards;
-}
-
 async function isValidCategory(userId, categoryId, type) {
   const [rows] = await db.query(
     "SELECT id FROM categories WHERE id = ? AND user_id = ? AND type = ? AND name <> 'Outros' LIMIT 1",
@@ -51,16 +43,8 @@ async function isValidCategory(userId, categoryId, type) {
   return rows.length > 0;
 }
 
-async function isValidCard(userId, cardId) {
-  const [rows] = await db.query(
-    'SELECT id FROM credit_cards WHERE id = ? AND user_id = ? LIMIT 1',
-    [cardId, userId]
-  );
-  return rows.length > 0;
-}
-
 function normalizePaymentMethod(paymentMethod) {
-  const validMethods = ['cash', 'pix', 'credit', 'debit'];
+  const validMethods = ['cash', 'debit', 'credit'];
   return validMethods.includes(paymentMethod) ? paymentMethod : 'cash';
 }
 
@@ -158,13 +142,10 @@ function validateTransactionDate(dateValue, installmentTotal = 1) {
 router.get('/add', requireAuth, async (req, res) => {
   const userId = req.session.userId;
   const requestedType = req.query.type;
-  const requestedPaymentMethod = req.query.payment_method;
   const defaultType = requestedType === 'income' || requestedType === 'expense' ? requestedType : 'expense';
-  const defaultPaymentMethod = normalizePaymentMethod(requestedPaymentMethod);
 
   try {
     const categories = await getUserCategories(userId);
-    const cards = await getUserCards(userId);
     return renderWithBase(res, {
       title: 'Nova Transacao - RC2 Finance',
       content: 'partials/pages/add-transaction-content',
@@ -173,8 +154,7 @@ router.get('/add', requireAuth, async (req, res) => {
         error: null,
         defaultType,
         categories,
-        cards,
-        formData: { type: defaultType, payment_method: defaultPaymentMethod, is_recurring: 0, affects_balance: 1, is_installment: 0, installment_total: 2, card_id: '' }
+        formData: { type: defaultType, payment_method: 'cash', is_recurring: 0, affects_balance: 1, is_installment: 0, installment_total: 2 }
       }
     });
   } catch (error) {
@@ -187,19 +167,17 @@ router.get('/add', requireAuth, async (req, res) => {
         error: 'Erro ao carregar categorias. Execute: npm run init-categories',
         defaultType,
         categories: [],
-        cards: [],
-        formData: { type: defaultType, payment_method: defaultPaymentMethod, is_recurring: 0, affects_balance: 1, is_installment: 0, installment_total: 2, card_id: '' }
+        formData: { type: defaultType, payment_method: 'cash', is_recurring: 0, affects_balance: 1, is_installment: 0, installment_total: 2 }
       }
     });
   }
 });
 
 router.post('/add', requireAuth, async (req, res) => {
-  const { description, amount, type, date, category_id, payment_method, is_recurring, affects_balance, is_installment, installment_total, card_id } = req.body;
+  const { description, amount, type, date, category_id, payment_method, is_recurring, affects_balance, is_installment, installment_total } = req.body;
   const userId = req.session.userId;
   const defaultType = type === 'income' || type === 'expense' ? type : 'expense';
   const categoryId = parseInt(category_id, 10);
-  const cardId = card_id ? parseInt(card_id, 10) : null;
   const parsedAmount = parseCurrencyInput(amount);
   const normalizedPaymentMethod = normalizePaymentMethod(payment_method);
   const normalizedRecurring = normalizeRecurringFlag(is_recurring, defaultType);
@@ -209,7 +187,6 @@ router.post('/add', requireAuth, async (req, res) => {
 
   try {
     const categories = await getUserCategories(userId);
-    const cards = await getUserCards(userId);
 
     if (!category_id || Number.isNaN(categoryId)) {
       return renderWithBase(res, {
@@ -220,7 +197,6 @@ router.post('/add', requireAuth, async (req, res) => {
           error: 'Categoria e obrigatoria',
           defaultType,
           categories,
-          cards,
           formData: { ...req.body, affects_balance: normalizedAffectsBalance }
         }
       });
@@ -235,7 +211,6 @@ router.post('/add', requireAuth, async (req, res) => {
           error: 'Informe um valor valido maior que zero',
           defaultType,
           categories,
-          cards,
           formData: { ...req.body, affects_balance: normalizedAffectsBalance }
         }
       });
@@ -251,7 +226,6 @@ router.post('/add', requireAuth, async (req, res) => {
           error: dateValidationError,
           defaultType,
           categories,
-          cards,
           formData: { ...req.body, affects_balance: normalizedAffectsBalance }
         }
       });
@@ -266,7 +240,6 @@ router.post('/add', requireAuth, async (req, res) => {
           error: 'Informe ao menos 2 parcelas para compra parcelada',
           defaultType,
           categories,
-          cards,
           formData: { ...req.body, affects_balance: normalizedAffectsBalance }
         }
       });
@@ -282,46 +255,10 @@ router.post('/add', requireAuth, async (req, res) => {
           error: 'Categoria invalida para o tipo selecionado',
           defaultType,
           categories,
-          cards,
           formData: { ...req.body, affects_balance: normalizedAffectsBalance }
         }
       });
     }
-
-    if (normalizedPaymentMethod === 'credit') {
-      if (!card_id || Number.isNaN(cardId)) {
-        return renderWithBase(res, {
-          title: 'Nova Transacao - RC2 Finance',
-          content: 'partials/pages/add-transaction-content',
-          currentPath: '/dashboard',
-          data: {
-            error: 'Selecione um cartao para pagamento com cartao',
-            defaultType,
-            categories,
-            cards,
-            formData: { ...req.body, affects_balance: normalizedAffectsBalance }
-          }
-        });
-      }
-
-      const validCard = await isValidCard(userId, cardId);
-      if (!validCard) {
-        return renderWithBase(res, {
-          title: 'Nova Transacao - RC2 Finance',
-          content: 'partials/pages/add-transaction-content',
-          currentPath: '/dashboard',
-          data: {
-            error: 'Cartao invalido',
-            defaultType,
-            categories,
-            cards,
-            formData: { ...req.body, affects_balance: normalizedAffectsBalance }
-          }
-        });
-      }
-    }
-
-    const normalizedCardId = normalizedPaymentMethod === 'credit' ? cardId : null;
 
     if (installmentEnabled && normalizedPaymentMethod === 'credit') {
       normalizedAffectsBalance = 0;
@@ -330,9 +267,9 @@ router.post('/add', requireAuth, async (req, res) => {
     if (!installmentEnabled) {
       const [result] = await db.query(
         `INSERT INTO transactions
-         (user_id, description, amount, type, date, category_id, payment_method, card_id, is_recurring, affects_balance, installment_total, installment_number, parent_transaction_id)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-        [userId, description, parsedAmount, defaultType, date, categoryId, normalizedPaymentMethod, normalizedCardId, normalizedRecurring, normalizedAffectsBalance, 1, 1, null]
+         (user_id, description, amount, type, date, category_id, payment_method, is_recurring, affects_balance, installment_total, installment_number, parent_transaction_id)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        [userId, description, parsedAmount, defaultType, date, categoryId, normalizedPaymentMethod, normalizedRecurring, normalizedAffectsBalance, 1, 1, null]
       );
 
       return res.redirect(`/dashboard?toast=created&tx=${result.insertId}`);
@@ -341,8 +278,8 @@ router.post('/add', requireAuth, async (req, res) => {
     const installmentAmounts = splitAmountIntoInstallments(parsedAmount, normalizedInstallmentTotal);
     const [firstInsert] = await db.query(
       `INSERT INTO transactions
-       (user_id, description, amount, type, date, category_id, payment_method, card_id, is_recurring, affects_balance, installment_total, installment_number, parent_transaction_id)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+       (user_id, description, amount, type, date, category_id, payment_method, is_recurring, affects_balance, installment_total, installment_number, parent_transaction_id)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         userId,
         `${description} - 1/${normalizedInstallmentTotal}`,
@@ -351,7 +288,6 @@ router.post('/add', requireAuth, async (req, res) => {
         date,
         categoryId,
         normalizedPaymentMethod,
-        normalizedCardId,
         normalizedRecurring,
         normalizedAffectsBalance,
         normalizedInstallmentTotal,
@@ -369,8 +305,8 @@ router.post('/add', requireAuth, async (req, res) => {
     for (let installmentNumber = 2; installmentNumber <= normalizedInstallmentTotal; installmentNumber += 1) {
       await db.query(
         `INSERT INTO transactions
-         (user_id, description, amount, type, date, category_id, payment_method, card_id, is_recurring, affects_balance, installment_total, installment_number, parent_transaction_id)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+         (user_id, description, amount, type, date, category_id, payment_method, is_recurring, affects_balance, installment_total, installment_number, parent_transaction_id)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         [
           userId,
           `${description} - ${installmentNumber}/${normalizedInstallmentTotal}`,
@@ -379,7 +315,6 @@ router.post('/add', requireAuth, async (req, res) => {
           addMonthsKeepingDay(date, installmentNumber - 1),
           categoryId,
           normalizedPaymentMethod,
-          normalizedCardId,
           normalizedRecurring,
           normalizedAffectsBalance,
           normalizedInstallmentTotal,
@@ -393,7 +328,6 @@ router.post('/add', requireAuth, async (req, res) => {
   } catch (error) {
     console.error(error);
     const categories = await getUserCategories(userId).catch(() => []);
-    const cards = await getUserCards(userId).catch(() => []);
     return renderWithBase(res, {
       title: 'Nova Transacao - RC2 Finance',
       content: 'partials/pages/add-transaction-content',
@@ -402,7 +336,6 @@ router.post('/add', requireAuth, async (req, res) => {
         error: 'Erro ao adicionar transacao',
         defaultType,
         categories,
-        cards,
         formData: { ...req.body, affects_balance: normalizedAffectsBalance }
       }
     });
@@ -423,7 +356,6 @@ router.get('/edit/:id', requireAuth, async (req, res) => {
     }
 
     const categories = await getUserCategories(userId);
-    const cards = await getUserCards(userId);
     return renderWithBase(res, {
       title: 'Editar Transacao - RC2 Finance',
       content: 'partials/pages/edit-transaction-content',
@@ -431,7 +363,6 @@ router.get('/edit/:id', requireAuth, async (req, res) => {
       data: {
         transaction: transactions[0],
         categories,
-        cards,
         error: null
       }
     });
@@ -443,19 +374,17 @@ router.get('/edit/:id', requireAuth, async (req, res) => {
 
 router.post('/edit/:id', requireAuth, async (req, res) => {
   const transactionId = req.params.id;
-  const { description, amount, type, date, category_id, payment_method, is_recurring, affects_balance, card_id } = req.body;
+  const { description, amount, type, date, category_id, payment_method, is_recurring, affects_balance } = req.body;
   const userId = req.session.userId;
   const normalizedType = type === 'income' || type === 'expense' ? type : 'expense';
   const categoryId = parseInt(category_id, 10);
-  const cardId = card_id ? parseInt(card_id, 10) : null;
   const parsedAmount = parseCurrencyInput(amount);
   const normalizedPaymentMethod = normalizePaymentMethod(payment_method);
   const normalizedRecurring = normalizeRecurringFlag(is_recurring, normalizedType);
-  let normalizedAffectsBalance = enforceAffectsBalanceByType(normalizedType, normalizeAffectsBalance(affects_balance));
+  const normalizedAffectsBalance = enforceAffectsBalanceByType(normalizedType, normalizeAffectsBalance(affects_balance));
 
   try {
     const categories = await getUserCategories(userId);
-    const cards = await getUserCards(userId);
 
     if (!category_id || Number.isNaN(categoryId)) {
       const [transactions] = await db.query('SELECT * FROM transactions WHERE id = ? AND user_id = ?', [transactionId, userId]);
@@ -474,7 +403,6 @@ router.post('/edit/:id', requireAuth, async (req, res) => {
             affects_balance: normalizedAffectsBalance
           },
           categories,
-          cards,
           error: 'Categoria e obrigatoria'
         }
       });
@@ -497,7 +425,6 @@ router.post('/edit/:id', requireAuth, async (req, res) => {
             affects_balance: normalizedAffectsBalance
           },
           categories,
-          cards,
           error: 'Informe um valor valido maior que zero'
         }
       });
@@ -521,7 +448,6 @@ router.post('/edit/:id', requireAuth, async (req, res) => {
             affects_balance: normalizedAffectsBalance
           },
           categories,
-          cards,
           error: editDateValidationError
         }
       });
@@ -545,72 +471,16 @@ router.post('/edit/:id', requireAuth, async (req, res) => {
             affects_balance: normalizedAffectsBalance
           },
           categories,
-          cards,
           error: 'Categoria invalida para o tipo selecionado'
         }
       });
     }
 
-    if (normalizedPaymentMethod === 'credit') {
-      if (!card_id || Number.isNaN(cardId)) {
-        const [transactions] = await db.query('SELECT * FROM transactions WHERE id = ? AND user_id = ?', [transactionId, userId]);
-        return renderWithBase(res, {
-          title: 'Editar Transacao - RC2 Finance',
-          content: 'partials/pages/edit-transaction-content',
-          currentPath: '/dashboard',
-          data: {
-            transaction: {
-              ...(transactions[0] || {}),
-              ...req.body,
-              id: transactionId,
-              type: normalizedType,
-              payment_method: normalizedPaymentMethod,
-              is_recurring: normalizedRecurring,
-              affects_balance: normalizedAffectsBalance
-            },
-            categories,
-            cards,
-            error: 'Selecione um cartao para pagamento com cartao'
-          }
-        });
-      }
-
-      const validCard = await isValidCard(userId, cardId);
-      if (!validCard) {
-        const [transactions] = await db.query('SELECT * FROM transactions WHERE id = ? AND user_id = ?', [transactionId, userId]);
-        return renderWithBase(res, {
-          title: 'Editar Transacao - RC2 Finance',
-          content: 'partials/pages/edit-transaction-content',
-          currentPath: '/dashboard',
-          data: {
-            transaction: {
-              ...(transactions[0] || {}),
-              ...req.body,
-              id: transactionId,
-              type: normalizedType,
-              payment_method: normalizedPaymentMethod,
-              is_recurring: normalizedRecurring,
-              affects_balance: normalizedAffectsBalance
-            },
-            categories,
-            cards,
-            error: 'Cartao invalido'
-          }
-        });
-      }
-
-      if (normalizedType === 'expense') {
-        normalizedAffectsBalance = 0;
-      }
-    }
-
-    const normalizedCardId = normalizedPaymentMethod === 'credit' ? cardId : null;
-
     await db.query(
       `UPDATE transactions
-       SET description = ?, amount = ?, type = ?, date = ?, category_id = ?, payment_method = ?, card_id = ?, is_recurring = ?, affects_balance = ?
+       SET description = ?, amount = ?, type = ?, date = ?, category_id = ?, payment_method = ?, is_recurring = ?, affects_balance = ?
        WHERE id = ? AND user_id = ?`,
-      [description, parsedAmount, normalizedType, date, categoryId, normalizedPaymentMethod, normalizedCardId, normalizedRecurring, normalizedAffectsBalance, transactionId, userId]
+      [description, parsedAmount, normalizedType, date, categoryId, normalizedPaymentMethod, normalizedRecurring, normalizedAffectsBalance, transactionId, userId]
     );
 
     return res.redirect(`/dashboard?toast=updated&tx=${transactionId}`);
@@ -625,7 +495,6 @@ router.post('/edit/:id', requireAuth, async (req, res) => {
       data: {
         transaction: transactions[0],
         categories,
-        cards: await getUserCards(userId).catch(() => []),
         error: 'Erro ao editar transacao'
       }
     });
