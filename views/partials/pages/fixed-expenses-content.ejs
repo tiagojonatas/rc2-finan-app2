@@ -177,8 +177,9 @@
       <input type="hidden" name="month" value="<%= selectedMonth %>" />
       <input type="hidden" name="status" value="<%= currentStatus %>" />
       <div>
-        <label for="payNowAmount" class="text-sm text-gray-300">Valor</label>
-        <input id="payNowAmount" name="amount" type="number" min="0.01" step="0.01" required class="mt-1 w-full h-11 bg-slate-800 border border-slate-700 rounded-lg px-3 text-white" />
+        <label for="payNowAmountDisplay" class="text-sm text-gray-300">Valor</label>
+        <input id="payNowAmountDisplay" type="text" inputmode="numeric" placeholder="0,00" required class="mt-1 w-full h-11 bg-slate-800 border border-slate-700 rounded-lg px-3 text-white" />
+        <input id="payNowAmount" name="amount" type="hidden" value="" />
       </div>
       <div class="flex items-center justify-end gap-2 pt-1">
         <button type="button" id="cancelPayNow" class="h-10 px-3 rounded-lg border border-gray-700 text-gray-300 hover:bg-gray-800">Cancelar</button>
@@ -194,14 +195,33 @@
     const panel = document.getElementById('payNowPanel');
     const backdrop = document.getElementById('payNowBackdrop');
     const form = document.getElementById('payNowForm');
+    const amountDisplayInput = document.getElementById('payNowAmountDisplay');
     const amountInput = document.getElementById('payNowAmount');
     const title = document.getElementById('payNowTitle');
     const description = document.getElementById('payNowDescription');
 
+    function formatBRL(value) {
+      return Number(value || 0).toLocaleString('pt-BR', {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2
+      });
+    }
+
+    function setAmountValue(rawValue) {
+      const numeric = Number(rawValue || 0);
+      if (!Number.isFinite(numeric) || numeric <= 0) {
+        amountInput.value = '';
+        amountDisplayInput.value = '';
+        return;
+      }
+      amountInput.value = numeric.toFixed(2);
+      amountDisplayInput.value = formatBRL(numeric);
+    }
+
     function openModal(action, expenseId, expenseDescription, amount, mode) {
-      if (!modal || !form || !amountInput) return;
+      if (!modal || !form || !amountInput || !amountDisplayInput) return;
       form.action = `/fixed-expenses/monthly/${expenseId}/${action}`;
-      amountInput.value = Number(amount || 0) > 0 ? Number(amount).toFixed(2) : '';
+      setAmountValue(amount);
       title.textContent = action === 'pay' ? 'Pagar' : 'Editar valor';
       description.textContent = expenseDescription || '';
       if (action === 'pay') {
@@ -220,7 +240,7 @@
       });
 
       setTimeout(function () {
-        amountInput.focus();
+        amountDisplayInput.focus();
       }, 120);
     }
 
@@ -246,6 +266,37 @@
           button.getAttribute('data-expense-status')
         );
       });
+    });
+
+    amountDisplayInput?.addEventListener('input', function (event) {
+      const digits = event.target.value.replace(/\D/g, '');
+      if (!digits) {
+        amountDisplayInput.value = '';
+        amountInput.value = '';
+        return;
+      }
+
+      const numeric = parseInt(digits, 10) / 100;
+      amountInput.value = numeric.toFixed(2);
+      amountDisplayInput.value = formatBRL(numeric);
+    });
+
+    amountDisplayInput?.addEventListener('paste', function (event) {
+      event.preventDefault();
+      const pasted = (event.clipboardData || window.clipboardData).getData('text') || '';
+      const digits = pasted.replace(/\D/g, '');
+      if (digits) {
+        amountDisplayInput.value = digits;
+        amountDisplayInput.dispatchEvent(new Event('input'));
+      }
+    });
+
+    form?.addEventListener('submit', function (event) {
+      const numeric = Number.parseFloat((amountInput.value || '').replace(',', '.'));
+      if (!Number.isFinite(numeric) || numeric <= 0) {
+        event.preventDefault();
+        amountDisplayInput.focus();
+      }
     });
 
     document.getElementById('closePayNowModal')?.addEventListener('click', closeModal);
