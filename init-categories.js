@@ -1,20 +1,7 @@
 const db = require('./db');
+const { getDefaultCategoryCatalog } = require('./utils/default-categories');
 
-const DEFAULT_EXPENSE_CATEGORIES = [
-  { name: 'Moradia', color: '#8B5CF6' },
-  { name: 'Alimentacao', color: '#10B981' },
-  { name: 'Transporte', color: '#3B82F6' },
-  { name: 'Lazer', color: '#F59E0B' },
-  { name: 'Saude', color: '#EF4444' },
-  { name: 'Educacao', color: '#6366F1' },
-  { name: 'Impostos', color: '#EC4899' }
-];
-const DEFAULT_INCOME_CATEGORIES = [
-  { name: 'Salario', color: '#14B8A6' },
-  { name: 'Extra', color: '#22C55E' },
-  { name: 'Michele', color: '#06B6D4' },
-  { name: 'Forex', color: '#F59E0B' }
-];
+const DEFAULT_CATEGORIES = getDefaultCategoryCatalog();
 
 const LEGACY_INCOME_CATEGORY_RENAMES = [
   { from: 'SALARIO', to: 'Salario' },
@@ -27,15 +14,30 @@ async function ensureCategoriesSchema() {
   await db.query(`
     CREATE TABLE IF NOT EXISTS categories (
       id INT AUTO_INCREMENT PRIMARY KEY,
-      user_id INT NOT NULL,
+      user_id INT NULL,
       name VARCHAR(120) NOT NULL,
       type ENUM('income', 'expense') NOT NULL,
+      is_default TINYINT(1) NOT NULL DEFAULT 0,
       color VARCHAR(20) NOT NULL DEFAULT '#8A05BE',
       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
       FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
       UNIQUE KEY unique_category_per_user_type (user_id, name, type)
     )
   `);
+
+  try {
+    await db.query('ALTER TABLE categories MODIFY user_id INT NULL');
+  } catch (error) {
+    if (error.code !== 'ER_INVALID_USE_OF_NULL') throw error;
+  }
+
+  try {
+    await db.query('ALTER TABLE categories ADD COLUMN is_default TINYINT(1) NOT NULL DEFAULT 0 AFTER type');
+  } catch (error) {
+    if (error.code !== 'ER_DUP_FIELDNAME') throw error;
+  }
+
+  await db.query('UPDATE categories SET is_default = 0 WHERE is_default IS NULL');
 
   try {
     await db.query('CREATE INDEX idx_categories_user_id ON categories(user_id)');
@@ -45,6 +47,12 @@ async function ensureCategoriesSchema() {
 
   try {
     await db.query('CREATE INDEX idx_categories_user_type ON categories(user_id, type)');
+  } catch (error) {
+    if (error.code !== 'ER_DUP_KEYNAME') throw error;
+  }
+
+  try {
+    await db.query('CREATE INDEX idx_categories_default_type ON categories(is_default, type)');
   } catch (error) {
     if (error.code !== 'ER_DUP_KEYNAME') throw error;
   }
@@ -84,26 +92,50 @@ async function ensureTransactionCategoryColumn() {
 }
 
 async function seedDefaultCategories() {
-  const [users] = await db.query('SELECT id FROM users');
+  for (const category of DEFAULT_CATEGORIES.expense) {
+    const [existingRows] = await db.query(
+      `SELECT id
+       FROM categories
+       WHERE is_default = 1
+         AND type = 'expense'
+         AND LOWER(TRIM(name)) = LOWER(TRIM(?))
+       LIMIT 1`,
+      [category.name]
+    );
 
-  for (const user of users) {
-    for (const category of DEFAULT_EXPENSE_CATEGORIES) {
-      await db.query(
-        `INSERT INTO categories (user_id, name, type, color)
-         VALUES (?, ?, 'expense', ?)
-         ON DUPLICATE KEY UPDATE color = VALUES(color)`,
-        [user.id, category.name, category.color]
-      );
+    if (existingRows.length) {
+      await db.query('UPDATE categories SET color = ?, user_id = NULL, is_default = 1 WHERE id = ?', [category.color, existingRows[0].id]);
+      continue;
     }
 
-    for (const category of DEFAULT_INCOME_CATEGORIES) {
-      await db.query(
-        `INSERT INTO categories (user_id, name, type, color)
-         VALUES (?, ?, 'income', ?)
-         ON DUPLICATE KEY UPDATE color = VALUES(color)`,
-        [user.id, category.name, category.color]
-      );
+    await db.query(
+      `INSERT INTO categories (user_id, name, type, is_default, color)
+       VALUES (NULL, ?, 'expense', 1, ?)`,
+      [category.name, category.color]
+    );
+  }
+
+  for (const category of DEFAULT_CATEGORIES.income) {
+    const [existingRows] = await db.query(
+      `SELECT id
+       FROM categories
+       WHERE is_default = 1
+         AND type = 'income'
+         AND LOWER(TRIM(name)) = LOWER(TRIM(?))
+       LIMIT 1`,
+      [category.name]
+    );
+
+    if (existingRows.length) {
+      await db.query('UPDATE categories SET color = ?, user_id = NULL, is_default = 1 WHERE id = ?', [category.color, existingRows[0].id]);
+      continue;
     }
+
+    await db.query(
+      `INSERT INTO categories (user_id, name, type, is_default, color)
+       VALUES (NULL, ?, 'income', 1, ?)`,
+      [category.name, category.color]
+    );
   }
 }
 

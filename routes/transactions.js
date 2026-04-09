@@ -1,6 +1,7 @@
 const express = require('express');
 const db = require('../db');
 const { parseCurrencyInput, isValidPositiveAmount } = require('../utils/currency');
+const { getAllowedDefaultNamesByType } = require('../utils/default-categories');
 const { nowInTz, toTzDate } = require('../utils/datetime');
 const router = express.Router();
 
@@ -28,17 +29,55 @@ function requireAuth(req, res, next) {
 }
 
 async function getUserCategories(userId) {
+  const allowedDefaultNames = getAllowedDefaultNamesByType();
+  const incomePlaceholders = allowedDefaultNames.income.map(() => '?').join(', ');
+  const expensePlaceholders = allowedDefaultNames.expense.map(() => '?').join(', ');
   const [categories] = await db.query(
-    "SELECT id, name, type, color FROM categories WHERE user_id = ? AND name <> 'Outros' ORDER BY type ASC, name ASC",
-    [userId]
+    `SELECT c.id, c.name, c.type, c.color, c.is_default
+     FROM categories c
+     WHERE c.name <> 'Outros'
+       AND (
+         c.user_id = ?
+         OR (
+           c.is_default = 1
+           AND (
+             (c.type = 'income' AND LOWER(TRIM(c.name)) IN (${incomePlaceholders}))
+             OR (c.type = 'expense' AND LOWER(TRIM(c.name)) IN (${expensePlaceholders}))
+             OR EXISTS (SELECT 1 FROM transactions t WHERE t.user_id = ? AND t.category_id = c.id)
+             OR EXISTS (SELECT 1 FROM fixed_expenses fe WHERE fe.user_id = ? AND fe.category_id = c.id)
+           )
+         )
+       )
+     ORDER BY c.type ASC, c.is_default ASC, c.name ASC`,
+    [userId, ...allowedDefaultNames.income, ...allowedDefaultNames.expense, userId, userId]
   );
   return categories;
 }
 
 async function isValidCategory(userId, categoryId, type) {
+  const allowedDefaultNames = getAllowedDefaultNamesByType();
+  const incomePlaceholders = allowedDefaultNames.income.map(() => '?').join(', ');
+  const expensePlaceholders = allowedDefaultNames.expense.map(() => '?').join(', ');
   const [rows] = await db.query(
-    "SELECT id FROM categories WHERE id = ? AND user_id = ? AND type = ? AND name <> 'Outros' LIMIT 1",
-    [categoryId, userId, type]
+    `SELECT id
+     FROM categories c
+     WHERE c.id = ?
+       AND c.type = ?
+       AND c.name <> 'Outros'
+       AND (
+         c.user_id = ?
+         OR (
+           c.is_default = 1
+           AND (
+             (c.type = 'income' AND LOWER(TRIM(c.name)) IN (${incomePlaceholders}))
+             OR (c.type = 'expense' AND LOWER(TRIM(c.name)) IN (${expensePlaceholders}))
+             OR EXISTS (SELECT 1 FROM transactions t WHERE t.user_id = ? AND t.category_id = c.id)
+             OR EXISTS (SELECT 1 FROM fixed_expenses fe WHERE fe.user_id = ? AND fe.category_id = c.id)
+           )
+         )
+       )
+     LIMIT 1`,
+    [categoryId, type, userId, ...allowedDefaultNames.income, ...allowedDefaultNames.expense, userId, userId]
   );
   return rows.length > 0;
 }

@@ -1,5 +1,6 @@
 const express = require('express');
 const db = require('../db');
+const { getAllowedDefaultNamesByType } = require('../utils/default-categories');
 
 const router = express.Router();
 
@@ -45,7 +46,7 @@ async function categoryNameExists(userId, type, name, excludeId = null) {
   let sql = `
     SELECT id
     FROM categories
-    WHERE user_id = ?
+    WHERE (user_id = ? OR is_default = 1)
       AND type = ?
       AND LOWER(TRIM(name)) = LOWER(TRIM(?))
   `;
@@ -61,6 +62,69 @@ async function categoryNameExists(userId, type, name, excludeId = null) {
   return rows.length > 0;
 }
 
+function buildCategoryScopeClause() {
+  const allowedDefaultNames = getAllowedDefaultNamesByType();
+  const incomePlaceholders = allowedDefaultNames.income.map(() => '?').join(', ');
+  const expensePlaceholders = allowedDefaultNames.expense.map(() => '?').join(', ');
+
+  return `
+    (
+      c.user_id = ?
+      OR (
+        c.is_default = 1
+        AND (
+          (
+            c.type = 'income'
+            AND LOWER(TRIM(c.name)) IN (${incomePlaceholders})
+          )
+          OR (
+            c.type = 'expense'
+            AND LOWER(TRIM(c.name)) IN (${expensePlaceholders})
+          )
+          OR EXISTS (
+            SELECT 1 FROM transactions t WHERE t.user_id = ? AND t.category_id = c.id
+          )
+          OR EXISTS (
+            SELECT 1 FROM fixed_expenses fe WHERE fe.user_id = ? AND fe.category_id = c.id
+          )
+        )
+      )
+    )
+  `;
+}
+
+async function fetchVisibleCategories(userId, search = '', selectedType = '') {
+  const allowedDefaultNames = getAllowedDefaultNamesByType();
+  const hasSearch = search.length > 0;
+  const hasTypeFilter = selectedType.length > 0;
+  const params = [
+    userId,
+    ...allowedDefaultNames.income,
+    ...allowedDefaultNames.expense,
+    userId,
+    userId
+  ];
+  let sql = `
+    SELECT c.*
+    FROM categories c
+    WHERE ${buildCategoryScopeClause()}
+  `;
+
+  if (hasTypeFilter) {
+    sql += ' AND c.type = ?';
+    params.push(selectedType);
+  }
+
+  if (hasSearch) {
+    sql += ' AND c.name LIKE ?';
+    params.push(`%${search}%`);
+  }
+
+  sql += ' ORDER BY c.type ASC, c.is_default ASC, c.name ASC';
+  const [categories] = await db.query(sql, params);
+  return categories;
+}
+
 router.get('/', requireAuth, async (req, res) => {
   const userId = req.session.userId;
   const search = (req.query.q || '').trim();
@@ -68,23 +132,7 @@ router.get('/', requireAuth, async (req, res) => {
   const selectedType = rawType === 'income' || rawType === 'expense' ? rawType : '';
 
   try {
-    const hasSearch = search.length > 0;
-    const hasTypeFilter = selectedType.length > 0;
-    let sql = `SELECT * FROM categories WHERE user_id = ?`;
-    const params = [userId];
-
-    if (hasTypeFilter) {
-      sql += ' AND type = ?';
-      params.push(selectedType);
-    }
-
-    if (hasSearch) {
-      sql += ' AND name LIKE ?';
-      params.push(`%${search}%`);
-    }
-
-    sql += ' ORDER BY type ASC, name ASC';
-    const [categories] = await db.query(sql, params);
+    const categories = await fetchVisibleCategories(userId, search, selectedType);
 
     renderWithBase(res, {
       title: 'Categorias - RC2 Finance',
@@ -181,7 +229,7 @@ router.get('/edit/:id', requireAuth, async (req, res) => {
 
   try {
     const [rows] = await db.query(
-      'SELECT id, name, type, color FROM categories WHERE id = ? AND user_id = ? LIMIT 1',
+      'SELECT id, name, type, color, user_id, is_default FROM categories WHERE id = ? AND user_id = ? LIMIT 1',
       [categoryId, userId]
     );
 
@@ -215,7 +263,7 @@ router.post('/edit/:id', requireAuth, async (req, res) => {
   let category = null;
   try {
     const [rows] = await db.query(
-      'SELECT id, name, type, color FROM categories WHERE id = ? AND user_id = ? LIMIT 1',
+      'SELECT id, name, type, color, user_id, is_default FROM categories WHERE id = ? AND user_id = ? LIMIT 1',
       [categoryId, userId]
     );
 
@@ -320,6 +368,15 @@ router.post('/delete/:id', requireAuth, async (req, res) => {
   const categoryId = req.params.id;
 
   try {
+    const [categoryRows] = await db.query(
+      'SELECT id, user_id, is_default FROM categories WHERE id = ? LIMIT 1',
+      [categoryId]
+    );
+
+    if (!categoryRows.length || Number(categoryRows[0].user_id) !== Number(userId) || Number(categoryRows[0].is_default || 0) === 1) {
+      return res.redirect('/categories');
+    }
+
     const [transactionCountRows] = await db.query(
       'SELECT COUNT(*) AS count FROM transactions WHERE user_id = ? AND category_id = ?',
       [userId, categoryId]
@@ -336,10 +393,7 @@ router.post('/delete/:id', requireAuth, async (req, res) => {
     }
 
     if (transactionCountRows[0].count > 0 || fixedExpenseCountRows[0].count > 0) {
-      const [categories] = await db.query(
-        'SELECT * FROM categories WHERE user_id = ? ORDER BY type ASC, name ASC',
-        [userId]
-      );
+      const categories = await fetchVisibleCategories(userId);
 
       return renderWithBase(res, {
         title: 'Categorias - RC2 Finance',
@@ -347,7 +401,9 @@ router.post('/delete/:id', requireAuth, async (req, res) => {
         currentPath: '/categories',
         data: {
           categories,
-          error: 'Nao foi possivel excluir: categoria em uso por lancamentos'
+          error: 'Nao foi possivel excluir: categoria em uso por lancamentos',
+          searchQuery: '',
+          selectedType: ''
         }
       });
     }

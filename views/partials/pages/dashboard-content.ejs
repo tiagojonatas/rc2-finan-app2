@@ -57,33 +57,35 @@
     <% const isCurrentNegative = currentRealBalance < 0; %>
     <% const isProjectedNegative = projectedMonthBalance < 0; %>
     <% const usePositiveGradient = currentRealBalance >= 0 && projectedMonthBalance >= 0; %>
+    <% const amountMissingToPositive = isProjectedNegative ? Math.abs(projectedMonthBalance) : 0; %>
     <div class="rounded-2xl p-6 sm:p-7 shadow-lg transition-all duration-300 border <%= usePositiveGradient ? 'bg-gradient-to-r from-emerald-500/90 to-teal-500/90 border-emerald-400/50' : 'bg-slate-900/60 backdrop-blur border-slate-800' %>">
-      <div class="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6 items-center">
-        <div class="text-center md:text-left">
-          <p class="<%= usePositiveGradient ? 'text-emerald-50/90' : 'text-slate-300' %> text-xs uppercase tracking-wide font-semibold">Realidade atual</p>
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4 items-start">
+        <div class="text-left">
+          <p class="<%= usePositiveGradient ? 'text-emerald-50/90' : 'text-slate-300/95' %> text-[11px] uppercase tracking-[0.16em] font-bold">REALIDADE ATUAL</p>
           <p class="<%= usePositiveGradient ? 'text-emerald-50/80' : 'text-slate-400' %> text-sm mt-1">Saldo atual (real)</p>
           <p class="text-4xl sm:text-5xl font-bold tracking-tight mt-1 <%= isCurrentNegative ? 'text-rose-300' : (usePositiveGradient ? 'text-emerald-50' : 'text-emerald-400') %>">
             <%= formatCurrency(currentRealBalance) %>
           </p>
         </div>
-        <div class="text-center md:text-right">
-          <p class="text-xs uppercase tracking-wide font-semibold <%= isProjectedNegative ? 'text-rose-300' : (usePositiveGradient ? 'text-emerald-50/85' : 'text-emerald-300') %>">Projecao futura</p>
+        <div class="text-left md:pl-6 md:border-l <%= usePositiveGradient ? 'md:border-emerald-200/30' : 'md:border-slate-700/60' %>">
+          <p class="text-[11px] uppercase tracking-[0.16em] font-bold <%= isProjectedNegative ? 'text-rose-300' : (usePositiveGradient ? 'text-emerald-50/90' : 'text-emerald-300') %>">PROJECAO FUTURA</p>
           <p class="text-sm mt-1 <%= isProjectedNegative ? 'text-rose-300/90' : (usePositiveGradient ? 'text-emerald-50/75' : 'text-slate-400') %>">Saldo projetado (compromissos)</p>
-          <p class="text-2xl sm:text-3xl font-semibold mt-1 <%= isProjectedNegative ? 'text-rose-300' : (usePositiveGradient ? 'text-emerald-50' : 'text-emerald-300') %>">
+          <p class="text-2xl sm:text-3xl font-semibold mt-1 <%= isProjectedNegative ? 'text-rose-400' : (usePositiveGradient ? 'text-emerald-50' : 'text-emerald-300') %>">
             <%= formatCurrency(projectedMonthBalance) %>
           </p>
+          <% if (isProjectedNegative) { %>
+            <div class="mt-4 rounded-lg border border-rose-500/40 bg-rose-900/20 px-3 py-3">
+              <div class="text-sm text-rose-200 font-semibold flex items-start gap-2 leading-5">
+                <span class="inline-flex w-6 h-6 rounded-full bg-rose-500/35 border border-rose-300/50 items-center justify-center text-[12px] font-bold shrink-0">!</span>
+                Voce precisa reduzir <strong class="text-rose-300"><%= formatCurrency(amountMissingToPositive) %></strong> em gastos para fechar o mes no positivo
+              </div>
+              <div class="mt-2 pl-8 text-xs text-rose-300/90 space-y-1">
+                <p>Receitas do mes: <strong class="text-rose-200"><%= formatCurrency(totalIncome || 0) %></strong></p>
+                <p>Compromissos do mes: <strong class="text-rose-200"><%= formatCurrency((breakdown.totalCommittedMonth || 0)) %></strong></p>
+              </div>
+            </div>
+          <% } %>
         </div>
-      </div>
-      <div class="text-center mt-3">
-        <% if (isProjectedNegative) { %>
-          <div class="mt-2 text-sm text-rose-300 flex items-center justify-center gap-2">
-            <span class="inline-flex w-5 h-5 rounded-full bg-rose-500/30 border border-rose-400/40 items-center justify-center text-[11px] font-bold">!</span>
-            Atencao: saldo futuro negativo
-          </div>
-          <div class="text-xs text-rose-300/90 mt-1">
-            Revise seus gastos para equilibrar o orcamento
-          </div>
-        <% } %>
       </div>
     </div>
 

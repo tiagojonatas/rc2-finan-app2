@@ -106,7 +106,7 @@ router.get('/', requireAuth, async (req, res) => {
         `SELECT mfe.amount, c.name AS category_name, c.color AS category_color
          FROM monthly_fixed_expenses mfe
          INNER JOIN fixed_expenses fe ON fe.id = mfe.fixed_expense_id
-         LEFT JOIN categories c ON c.id = fe.category_id AND c.user_id = fe.user_id
+         LEFT JOIN categories c ON c.id = fe.category_id
          WHERE mfe.user_id = ? AND mfe.year = ? AND mfe.month = ?`,
         [userId, selectedYear, selectedMonthNumber]
       );

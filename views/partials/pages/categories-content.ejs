@@ -48,6 +48,11 @@
         <span class="inline-flex px-2 py-1 rounded-full text-xs font-semibold <%= category.type === 'income' ? 'bg-emerald-900/40 text-emerald-300 border border-emerald-800' : 'bg-rose-900/40 text-rose-300 border border-rose-800' %>">
           <%= category.type === 'income' ? 'Entrada' : 'Despesa' %>
         </span>
+        <% if (Number(category.is_default || 0) === 1) { %>
+          <span class="ml-2 inline-flex px-2 py-1 rounded-full text-[10px] font-semibold bg-cyan-900/40 text-cyan-300 border border-cyan-800">
+            Padrao
+          </span>
+        <% } %>
       </div>
       <div class="col-span-2 flex justify-center">
         <span class="inline-flex items-center gap-2 text-xs font-semibold text-gray-300">
@@ -56,10 +61,14 @@
         </span>
       </div>
       <div class="col-span-2 flex justify-end gap-2">
-        <a href="/categories/edit/<%= category.id %>" class="text-xs px-3 py-1.5 rounded-lg bg-gray-950 hover:bg-gray-800 text-gray-300 border border-gray-700">Editar</a>
-        <form action="/categories/delete/<%= category.id %>" method="POST" data-confirm-title="Excluir categoria" data-confirm-message="Tem certeza que deseja excluir esta categoria?">
-          <button type="submit" class="text-xs px-3 py-1.5 rounded-lg bg-rose-900/30 hover:bg-rose-900/50 text-rose-300 border border-rose-800">Excluir</button>
-        </form>
+        <% if (Number(category.is_default || 0) === 1) { %>
+          <span class="text-xs px-3 py-1.5 rounded-lg bg-gray-900 text-slate-400 border border-gray-700">Sistema</span>
+        <% } else { %>
+          <a href="/categories/edit/<%= category.id %>" class="text-xs px-3 py-1.5 rounded-lg bg-gray-950 hover:bg-gray-800 text-gray-300 border border-gray-700">Editar</a>
+          <form action="/categories/delete/<%= category.id %>" method="POST" data-confirm-title="Excluir categoria" data-confirm-message="Tem certeza que deseja excluir esta categoria?">
+            <button type="submit" class="text-xs px-3 py-1.5 rounded-lg bg-rose-900/30 hover:bg-rose-900/50 text-rose-300 border border-rose-800">Excluir</button>
+          </form>
+        <% } %>
       </div>
     </div>
   <% }); %>

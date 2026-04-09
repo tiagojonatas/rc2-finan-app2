@@ -1,45 +1,60 @@
 const express = require('express');
 const bcrypt = require('bcrypt');
 const db = require('../db');
+const { getDefaultCategoryCatalog } = require('../utils/default-categories');
 const { ensureMonthlyFixedExpenses, markOverdueMonthlyExpenses } = require('../utils/monthly-fixed-expenses');
 const { nowInTz, toTzDate, getDateKey, getMonthKey, isValidMonthKey, getMonthStart, getMonthEnd, getMonthLabel, getMonthShortLabel, addMonths, fromParts } = require('../utils/datetime');
 
 const router = express.Router();
 const LAST_LOGIN_EMAIL_COOKIE = 'lastLoginEmail';
 const isProduction = process.env.NODE_ENV === 'production';
-const DEFAULT_EXPENSE_CATEGORIES = [
-  { name: 'Moradia', color: '#8B5CF6' },
-  { name: 'Alimentacao', color: '#10B981' },
-  { name: 'Transporte', color: '#3B82F6' },
-  { name: 'Lazer', color: '#F59E0B' },
-  { name: 'Saude', color: '#EF4444' },
-  { name: 'Educacao', color: '#6366F1' },
-  { name: 'Impostos', color: '#EC4899' }
-];
-const DEFAULT_INCOME_CATEGORIES = [
-  { name: 'Salario', color: '#14B8A6' },
-  { name: 'Extra', color: '#22C55E' },
-  { name: 'Michele', color: '#06B6D4' },
-  { name: 'Forex', color: '#F59E0B' }
-];
+const DEFAULT_CATEGORIES = getDefaultCategoryCatalog();
 const MAX_MONTH_FILTER_OPTIONS = 18;
 
-async function createDefaultCategoriesForUser(userId) {
-  for (const category of DEFAULT_EXPENSE_CATEGORIES) {
+async function createDefaultCategoriesForUser() {
+  for (const category of DEFAULT_CATEGORIES.expense) {
+    const [existingRows] = await db.query(
+      `SELECT id
+       FROM categories
+       WHERE is_default = 1
+         AND type = 'expense'
+         AND LOWER(TRIM(name)) = LOWER(TRIM(?))
+       LIMIT 1`,
+      [category.name]
+    );
+
+    if (existingRows.length) {
+      await db.query('UPDATE categories SET color = ? WHERE id = ?', [category.color, existingRows[0].id]);
+      continue;
+    }
+
     await db.query(
-      `INSERT INTO categories (user_id, name, type, color)
-       VALUES (?, ?, 'expense', ?)
-       ON DUPLICATE KEY UPDATE color = VALUES(color)`,
-      [userId, category.name, category.color]
+      `INSERT INTO categories (user_id, name, type, color, is_default)
+       VALUES (NULL, ?, 'expense', ?, 1)`,
+      [category.name, category.color]
     );
   }
 
-  for (const category of DEFAULT_INCOME_CATEGORIES) {
+  for (const category of DEFAULT_CATEGORIES.income) {
+    const [existingRows] = await db.query(
+      `SELECT id
+       FROM categories
+       WHERE is_default = 1
+         AND type = 'income'
+         AND LOWER(TRIM(name)) = LOWER(TRIM(?))
+       LIMIT 1`,
+      [category.name]
+    );
+
+    if (existingRows.length) {
+      await db.query('UPDATE categories SET color = ? WHERE id = ?', [category.color, existingRows[0].id]);
+      continue;
+    }
+
     await db.query(
-      `INSERT INTO categories (user_id, name, type, color)
-       VALUES (?, ?, 'income', ?)
-       ON DUPLICATE KEY UPDATE color = VALUES(color)`,
-      [userId, category.name, category.color]
+      `INSERT INTO categories (user_id, name, type, color, is_default)
+       VALUES (NULL, ?, 'income', ?, 1)`,
+      [category.name, category.color]
     );
   }
 }
@@ -177,7 +192,7 @@ router.post('/register', async (req, res) => {
     );
 
     try {
-      await createDefaultCategoriesForUser(result.insertId);
+      await createDefaultCategoriesForUser();
     } catch (categoryError) {
       console.warn('Categories table unavailable during register. Run: npm run init-categories');
     }
@@ -301,7 +316,7 @@ router.get('/dashboard', requireAuth, async (req, res) => {
                 c.name AS category_name, c.color AS category_color
          FROM monthly_fixed_expenses mfe
          INNER JOIN fixed_expenses fe ON fe.id = mfe.fixed_expense_id
-         LEFT JOIN categories c ON c.id = fe.category_id AND c.user_id = fe.user_id
+         LEFT JOIN categories c ON c.id = fe.category_id
          WHERE mfe.user_id = ? AND mfe.year = ? AND mfe.month = ?`,
         [userId, selectedYear, selectedMonthNumber]
       );
