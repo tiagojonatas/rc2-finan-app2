@@ -1,5 +1,7 @@
 <% const safeCategories = Array.isArray(categories) ? categories : []; %>
+<% const safeCreditCards = Array.isArray(creditCards) ? creditCards : []; %>
 <% const selectedPaymentMethod = transaction && transaction.payment_method ? transaction.payment_method : 'cash'; %>
+<% const selectedCardId = String((transaction && transaction.card_id) || ''); %>
 <% const isRecurringSelected = Number((transaction && transaction.is_recurring) || 0) === 1 || String((transaction && transaction.is_recurring) || '') === '1' || String((transaction && transaction.is_recurring) || '') === 'on'; %>
 <% const transactionDate = transaction && transaction.date ? new Date(transaction.date).toISOString().split('T')[0] : ''; %>
 <% const affectsBalanceSelected = transaction && transaction.type === 'income'
@@ -65,6 +67,19 @@
           </select>
         </div>
 
+        <div id="cardWrapper">
+          <label for="card_id" class="text-sm text-slate-400">Cartao</label>
+          <select id="card_id" name="card_id" class="w-full mt-1 bg-slate-800 border border-slate-700 rounded-lg px-3 h-12 text-white focus:outline-none focus:ring-2 focus:ring-emerald-500 transition">
+            <option value="">Selecione um cartao</option>
+            <% safeCreditCards.forEach((card) => { %>
+              <option value="<%= card.id %>" <%= selectedCardId === String(card.id) ? 'selected' : '' %>><%= card.name %></option>
+            <% }); %>
+          </select>
+          <% if (!safeCreditCards.length) { %>
+            <p class="text-xs text-amber-300 mt-1">Nenhum cartao cadastrado. Cadastre em Cartoes para usar pagamento no credito.</p>
+          <% } %>
+        </div>
+
         <div id="recurringWrapper">
           <label for="is_recurring" class="text-sm text-slate-400">Tipo da despesa</label>
           <select id="is_recurring" name="is_recurring" class="w-full mt-1 bg-slate-800 border border-slate-700 rounded-lg px-3 h-12 text-white focus:outline-none focus:ring-2 focus:ring-emerald-500 transition">
@@ -102,10 +117,13 @@
     const categorySelect = document.getElementById('category_id');
     const recurringWrapper = document.getElementById('recurringWrapper');
     const recurringTypeSelect = document.getElementById('is_recurring');
+    const paymentMethodSelect = document.getElementById('payment_method');
+    const cardWrapper = document.getElementById('cardWrapper');
+    const cardSelect = document.getElementById('card_id');
     const affectsBalanceWrapper = document.getElementById('affectsBalanceWrapper');
     const affectsBalanceInput = document.getElementById('affects_balance');
 
-    if (!amountDisplay || !amountInput || !typeSelect || !categorySelect || !recurringWrapper || !recurringTypeSelect || !affectsBalanceWrapper || !affectsBalanceInput) return;
+    if (!amountDisplay || !amountInput || !typeSelect || !categorySelect || !recurringWrapper || !recurringTypeSelect || !paymentMethodSelect || !cardWrapper || !cardSelect || !affectsBalanceWrapper || !affectsBalanceInput) return;
 
     function formatBRL(value) {
       return value.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -151,6 +169,16 @@
       }
     }
 
+    function updateCardVisibility() {
+      const isCredit = paymentMethodSelect.value === 'credit';
+      cardWrapper.style.display = isCredit ? '' : 'none';
+      cardSelect.required = isCredit;
+      cardSelect.disabled = !isCredit;
+      if (!isCredit) {
+        cardSelect.value = '';
+      }
+    }
+
     amountDisplay.addEventListener('input', function(event) {
       const digits = event.target.value.replace(/\D/g, '');
       if (!digits) {
@@ -177,8 +205,10 @@
     updateCategoryOptions();
     updateRecurringVisibility();
     updateAffectsBalanceVisibility();
+    updateCardVisibility();
     typeSelect.addEventListener('change', updateCategoryOptions);
     typeSelect.addEventListener('change', updateRecurringVisibility);
     typeSelect.addEventListener('change', updateAffectsBalanceVisibility);
+    paymentMethodSelect.addEventListener('change', updateCardVisibility);
   })();
 </script>

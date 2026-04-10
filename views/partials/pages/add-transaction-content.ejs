@@ -1,7 +1,9 @@
 <% const safeCategories = Array.isArray(categories) ? categories : []; %>
+<% const safeCreditCards = Array.isArray(creditCards) ? creditCards : []; %>
 <% const safeFormData = formData || {}; %>
 <% const selectedType = safeFormData.type || defaultType || 'expense'; %>
 <% const selectedPaymentMethod = safeFormData.payment_method || 'cash'; %>
+<% const selectedCardId = String(safeFormData.card_id || ''); %>
 <% const isRecurringSelected = String(safeFormData.is_recurring || '') === '1' || String(safeFormData.is_recurring || '') === 'on'; %>
 <% const isInstallmentSelected = String(safeFormData.is_installment || '') === '1' || String(safeFormData.is_installment || '') === 'on'; %>
 <% const selectedInstallmentTotal = safeFormData.installment_total || 2; %>
@@ -67,6 +69,19 @@
           </select>
         </div>
 
+        <div id="cardWrapper">
+          <label for="card_id" class="text-sm text-slate-400">Cartao</label>
+          <select id="card_id" name="card_id" class="w-full mt-1 bg-slate-800 border border-slate-700 rounded-lg px-3 h-12 text-white focus:outline-none focus:ring-2 focus:ring-emerald-500 transition">
+            <option value="">Selecione um cartao</option>
+            <% safeCreditCards.forEach((card) => { %>
+              <option value="<%= card.id %>" <%= selectedCardId === String(card.id) ? 'selected' : '' %>><%= card.name %></option>
+            <% }); %>
+          </select>
+          <% if (!safeCreditCards.length) { %>
+            <p class="text-xs text-amber-300 mt-1">Nenhum cartao cadastrado. Cadastre em Cartoes para usar pagamento no credito.</p>
+          <% } %>
+        </div>
+
         <div id="recurringWrapper">
           <label for="is_recurring" class="text-sm text-slate-400">Tipo da despesa</label>
           <select id="is_recurring" name="is_recurring" class="w-full mt-1 bg-slate-800 border border-slate-700 rounded-lg px-3 h-12 text-white focus:outline-none focus:ring-2 focus:ring-emerald-500 transition">
@@ -130,6 +145,9 @@
     const categorySelect = document.getElementById('category_id');
     const recurringWrapper = document.getElementById('recurringWrapper');
     const recurringTypeSelect = document.getElementById('is_recurring');
+    const paymentMethodSelect = document.getElementById('payment_method');
+    const cardWrapper = document.getElementById('cardWrapper');
+    const cardSelect = document.getElementById('card_id');
     const affectsBalanceWrapper = document.getElementById('affectsBalanceWrapper');
     const affectsBalanceInput = document.getElementById('affects_balance');
     const installmentWrapper = document.getElementById('installmentWrapper');
@@ -137,7 +155,7 @@
     const installmentTotalWrapper = document.getElementById('installmentTotalWrapper');
     const installmentTotalInput = document.getElementById('installment_total');
 
-    if (!amountDisplay || !amountInput || !typeSelect || !categorySelect || !recurringWrapper || !recurringTypeSelect || !affectsBalanceWrapper || !affectsBalanceInput || !installmentWrapper || !installmentInput || !installmentTotalWrapper || !installmentTotalInput) return;
+    if (!amountDisplay || !amountInput || !typeSelect || !categorySelect || !recurringWrapper || !recurringTypeSelect || !paymentMethodSelect || !cardWrapper || !cardSelect || !affectsBalanceWrapper || !affectsBalanceInput || !installmentWrapper || !installmentInput || !installmentTotalWrapper || !installmentTotalInput) return;
 
     function formatBRL(value) {
       return value.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -192,6 +210,16 @@
       updateInstallmentTotalVisibility();
     }
 
+    function updateCardVisibility() {
+      const isCredit = paymentMethodSelect.value === 'credit';
+      cardWrapper.style.display = isCredit ? '' : 'none';
+      cardSelect.required = isCredit;
+      cardSelect.disabled = !isCredit;
+      if (!isCredit) {
+        cardSelect.value = '';
+      }
+    }
+
     function updateInstallmentTotalVisibility() {
       const shouldShowTotal = typeSelect.value === 'expense' && installmentInput.checked;
       installmentTotalWrapper.style.display = shouldShowTotal ? '' : 'none';
@@ -231,10 +259,12 @@
     updateRecurringVisibility();
     updateAffectsBalanceVisibility();
     updateInstallmentVisibility();
+    updateCardVisibility();
     typeSelect.addEventListener('change', updateCategoryOptions);
     typeSelect.addEventListener('change', updateRecurringVisibility);
     typeSelect.addEventListener('change', updateAffectsBalanceVisibility);
     typeSelect.addEventListener('change', updateInstallmentVisibility);
+    paymentMethodSelect.addEventListener('change', updateCardVisibility);
     installmentInput.addEventListener('change', updateInstallmentTotalVisibility);
   })();
 </script>
