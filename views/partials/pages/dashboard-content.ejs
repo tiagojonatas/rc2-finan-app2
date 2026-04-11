@@ -69,8 +69,8 @@
       <div class="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4 items-start">
         <div class="text-left">
           <p class="<%= usePositiveGradient ? 'text-emerald-50/90' : 'text-slate-300/95' %> text-[11px] uppercase tracking-[0.16em] font-bold">REALIDADE ATUAL</p>
-          <p class="<%= usePositiveGradient ? 'text-emerald-50/80' : 'text-slate-400' %> text-sm mt-1">Saldo disponivel hoje</p>
-          <p class="text-4xl sm:text-5xl font-bold tracking-tight mt-1 <%= isCurrentNegative ? 'text-rose-300' : (isPositiveNowButRiskAhead ? 'text-cyan-300' : (usePositiveGradient ? 'text-emerald-50' : 'text-emerald-400')) %>">
+          <p class="<%= usePositiveGradient ? 'text-emerald-50/80' : 'text-slate-400' %> text-sm mt-1">Valor de entrada no mes</p>
+          <p class="text-4xl sm:text-5xl font-bold tracking-tight mt-1 <%= isCurrentNegative ? 'text-rose-300' : (usePositiveGradient ? 'text-emerald-50' : 'text-emerald-400') %>">
             <%= formatCurrency(currentRealBalance) %>
           </p>
         </div>
