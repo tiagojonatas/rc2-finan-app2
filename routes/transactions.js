@@ -9,7 +9,7 @@ function renderWithBase(res, options = {}) {
   const {
     title = 'Transacoes - RC2 Finance',
     content = 'partials/pages/add-transaction-content',
-    currentPath = '/dashboard',
+    currentPath = '/transactions',
     data = {}
   } = options;
 
@@ -216,7 +216,7 @@ router.get('/add', requireAuth, async (req, res) => {
     return renderWithBase(res, {
       title: 'Nova Transacao - RC2 Finance',
       content: 'partials/pages/add-transaction-content',
-      currentPath: '/dashboard',
+      currentPath: '/transactions',
       data: {
         error: null,
         defaultType,
@@ -230,13 +230,101 @@ router.get('/add', requireAuth, async (req, res) => {
     return renderWithBase(res, {
       title: 'Nova Transacao - RC2 Finance',
       content: 'partials/pages/add-transaction-content',
-      currentPath: '/dashboard',
+      currentPath: '/transactions',
       data: {
         error: 'Erro ao carregar categorias. Execute: npm run init-categories',
         defaultType,
         categories: [],
         creditCards: [],
         formData: { type: defaultType, payment_method: 'cash', is_recurring: 0, affects_balance: 1, is_installment: 0, installment_total: 2 }
+      }
+    });
+  }
+});
+
+router.get('/', requireAuth, async (req, res) => {
+  const userId = req.session.userId;
+  const {
+    date_from = '',
+    date_to = '',
+    type = '',
+    category_id = ''
+  } = req.query;
+
+  const normalizedType = type === 'income' || type === 'expense' ? type : '';
+  const normalizedCategoryId = Number.parseInt(category_id, 10);
+  const hasCategoryFilter = !Number.isNaN(normalizedCategoryId) && normalizedCategoryId > 0;
+  const hasDateFrom = /^\d{4}-\d{2}-\d{2}$/.test(String(date_from || ''));
+  const hasDateTo = /^\d{4}-\d{2}-\d{2}$/.test(String(date_to || ''));
+
+  try {
+    const categories = await getUserCategories(userId);
+    const creditCards = await getUserCreditCards(userId);
+    let sql = `
+      SELECT t.*, c.name AS category_name, c.color AS category_color, cc.name AS card_name
+      FROM transactions t
+      LEFT JOIN categories c ON c.id = t.category_id
+      LEFT JOIN credit_cards cc ON cc.id = t.card_id
+      WHERE t.user_id = ?
+    `;
+    const params = [userId];
+
+    if (normalizedType) {
+      sql += ' AND t.type = ?';
+      params.push(normalizedType);
+    }
+
+    if (hasCategoryFilter) {
+      sql += ' AND t.category_id = ?';
+      params.push(normalizedCategoryId);
+    }
+
+    if (hasDateFrom) {
+      sql += ' AND t.date >= ?';
+      params.push(date_from);
+    }
+
+    if (hasDateTo) {
+      sql += ' AND t.date <= ?';
+      params.push(date_to);
+    }
+
+    sql += ' ORDER BY t.date DESC, t.id DESC';
+
+    const [transactions] = await db.query(sql, params);
+    return renderWithBase(res, {
+      title: 'Lancamentos - RC2 Finance',
+      content: 'partials/pages/transactions-content',
+      currentPath: '/transactions',
+      data: {
+        transactions,
+        categories,
+        creditCards,
+        filters: {
+          date_from: hasDateFrom ? date_from : '',
+          date_to: hasDateTo ? date_to : '',
+          type: normalizedType,
+          category_id: hasCategoryFilter ? String(normalizedCategoryId) : ''
+        }
+      }
+    });
+  } catch (error) {
+    console.error(error);
+    return renderWithBase(res, {
+      title: 'Lancamentos - RC2 Finance',
+      content: 'partials/pages/transactions-content',
+      currentPath: '/transactions',
+      data: {
+        transactions: [],
+        categories: [],
+        creditCards: [],
+        filters: {
+          date_from: '',
+          date_to: '',
+          type: '',
+          category_id: ''
+        },
+        error: 'Erro ao carregar lancamentos'
       }
     });
   }
@@ -264,7 +352,7 @@ router.post('/add', requireAuth, async (req, res) => {
       return renderWithBase(res, {
         title: 'Nova Transacao - RC2 Finance',
         content: 'partials/pages/add-transaction-content',
-        currentPath: '/dashboard',
+        currentPath: '/transactions',
         data: {
           error: 'Categoria e obrigatoria',
           defaultType,
@@ -279,7 +367,7 @@ router.post('/add', requireAuth, async (req, res) => {
       return renderWithBase(res, {
         title: 'Nova Transacao - RC2 Finance',
         content: 'partials/pages/add-transaction-content',
-        currentPath: '/dashboard',
+        currentPath: '/transactions',
         data: {
           error: 'Informe um valor valido maior que zero',
           defaultType,
@@ -295,7 +383,7 @@ router.post('/add', requireAuth, async (req, res) => {
       return renderWithBase(res, {
         title: 'Nova Transacao - RC2 Finance',
         content: 'partials/pages/add-transaction-content',
-        currentPath: '/dashboard',
+        currentPath: '/transactions',
         data: {
           error: dateValidationError,
           defaultType,
@@ -310,7 +398,7 @@ router.post('/add', requireAuth, async (req, res) => {
       return renderWithBase(res, {
         title: 'Nova Transacao - RC2 Finance',
         content: 'partials/pages/add-transaction-content',
-        currentPath: '/dashboard',
+        currentPath: '/transactions',
         data: {
           error: 'Informe ao menos 2 parcelas para compra parcelada',
           defaultType,
@@ -326,7 +414,7 @@ router.post('/add', requireAuth, async (req, res) => {
       return renderWithBase(res, {
         title: 'Nova Transacao - RC2 Finance',
         content: 'partials/pages/add-transaction-content',
-        currentPath: '/dashboard',
+        currentPath: '/transactions',
         data: {
           error: 'Categoria invalida para o tipo selecionado',
           defaultType,
@@ -342,7 +430,7 @@ router.post('/add', requireAuth, async (req, res) => {
         return renderWithBase(res, {
           title: 'Nova Transacao - RC2 Finance',
           content: 'partials/pages/add-transaction-content',
-          currentPath: '/dashboard',
+          currentPath: '/transactions',
           data: {
             error: 'Selecione um cartao para compras no credito',
             defaultType,
@@ -358,7 +446,7 @@ router.post('/add', requireAuth, async (req, res) => {
         return renderWithBase(res, {
           title: 'Nova Transacao - RC2 Finance',
           content: 'partials/pages/add-transaction-content',
-          currentPath: '/dashboard',
+          currentPath: '/transactions',
           data: {
             error: 'Cartao invalido',
             defaultType,
@@ -446,7 +534,7 @@ router.post('/add', requireAuth, async (req, res) => {
     return renderWithBase(res, {
       title: 'Nova Transacao - RC2 Finance',
       content: 'partials/pages/add-transaction-content',
-      currentPath: '/dashboard',
+      currentPath: '/transactions',
       data: {
         error: 'Erro ao adicionar transacao',
         defaultType,
@@ -476,7 +564,7 @@ router.get('/edit/:id', requireAuth, async (req, res) => {
     return renderWithBase(res, {
       title: 'Editar Transacao - RC2 Finance',
       content: 'partials/pages/edit-transaction-content',
-      currentPath: '/dashboard',
+      currentPath: '/transactions',
       data: {
         transaction: transactions[0],
         categories,
@@ -512,7 +600,7 @@ router.post('/edit/:id', requireAuth, async (req, res) => {
       return renderWithBase(res, {
         title: 'Editar Transacao - RC2 Finance',
         content: 'partials/pages/edit-transaction-content',
-        currentPath: '/dashboard',
+        currentPath: '/transactions',
         data: {
           transaction: {
             ...(transactions[0] || {}),
@@ -535,7 +623,7 @@ router.post('/edit/:id', requireAuth, async (req, res) => {
       return renderWithBase(res, {
         title: 'Editar Transacao - RC2 Finance',
         content: 'partials/pages/edit-transaction-content',
-        currentPath: '/dashboard',
+        currentPath: '/transactions',
         data: {
           transaction: {
             ...(transactions[0] || {}),
@@ -559,7 +647,7 @@ router.post('/edit/:id', requireAuth, async (req, res) => {
       return renderWithBase(res, {
         title: 'Editar Transacao - RC2 Finance',
         content: 'partials/pages/edit-transaction-content',
-        currentPath: '/dashboard',
+        currentPath: '/transactions',
         data: {
           transaction: {
             ...(transactions[0] || {}),
@@ -583,7 +671,7 @@ router.post('/edit/:id', requireAuth, async (req, res) => {
       return renderWithBase(res, {
         title: 'Editar Transacao - RC2 Finance',
         content: 'partials/pages/edit-transaction-content',
-        currentPath: '/dashboard',
+        currentPath: '/transactions',
         data: {
           transaction: {
             ...(transactions[0] || {}),
@@ -607,7 +695,7 @@ router.post('/edit/:id', requireAuth, async (req, res) => {
         return renderWithBase(res, {
           title: 'Editar Transacao - RC2 Finance',
           content: 'partials/pages/edit-transaction-content',
-          currentPath: '/dashboard',
+          currentPath: '/transactions',
           data: {
             transaction: {
               ...(transactions[0] || {}),
@@ -631,7 +719,7 @@ router.post('/edit/:id', requireAuth, async (req, res) => {
         return renderWithBase(res, {
           title: 'Editar Transacao - RC2 Finance',
           content: 'partials/pages/edit-transaction-content',
-          currentPath: '/dashboard',
+          currentPath: '/transactions',
           data: {
             transaction: {
               ...(transactions[0] || {}),
@@ -668,7 +756,7 @@ router.post('/edit/:id', requireAuth, async (req, res) => {
     return renderWithBase(res, {
       title: 'Editar Transacao - RC2 Finance',
       content: 'partials/pages/edit-transaction-content',
-      currentPath: '/dashboard',
+      currentPath: '/transactions',
       data: {
         transaction: transactions[0],
         categories,
@@ -715,3 +803,4 @@ router.post('/delete/:id', requireAuth, async (req, res) => {
 });
 
 module.exports = router;
+

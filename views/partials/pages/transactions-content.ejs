@@ -1,0 +1,101 @@
+<% const safeTransactions = Array.isArray(transactions) ? transactions : []; %>
+<% const safeCategories = Array.isArray(categories) ? categories : []; %>
+<% const safeFilters = filters || {}; %>
+
+<div class="space-y-6">
+  <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+    <div>
+      <h1 class="text-xl sm:text-3xl font-bold text-white">Lancamentos</h1>
+      <p class="text-sm text-slate-400 mt-1">Operacoes completas com filtros e acoes.</p>
+    </div>
+    <a href="/transactions/add?type=expense" class="h-12 px-5 rounded-lg bg-[#00C9A7] hover:bg-[#009e83] text-white font-medium inline-flex items-center justify-center transition-all duration-200">
+      + Nova transacao
+    </a>
+  </div>
+
+  <% if (typeof error !== 'undefined' && error) { %>
+    <div class="rounded-xl border border-rose-800 bg-rose-900/30 text-rose-300 px-4 py-3"><%= error %></div>
+  <% } %>
+
+  <form action="/transactions" method="GET" class="bg-slate-900 border border-slate-800 rounded-xl p-4 grid grid-cols-1 md:grid-cols-2 xl:grid-cols-5 gap-3">
+    <div>
+      <label for="date_from" class="text-xs font-semibold uppercase tracking-wide text-slate-400">Data inicial</label>
+      <input id="date_from" name="date_from" type="date" value="<%= safeFilters.date_from || '' %>" class="mt-1 w-full h-11 bg-slate-800 border border-slate-700 rounded-lg px-3 text-white" />
+    </div>
+    <div>
+      <label for="date_to" class="text-xs font-semibold uppercase tracking-wide text-slate-400">Data final</label>
+      <input id="date_to" name="date_to" type="date" value="<%= safeFilters.date_to || '' %>" class="mt-1 w-full h-11 bg-slate-800 border border-slate-700 rounded-lg px-3 text-white" />
+    </div>
+    <div>
+      <label for="type" class="text-xs font-semibold uppercase tracking-wide text-slate-400">Tipo</label>
+      <select id="type" name="type" class="mt-1 w-full h-11 bg-slate-800 border border-slate-700 rounded-lg px-3 text-white">
+        <option value="" <%= !safeFilters.type ? 'selected' : '' %>>Todos</option>
+        <option value="income" <%= safeFilters.type === 'income' ? 'selected' : '' %>>Entrada</option>
+        <option value="expense" <%= safeFilters.type === 'expense' ? 'selected' : '' %>>Despesa</option>
+      </select>
+    </div>
+    <div>
+      <label for="category_id" class="text-xs font-semibold uppercase tracking-wide text-slate-400">Categoria</label>
+      <select id="category_id" name="category_id" class="mt-1 w-full h-11 bg-slate-800 border border-slate-700 rounded-lg px-3 text-white">
+        <option value="">Todas</option>
+        <% safeCategories.forEach((category) => { %>
+          <option value="<%= category.id %>" <%= String(safeFilters.category_id || '') === String(category.id) ? 'selected' : '' %>>
+            <%= category.name %>
+          </option>
+        <% }) %>
+      </select>
+    </div>
+    <div class="flex items-end gap-2">
+      <button type="submit" class="h-11 px-4 rounded-lg bg-[#00C9A7] hover:bg-[#009e83] text-white font-medium transition">Filtrar</button>
+      <a href="/transactions" class="h-11 px-4 rounded-lg border border-slate-700 text-slate-300 hover:bg-slate-800 inline-flex items-center transition">Limpar</a>
+    </div>
+  </form>
+
+  <div class="bg-slate-900/70 border border-slate-800 rounded-xl overflow-hidden">
+    <div class="max-h-[70vh] overflow-y-auto">
+      <% if (!safeTransactions.length) { %>
+        <div class="p-8 text-center text-slate-400">Nenhum lancamento encontrado.</div>
+      <% } %>
+
+      <% safeTransactions.forEach((transaction, index) => { %>
+        <% const isInstallment = Number(transaction && transaction.installment_total ? transaction.installment_total : 1) > 1; %>
+        <div class="px-4 sm:px-5 py-4 <%= index < safeTransactions.length - 1 ? 'border-b border-slate-800' : '' %>">
+          <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+            <div class="min-w-0">
+              <div class="flex items-center gap-2 flex-wrap">
+                <p class="text-sm sm:text-base font-semibold text-white truncate"><%= transaction.description || 'Sem descricao' %></p>
+                <% if (isInstallment) { %>
+                  <span class="inline-flex items-center rounded-full px-2.5 py-0.5 text-[11px] font-semibold bg-violet-900/40 text-violet-300 border border-violet-700">Parcelado</span>
+                <% } %>
+                <% if (Number(transaction.is_recurring || 0) === 1) { %>
+                  <span class="inline-flex items-center rounded-full px-2.5 py-0.5 text-[11px] font-semibold bg-teal-900/40 text-teal-300 border border-teal-700">Fixo</span>
+                <% } %>
+              </div>
+              <div class="mt-1 flex items-center gap-2 flex-wrap text-xs text-slate-400">
+                <span><%= formatDate(transaction.date) %></span>
+                <span>•</span>
+                <span><%= transaction.category_name || 'Sem categoria' %></span>
+                <span>•</span>
+                <span><%= transaction.payment_method === 'credit' ? 'Credito' : transaction.payment_method === 'debit' ? 'Debito' : 'Dinheiro' %></span>
+                <% if (transaction.payment_method === 'credit' && transaction.card_name) { %>
+                  <span>•</span>
+                  <span><%= transaction.card_name %></span>
+                <% } %>
+              </div>
+            </div>
+
+            <div class="flex items-center gap-2 sm:gap-3">
+              <p class="text-base sm:text-lg font-bold whitespace-nowrap <%= transaction.type === 'income' ? 'text-emerald-400' : 'text-rose-400' %>">
+                <%= transaction.type === 'income' ? '+' : '-' %><%= formatCurrency(Math.abs(transaction.amount || 0)) %>
+              </p>
+              <a href="/transactions/edit/<%= transaction.id %>" class="h-10 px-3 rounded-lg bg-slate-800 border border-slate-700 text-slate-300 hover:bg-slate-700 inline-flex items-center text-sm">Editar</a>
+              <form action="/transactions/delete/<%= transaction.id %>" method="POST" class="inline" data-confirm-title="Excluir transacao" data-confirm-message="Tem certeza que deseja excluir esta transacao?">
+                <button type="submit" class="h-10 px-3 rounded-lg bg-rose-900/30 border border-rose-800 text-rose-300 hover:bg-rose-900/50 inline-flex items-center text-sm">Excluir</button>
+              </form>
+            </div>
+          </div>
+        </div>
+      <% }); %>
+    </div>
+  </div>
+</div>
