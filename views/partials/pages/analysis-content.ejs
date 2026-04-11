@@ -163,8 +163,8 @@
                         <span class="w-2 h-2 rounded-full" style="background-color: <%= transaction && transaction.category_color ? transaction.category_color : '#00C9A7' %>;"></span>
                         <%= transaction && transaction.category_name ? transaction.category_name : 'Sem categoria' %>
                       </span>
-                      <span class="inline-flex items-center rounded-full px-2.5 py-0.5 text-[11px] font-semibold border <%= transaction && transaction.payment_method === 'credit' ? 'bg-sky-900/40 text-sky-300 border-sky-700' : transaction && transaction.payment_method === 'debit' ? 'bg-cyan-900/40 text-cyan-300 border-cyan-700' : 'bg-amber-900/40 text-amber-300 border-amber-700' %>">
-                        <%= transaction && transaction.payment_method === 'credit' ? 'Credito' : transaction && transaction.payment_method === 'debit' ? 'Debito' : 'Dinheiro' %>
+                      <span class="inline-flex items-center rounded-full px-2.5 py-0.5 text-[11px] font-semibold border <%= transaction && transaction.payment_method === 'credit' ? 'bg-sky-900/40 text-sky-300 border-sky-700' : transaction && transaction.payment_method === 'debit' ? 'bg-cyan-900/40 text-cyan-300 border-cyan-700' : transaction && transaction.payment_method === 'pix' ? 'bg-indigo-900/40 text-indigo-300 border-indigo-700' : 'bg-amber-900/40 text-amber-300 border-amber-700' %>">
+                        <%= transaction && transaction.payment_method === 'credit' ? 'Credito' : transaction && transaction.payment_method === 'debit' ? 'Debito' : transaction && transaction.payment_method === 'pix' ? 'Pix' : 'Dinheiro' %>
                       </span>
                       <% if (isInstallment) { %>
                         <span class="inline-flex items-center rounded-full px-2.5 py-0.5 text-[11px] font-semibold bg-violet-900/40 text-violet-300 border border-violet-700">

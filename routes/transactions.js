@@ -110,7 +110,7 @@ async function isValidCategory(userId, categoryId, type) {
 }
 
 function normalizePaymentMethod(paymentMethod) {
-  const validMethods = ['cash', 'debit', 'credit'];
+  const validMethods = ['cash', 'pix', 'debit', 'credit'];
   return validMethods.includes(paymentMethod) ? paymentMethod : 'cash';
 }
 
@@ -123,8 +123,9 @@ function normalizeAffectsBalance(value) {
   return value === 'on' || value === '1' || value === 1 || value === true ? 1 : 0;
 }
 
-function enforceAffectsBalanceByType(transactionType, affectsBalanceValue) {
+function enforceAffectsBalance(transactionType, paymentMethod, affectsBalanceValue) {
   if (transactionType === 'income') return 1;
+  if (transactionType === 'expense' && paymentMethod === 'credit') return 0;
   return affectsBalanceValue;
 }
 
@@ -342,7 +343,7 @@ router.post('/add', requireAuth, async (req, res) => {
   const normalizedRecurring = normalizeRecurringFlag(is_recurring, defaultType);
   const installmentEnabled = defaultType === 'expense' && normalizeInstallmentFlag(is_installment);
   const normalizedInstallmentTotal = installmentEnabled ? normalizeInstallmentTotal(installment_total) : 1;
-  let normalizedAffectsBalance = enforceAffectsBalanceByType(defaultType, normalizeAffectsBalance(affects_balance));
+  let normalizedAffectsBalance = enforceAffectsBalance(defaultType, normalizedPaymentMethod, normalizeAffectsBalance(affects_balance));
 
   try {
     const categories = await getUserCategories(userId);
@@ -460,9 +461,7 @@ router.post('/add', requireAuth, async (req, res) => {
       normalizedCardId = null;
     }
 
-    if (installmentEnabled && normalizedPaymentMethod === 'credit') {
-      normalizedAffectsBalance = 0;
-    }
+    normalizedAffectsBalance = enforceAffectsBalance(defaultType, normalizedPaymentMethod, normalizedAffectsBalance);
 
     if (!installmentEnabled) {
       const [result] = await db.query(
@@ -589,7 +588,7 @@ router.post('/edit/:id', requireAuth, async (req, res) => {
   const parsedAmount = parseCurrencyInput(amount);
   const normalizedPaymentMethod = normalizePaymentMethod(payment_method);
   const normalizedRecurring = normalizeRecurringFlag(is_recurring, normalizedType);
-  const normalizedAffectsBalance = enforceAffectsBalanceByType(normalizedType, normalizeAffectsBalance(affects_balance));
+  const normalizedAffectsBalance = enforceAffectsBalance(normalizedType, normalizedPaymentMethod, normalizeAffectsBalance(affects_balance));
 
   try {
     const categories = await getUserCategories(userId);

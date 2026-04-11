@@ -76,7 +76,7 @@
                 <span>|</span>
                 <span><%= transaction.category_name || 'Sem categoria' %></span>
                 <span>|</span>
-                <span><%= transaction.payment_method === 'credit' ? 'Credito' : transaction.payment_method === 'debit' ? 'Debito' : 'Dinheiro' %></span>
+                <span><%= transaction.payment_method === 'credit' ? 'Credito' : transaction.payment_method === 'debit' ? 'Debito' : transaction.payment_method === 'pix' ? 'Pix' : 'Dinheiro' %></span>
                 <% if (transaction.payment_method === 'credit' && transaction.card_name) { %>
                   <span>|</span>
                   <span><%= transaction.card_name %></span>
