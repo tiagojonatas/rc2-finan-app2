@@ -459,12 +459,7 @@
     </div>
 
     <!-- Floating Action Menu -->
-    <a href="/transactions/add?type=expense"
-       class="fixed bottom-6 right-24 z-50 h-12 px-5 rounded-full bg-[#00C9A7] hover:bg-[#009e83] text-white font-semibold shadow-xl inline-flex items-center justify-center transition-all duration-200">
-      + Nova transacao
-    </a>
-
-    <div class="fixed bottom-6 right-6 z-50">
+    <div class="fixed bottom-6 right-6 z-50 group">
       <div id="fabMenu"
            class="hidden mb-3 w-56 bg-slate-900 border border-slate-800 rounded-xl shadow-xl p-2 space-y-2 transition-all duration-200 origin-bottom scale-95 opacity-0">
         <a href="/transactions/add?type=income"
@@ -485,10 +480,14 @@
       <button id="actionFab"
               type="button"
               onclick="toggleFab()"
-              aria-label="Abrir menu de acoes"
+              aria-label="Nova transacao"
+              title="Nova transacao"
               class="bg-gradient-to-br from-emerald-500 to-teal-500 text-white w-14 h-14 rounded-full shadow-xl flex items-center justify-center text-xl hover:scale-110 hover:rotate-90 hover:shadow-2xl transition-all duration-200">
         +
       </button>
+      <span class="pointer-events-none absolute right-0 bottom-16 whitespace-nowrap rounded-lg border border-slate-700 bg-slate-900 px-3 py-1.5 text-xs font-medium text-slate-200 opacity-0 shadow-lg transition-opacity duration-200 group-hover:opacity-100">
+        Nova transacao
+      </span>
     </div>
 
     <% const safeDashboardCards = Array.isArray(dashboardCards) ? dashboardCards : []; %>
