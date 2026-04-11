@@ -1,4 +1,4 @@
-<% const safeTransactions = Array.isArray(transactions) ? transactions : []; %>
+ï»¿<% const safeTransactions = Array.isArray(transactions) ? transactions : []; %>
 <% const safeCategories = Array.isArray(categories) ? categories : []; %>
 <% const safeFilters = filters || {}; %>
 
@@ -73,12 +73,12 @@
               </div>
               <div class="mt-1 flex items-center gap-2 flex-wrap text-xs text-slate-400">
                 <span><%= formatDate(transaction.date) %></span>
-                <span>•</span>
+                <span>|</span>
                 <span><%= transaction.category_name || 'Sem categoria' %></span>
-                <span>•</span>
+                <span>|</span>
                 <span><%= transaction.payment_method === 'credit' ? 'Credito' : transaction.payment_method === 'debit' ? 'Debito' : 'Dinheiro' %></span>
                 <% if (transaction.payment_method === 'credit' && transaction.card_name) { %>
-                  <span>•</span>
+                  <span>|</span>
                   <span><%= transaction.card_name %></span>
                 <% } %>
               </div>
@@ -99,3 +99,4 @@
     </div>
   </div>
 </div>
+
