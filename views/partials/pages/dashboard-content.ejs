@@ -58,18 +58,25 @@
     <% const isProjectedNegative = projectedMonthBalance < 0; %>
     <% const usePositiveGradient = currentRealBalance >= 0 && projectedMonthBalance >= 0; %>
     <% const amountMissingToPositive = isProjectedNegative ? Math.abs(projectedMonthBalance) : 0; %>
+    <% const isPositiveNowButRiskAhead = currentRealBalance > 0 && isProjectedNegative; %>
+    <% const remainingCommitments = isPositiveNowButRiskAhead ? Math.max(0, currentRealBalance - projectedMonthBalance) : 0; %>
     <div class="rounded-2xl p-6 sm:p-7 shadow-lg transition-all duration-300 border <%= usePositiveGradient ? 'bg-gradient-to-r from-emerald-500/90 to-teal-500/90 border-emerald-400/50' : 'bg-slate-900/60 backdrop-blur border-slate-800' %>">
+      <% if (isPositiveNowButRiskAhead) { %>
+        <div class="mb-3 flex justify-end">
+          <span class="inline-flex items-center rounded-full px-2.5 py-0.5 text-[11px] font-semibold bg-rose-900/40 text-rose-300 border border-rose-700">Risco no mes</span>
+        </div>
+      <% } %>
       <div class="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4 items-start">
         <div class="text-left">
           <p class="<%= usePositiveGradient ? 'text-emerald-50/90' : 'text-slate-300/95' %> text-[11px] uppercase tracking-[0.16em] font-bold">REALIDADE ATUAL</p>
-          <p class="<%= usePositiveGradient ? 'text-emerald-50/80' : 'text-slate-400' %> text-sm mt-1">Saldo atual (real)</p>
-          <p class="text-4xl sm:text-5xl font-bold tracking-tight mt-1 <%= isCurrentNegative ? 'text-rose-300' : (usePositiveGradient ? 'text-emerald-50' : 'text-emerald-400') %>">
+          <p class="<%= usePositiveGradient ? 'text-emerald-50/80' : 'text-slate-400' %> text-sm mt-1">Saldo disponivel hoje</p>
+          <p class="text-4xl sm:text-5xl font-bold tracking-tight mt-1 <%= isCurrentNegative ? 'text-rose-300' : (isPositiveNowButRiskAhead ? 'text-cyan-300' : (usePositiveGradient ? 'text-emerald-50' : 'text-emerald-400')) %>">
             <%= formatCurrency(currentRealBalance) %>
           </p>
         </div>
         <div class="text-left md:pl-6 md:border-l <%= usePositiveGradient ? 'md:border-emerald-200/30' : 'md:border-slate-700/60' %>">
           <p class="text-[11px] uppercase tracking-[0.16em] font-bold <%= isProjectedNegative ? 'text-rose-300' : (usePositiveGradient ? 'text-emerald-50/90' : 'text-emerald-300') %>">PROJECAO FUTURA</p>
-          <p class="text-sm mt-1 <%= isProjectedNegative ? 'text-rose-300/90' : (usePositiveGradient ? 'text-emerald-50/75' : 'text-slate-400') %>">Saldo projetado (compromissos)</p>
+          <p class="text-sm mt-1 <%= isProjectedNegative ? 'text-rose-300/90' : (usePositiveGradient ? 'text-emerald-50/75' : 'text-slate-400') %>">Saldo previsto no fim do mes</p>
           <p class="text-2xl sm:text-3xl font-semibold mt-1 <%= isProjectedNegative ? 'text-rose-400' : (usePositiveGradient ? 'text-emerald-50' : 'text-emerald-300') %>">
             <%= formatCurrency(projectedMonthBalance) %>
           </p>
@@ -87,16 +94,26 @@
           <% } %>
         </div>
       </div>
+      <% if (isPositiveNowButRiskAhead) { %>
+        <div class="mt-4 text-xs text-slate-300 border-t border-slate-700/60 pt-3">
+          Disponivel hoje: <strong class="text-cyan-300"><%= formatCurrency(currentRealBalance) %></strong>
+          <span class="mx-1 text-slate-500">-></span>
+          Compromissos restantes: <strong class="text-rose-300"><%= formatCurrency(remainingCommitments) %></strong>
+          <span class="mx-1 text-slate-500">-></span>
+          Resultado previsto: <strong class="text-rose-300"><%= formatCurrency(projectedMonthBalance) %></strong>
+        </div>
+      <% } %>
     </div>
 
     <!-- Smart Insight -->
     <% const insight = (typeof financialInsight !== 'undefined' && financialInsight) ? financialInsight : { isHealthy: true, message: 'Voce esta dentro do seu planejamento', expenseVariationPercent: 0, expenseVariationDirection: 'stable', previousMonthLabel: '' }; %>
+    <% const insightMessage = isPositiveNowButRiskAhead ? 'Voce esta positivo hoje, mas ficara negativo ate o fim do mes' : insight.message; %>
     <div class="bg-slate-900/60 backdrop-blur border border-slate-800 rounded-xl p-4 shadow-md hover:shadow-lg hover:border-emerald-500/30 transition-all duration-200 hover:scale-[1.01] text-white <%= insight.isHealthy ? 'border-emerald-800' : 'border-rose-800' %>">
       <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div>
           <p class="text-xs uppercase tracking-wide <%= insight.isHealthy ? 'text-emerald-300' : 'text-rose-300' %>">Insight automatico</p>
           <p class="text-base sm:text-lg font-semibold mt-1">
-            <%= insight.message %>
+            <%= insightMessage %>
           </p>
         </div>
         <div class="text-sm">
@@ -443,7 +460,7 @@
 
     <!-- Floating Action Menu -->
     <a href="/transactions/add?type=expense"
-       class="fixed bottom-6 left-6 z-50 h-12 px-5 rounded-full bg-[#00C9A7] hover:bg-[#009e83] text-white font-semibold shadow-xl inline-flex items-center justify-center transition-all duration-200">
+       class="fixed bottom-6 right-24 z-50 h-12 px-5 rounded-full bg-[#00C9A7] hover:bg-[#009e83] text-white font-semibold shadow-xl inline-flex items-center justify-center transition-all duration-200">
       + Nova transacao
     </a>
 
