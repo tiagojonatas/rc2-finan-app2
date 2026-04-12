@@ -104,12 +104,12 @@
           <% if (userDisplayName) { %>
             <div class="hidden sm:flex items-center gap-3 text-sm text-slate-300">
               <div class="text-slate-400"><%= currentDate %></div>
-              <div class="flex items-center gap-2">
+              <a href="/profile" class="h-10 inline-flex items-center gap-2 rounded-lg px-3 py-2 text-sm bg-gray-900 text-gray-300 border border-gray-700 hover:bg-gray-800 transition-all duration-200">
                 <div class="w-8 h-8 rounded-full bg-emerald-500/90 text-white font-semibold flex items-center justify-center">
                   <%= userInitial %>
                 </div>
                 <span class="text-white font-medium"><%= userDisplayName %></span>
-              </div>
+              </a>
             </div>
           <% } %>
           <form action="/logout" method="POST">

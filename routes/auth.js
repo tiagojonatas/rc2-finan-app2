@@ -261,6 +261,87 @@ router.post('/logout', (req, res) => {
   });
 });
 
+// GET /profile
+router.get('/profile', requireAuth, (req, res) => {
+  res.render('profile', {
+    pageTitle: 'Perfil',
+    currentPath: '/profile',
+    error: req.query.error || null,
+    success: req.query.success || null
+  });
+});
+
+// POST /profile/password
+router.post('/profile/password', requireAuth, async (req, res) => {
+  const currentPassword = (req.body.current_password || '').trim();
+  const newPassword = (req.body.new_password || '').trim();
+  const confirmPassword = (req.body.confirm_password || '').trim();
+
+  if (!currentPassword || !newPassword || !confirmPassword) {
+    return res.render('profile', {
+      pageTitle: 'Perfil',
+      currentPath: '/profile',
+      error: 'Preencha todos os campos',
+      success: null
+    });
+  }
+
+  if (newPassword !== confirmPassword) {
+    return res.render('profile', {
+      pageTitle: 'Perfil',
+      currentPath: '/profile',
+      error: 'A confirmacao da nova senha nao confere',
+      success: null
+    });
+  }
+
+  try {
+    const [rows] = await db.query('SELECT password_hash FROM users WHERE id = ?', [req.session.userId]);
+    if (!rows.length) {
+      return res.render('profile', {
+        pageTitle: 'Perfil',
+        currentPath: '/profile',
+        error: 'Usuario nao encontrado',
+        success: null
+      });
+    }
+
+    const currentHash = rows[0].password_hash;
+    const isCurrentValid = await bcrypt.compare(currentPassword, currentHash);
+    if (!isCurrentValid) {
+      return res.render('profile', {
+        pageTitle: 'Perfil',
+        currentPath: '/profile',
+        error: 'Senha atual incorreta',
+        success: null
+      });
+    }
+
+    const isSameAsCurrent = await bcrypt.compare(newPassword, currentHash);
+    if (isSameAsCurrent) {
+      return res.render('profile', {
+        pageTitle: 'Perfil',
+        currentPath: '/profile',
+        error: 'A nova senha deve ser diferente da atual',
+        success: null
+      });
+    }
+
+    const hashedPassword = await bcrypt.hash(newPassword, 10);
+    await db.query('UPDATE users SET password_hash = ? WHERE id = ?', [hashedPassword, req.session.userId]);
+
+    return res.redirect('/profile?success=Senha%20alterada%20com%20sucesso');
+  } catch (error) {
+    console.error(error);
+    return res.render('profile', {
+      pageTitle: 'Perfil',
+      currentPath: '/profile',
+      error: 'Erro ao alterar senha',
+      success: null
+    });
+  }
+});
+
 // GET /dashboard (protected)
 router.get('/dashboard', requireAuth, async (req, res) => {
   try {
