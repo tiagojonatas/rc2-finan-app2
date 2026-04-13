@@ -25,6 +25,16 @@ app.use((req, res, next) => {
   next();
 });
 
+// Force UTF-8 on all HTML renders
+app.use((req, res, next) => {
+  const originalRender = res.render.bind(res);
+  res.render = (view, locals, callback) => {
+    res.setHeader('Content-Type', 'text/html; charset=utf-8');
+    return originalRender(view, locals, callback);
+  };
+  next();
+});
+
 // Middleware
 app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
@@ -39,7 +49,7 @@ app.use(session({
   cookie: {
     httpOnly: true,
     sameSite: 'lax',
-    secure: isProduction,
+    secure: isProduction ? 'auto' : false,
     maxAge: 1000 * 60 * 60 * 24 * 7
   }
 }));

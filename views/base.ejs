@@ -78,19 +78,21 @@
 
   <% if (hasHeader) { %>
     <header class="bg-slate-900/80 backdrop-blur border-b border-slate-800">
-      <div class="max-w-7xl mx-auto px-4 sm:px-6 py-2.5 sm:py-3 flex items-center justify-between gap-3">
-        <div class="flex items-center gap-3">
-          <img src="/brand/rc2-finance-horizontal.svg" alt="RC2 Finance" class="h-8 sm:h-10 w-auto" />
-          <p class="text-xs text-emerald-400 font-semibold tracking-wide hidden sm:block">by RC2 Tecnologia</p>
+      <div class="max-w-[1380px] mx-auto px-4 sm:px-6 py-2.5 sm:py-3 flex items-center justify-between gap-3">
+        <div class="hidden md:flex items-center gap-3 min-w-0">
+          <img src="/brand/rc2-finance-horizontal.svg" alt="RC2 Finance" class="h-8 sm:h-10 w-auto shrink-0" />
+          <nav class="flex items-center gap-2 whitespace-nowrap flex-nowrap min-w-0">
+            <a href="/dashboard" class="h-11 inline-flex items-center rounded-lg px-3 py-2 text-sm whitespace-nowrap transition-all duration-200 <%= navClass('/dashboard') %>">Visao Geral</a>
+            <a href="/transactions" class="h-11 inline-flex items-center rounded-lg px-3 py-2 text-sm whitespace-nowrap transition-all duration-200 <%= navClass('/transactions') %>">Lancamentos</a>
+            <a href="/analysis" class="h-11 inline-flex items-center rounded-lg px-3 py-2 text-sm whitespace-nowrap transition-all duration-200 <%= navClass('/analysis') %>">Analise de gastos</a>
+            <a href="/credit-cards" class="h-11 inline-flex items-center rounded-lg px-3 py-2 text-sm whitespace-nowrap transition-all duration-200 <%= navClass('/credit-cards') %>">Cartoes</a>
+            <a href="/reports" class="h-11 inline-flex items-center rounded-lg px-3 py-2 text-sm whitespace-nowrap transition-all duration-200 <%= navClass('/reports') %>">Relatorios</a>
+            <a href="/categories" class="h-11 inline-flex items-center rounded-lg px-3 py-2 text-sm whitespace-nowrap transition-all duration-200 <%= navClass('/categories') %>">Categorias</a>
+          </nav>
         </div>
-        <nav class="hidden md:flex items-center gap-2">
-          <a href="/dashboard" class="h-12 inline-flex items-center rounded-lg px-4 py-3 text-sm transition-all duration-200 <%= navClass('/dashboard') %>">Visao Geral</a>
-          <a href="/transactions" class="h-12 inline-flex items-center rounded-lg px-4 py-3 text-sm transition-all duration-200 <%= navClass('/transactions') %>">Lancamentos</a>
-          <a href="/analysis" class="h-12 inline-flex items-center rounded-lg px-4 py-3 text-sm transition-all duration-200 <%= navClass('/analysis') %>">Analise de gastos</a>
-          <a href="/credit-cards" class="h-12 inline-flex items-center rounded-lg px-4 py-3 text-sm transition-all duration-200 <%= navClass('/credit-cards') %>">Cartoes</a>
-          <a href="/reports" class="h-12 inline-flex items-center rounded-lg px-4 py-3 text-sm transition-all duration-200 <%= navClass('/reports') %>">Relatorios</a>
-          <a href="/categories" class="h-12 inline-flex items-center rounded-lg px-4 py-3 text-sm transition-all duration-200 <%= navClass('/categories') %>">Categorias</a>
-        </nav>
+        <div class="flex md:hidden items-center gap-3">
+          <img src="/brand/rc2-finance-horizontal.svg" alt="RC2 Finance" class="h-8 w-auto" />
+        </div>
         <div class="hidden md:flex items-center gap-3 sm:gap-4">
           <button id="toggleValuesDesktop" type="button" title="Ocultar valores" class="h-12 w-12 inline-flex items-center justify-center rounded-lg border border-gray-700 bg-gray-900 text-gray-300 hover:bg-gray-800 transition-all duration-200">
             <svg data-eye-open="true" xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -103,7 +105,7 @@
           </button>
           <% if (userDisplayName) { %>
             <div class="hidden sm:flex items-center gap-3 text-sm text-slate-300">
-              <div class="text-slate-400"><%= currentDate %></div>
+              <div class="text-slate-400 hidden xl:block"><%= currentDate %></div>
               <div class="relative">
                 <button id="userMenuButton" type="button" class="h-10 inline-flex items-center gap-2 rounded-lg px-3 py-2 text-sm bg-gray-900 text-gray-300 border border-gray-700 hover:bg-gray-800 transition-all duration-200 cursor-pointer">
                   <div class="w-8 h-8 rounded-full bg-emerald-500/90 text-white font-semibold flex items-center justify-center">

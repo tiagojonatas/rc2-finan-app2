@@ -239,11 +239,14 @@ router.post('/login', async (req, res) => {
       role: user.role || 'user'
     };
 
-    if (req.session.userRole === 'admin') {
-      return res.redirect('/admin');
-    }
-
-    return res.redirect('/dashboard');
+    const redirectPath = req.session.userRole === 'admin' ? '/admin' : '/dashboard';
+    return req.session.save((sessionError) => {
+      if (sessionError) {
+        console.error('Login session save error:', sessionError);
+        return res.render('login', { error: 'Erro ao iniciar sessao', email: (email || '').trim() });
+      }
+      return res.redirect(redirectPath);
+    });
   } catch (error) {
     console.error(error);
     return res.render('login', { error: 'Erro ao fazer login', email: (email || '').trim() });
