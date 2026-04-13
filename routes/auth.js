@@ -261,35 +261,110 @@ router.post('/logout', (req, res) => {
   });
 });
 
-// GET /profile
-router.get('/profile', requireAuth, (req, res) => {
-  res.render('profile', {
-    pageTitle: 'Perfil',
-    currentPath: '/profile',
+// GET /perfil
+router.get('/perfil', requireAuth, async (req, res) => {
+  try {
+    const [rows] = await db.query('SELECT name, email FROM users WHERE id = ?', [req.session.userId]);
+    const user = rows[0] || { name: '', email: '' };
+    res.render('profile', {
+      pageTitle: 'Perfil',
+      currentPath: '/perfil',
+      error: req.query.error || null,
+      success: req.query.success || null,
+      user
+    });
+  } catch (error) {
+    console.error(error);
+    res.render('profile', {
+      pageTitle: 'Perfil',
+      currentPath: '/perfil',
+      error: 'Erro ao carregar perfil',
+      success: null,
+      user: { name: '', email: '' }
+    });
+  }
+});
+
+// POST /perfil
+router.post('/perfil', requireAuth, async (req, res) => {
+  const name = (req.body.name || '').trim();
+  const email = (req.body.email || '').trim().toLowerCase();
+
+  if (!name || !email) {
+    return res.render('profile', {
+      pageTitle: 'Perfil',
+      currentPath: '/perfil',
+      error: 'Preencha nome e email',
+      success: null,
+      user: { name, email }
+    });
+  }
+
+  try {
+    const [existing] = await db.query(
+      'SELECT id FROM users WHERE email = ? AND id <> ?',
+      [email, req.session.userId]
+    );
+    if (existing.length) {
+      return res.render('profile', {
+        pageTitle: 'Perfil',
+        currentPath: '/perfil',
+        error: 'Email ja cadastrado',
+        success: null,
+        user: { name, email }
+      });
+    }
+
+    await db.query('UPDATE users SET name = ?, email = ? WHERE id = ?', [name, email, req.session.userId]);
+    req.session.userName = name;
+    req.session.userEmail = email;
+    if (req.session.user) {
+      req.session.user.name = name;
+      req.session.user.email = email;
+    }
+
+    return res.redirect('/perfil?success=Dados%20atualizados%20com%20sucesso');
+  } catch (error) {
+    console.error(error);
+    return res.render('profile', {
+      pageTitle: 'Perfil',
+      currentPath: '/perfil',
+      error: 'Erro ao atualizar perfil',
+      success: null,
+      user: { name, email }
+    });
+  }
+});
+
+// GET /perfil/senha
+router.get('/perfil/senha', requireAuth, (req, res) => {
+  res.render('profile-password', {
+    pageTitle: 'Alterar senha',
+    currentPath: '/perfil/senha',
     error: req.query.error || null,
     success: req.query.success || null
   });
 });
 
-// POST /profile/password
-router.post('/profile/password', requireAuth, async (req, res) => {
+// POST /perfil/senha
+router.post('/perfil/senha', requireAuth, async (req, res) => {
   const currentPassword = (req.body.current_password || '').trim();
   const newPassword = (req.body.new_password || '').trim();
   const confirmPassword = (req.body.confirm_password || '').trim();
 
   if (!currentPassword || !newPassword || !confirmPassword) {
-    return res.render('profile', {
-      pageTitle: 'Perfil',
-      currentPath: '/profile',
+    return res.render('profile-password', {
+      pageTitle: 'Alterar senha',
+      currentPath: '/perfil/senha',
       error: 'Preencha todos os campos',
       success: null
     });
   }
 
   if (newPassword !== confirmPassword) {
-    return res.render('profile', {
-      pageTitle: 'Perfil',
-      currentPath: '/profile',
+    return res.render('profile-password', {
+      pageTitle: 'Alterar senha',
+      currentPath: '/perfil/senha',
       error: 'A confirmacao da nova senha nao confere',
       success: null
     });
@@ -298,9 +373,9 @@ router.post('/profile/password', requireAuth, async (req, res) => {
   try {
     const [rows] = await db.query('SELECT password_hash FROM users WHERE id = ?', [req.session.userId]);
     if (!rows.length) {
-      return res.render('profile', {
-        pageTitle: 'Perfil',
-        currentPath: '/profile',
+      return res.render('profile-password', {
+        pageTitle: 'Alterar senha',
+        currentPath: '/perfil/senha',
         error: 'Usuario nao encontrado',
         success: null
       });
@@ -309,9 +384,9 @@ router.post('/profile/password', requireAuth, async (req, res) => {
     const currentHash = rows[0].password_hash;
     const isCurrentValid = await bcrypt.compare(currentPassword, currentHash);
     if (!isCurrentValid) {
-      return res.render('profile', {
-        pageTitle: 'Perfil',
-        currentPath: '/profile',
+      return res.render('profile-password', {
+        pageTitle: 'Alterar senha',
+        currentPath: '/perfil/senha',
         error: 'Senha atual incorreta',
         success: null
       });
@@ -319,9 +394,9 @@ router.post('/profile/password', requireAuth, async (req, res) => {
 
     const isSameAsCurrent = await bcrypt.compare(newPassword, currentHash);
     if (isSameAsCurrent) {
-      return res.render('profile', {
-        pageTitle: 'Perfil',
-        currentPath: '/profile',
+      return res.render('profile-password', {
+        pageTitle: 'Alterar senha',
+        currentPath: '/perfil/senha',
         error: 'A nova senha deve ser diferente da atual',
         success: null
       });
@@ -330,12 +405,12 @@ router.post('/profile/password', requireAuth, async (req, res) => {
     const hashedPassword = await bcrypt.hash(newPassword, 10);
     await db.query('UPDATE users SET password_hash = ? WHERE id = ?', [hashedPassword, req.session.userId]);
 
-    return res.redirect('/profile?success=Senha%20alterada%20com%20sucesso');
+    return res.redirect('/perfil/senha?success=Senha%20alterada%20com%20sucesso');
   } catch (error) {
     console.error(error);
-    return res.render('profile', {
-      pageTitle: 'Perfil',
-      currentPath: '/profile',
+    return res.render('profile-password', {
+      pageTitle: 'Alterar senha',
+      currentPath: '/perfil/senha',
       error: 'Erro ao alterar senha',
       success: null
     });

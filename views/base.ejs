@@ -104,12 +104,22 @@
           <% if (userDisplayName) { %>
             <div class="hidden sm:flex items-center gap-3 text-sm text-slate-300">
               <div class="text-slate-400"><%= currentDate %></div>
-              <a href="/profile" class="h-10 inline-flex items-center gap-2 rounded-lg px-3 py-2 text-sm bg-gray-900 text-gray-300 border border-gray-700 hover:bg-gray-800 transition-all duration-200">
-                <div class="w-8 h-8 rounded-full bg-emerald-500/90 text-white font-semibold flex items-center justify-center">
-                  <%= userInitial %>
+              <div class="relative">
+                <button id="userMenuButton" type="button" class="h-10 inline-flex items-center gap-2 rounded-lg px-3 py-2 text-sm bg-gray-900 text-gray-300 border border-gray-700 hover:bg-gray-800 transition-all duration-200 cursor-pointer">
+                  <div class="w-8 h-8 rounded-full bg-emerald-500/90 text-white font-semibold flex items-center justify-center">
+                    <%= userInitial %>
+                  </div>
+                  <span class="text-white font-medium max-w-[120px] whitespace-nowrap overflow-hidden text-ellipsis align-middle"><%= userDisplayName %></span>
+                  <span class="text-gray-400">▾</span>
+                </button>
+                <div id="userMenuDropdown" class="absolute right-0 mt-2 w-48 rounded-lg border border-slate-700 bg-slate-900 shadow-xl hidden">
+                  <a href="/perfil" class="block px-4 py-2 text-sm text-gray-300 hover:bg-gray-800 rounded-t-lg">Perfil</a>
+                  <a href="/perfil/senha" class="block px-4 py-2 text-sm text-gray-300 hover:bg-gray-800">Alterar senha</a>
+                  <form action="/logout" method="POST">
+                    <button type="submit" class="w-full text-left px-4 py-2 text-sm text-gray-300 hover:bg-gray-800 rounded-b-lg">Sair</button>
+                  </form>
                 </div>
-                <span class="text-white font-medium"><%= userDisplayName %></span>
-              </a>
+              </div>
             </div>
           <% } %>
           <form action="/logout" method="POST">
@@ -207,6 +217,8 @@
       const confirmCancel = document.getElementById('confirmCancel');
       const confirmSubmit = document.getElementById('confirmSubmit');
       const mobileMenu = document.getElementById('mobileMenu');
+      const userMenuButton = document.getElementById('userMenuButton');
+      const userMenuDropdown = document.getElementById('userMenuDropdown');
       const mobileMenuBackdrop = document.getElementById('mobileMenuBackdrop');
       const mobileMenuPanel = document.getElementById('mobileMenuPanel');
       const mobileMenuButton = document.getElementById('mobileMenuButton');
@@ -434,6 +446,18 @@
           link.addEventListener('click', function() {
             setMobileMenuState(false);
           });
+        });
+      }
+
+      if (userMenuButton && userMenuDropdown) {
+        userMenuButton.addEventListener('click', function(event) {
+          event.stopPropagation();
+          userMenuDropdown.classList.toggle('hidden');
+        });
+        document.addEventListener('click', function() {
+          if (!userMenuDropdown.classList.contains('hidden')) {
+            userMenuDropdown.classList.add('hidden');
+          }
         });
       }
 
