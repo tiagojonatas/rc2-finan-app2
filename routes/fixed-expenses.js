@@ -3,7 +3,7 @@ const db = require('../db');
 const { parseCurrencyInput, isValidPositiveAmount } = require('../utils/currency');
 const { getAllowedDefaultNamesByType } = require('../utils/default-categories');
 const { ensureMonthlyFixedExpenses, markOverdueMonthlyExpenses, parseMonthKey, getMonthKey } = require('../utils/monthly-fixed-expenses');
-const { getMonthLabel } = require('../utils/datetime');
+const { getMonthLabel, buildDate } = require('../utils/datetime');
 
 const router = express.Router();
 
@@ -124,14 +124,17 @@ function buildFixedExpenseRedirect(month, status, extra = {}) {
   return `/fixed-expenses?${params.toString()}`;
 }
 
-async function loadFixedExpensePageData(userId, monthKey, statusFilter) {
+async function loadFixedExpensePageData(userId, monthKey, statusFilter, options = {}) {
+  const { skipOverdueSync = false } = options;
   const parsed = parseMonthKey(monthKey);
   if (!parsed) throw new Error('Mês inv?lido');
   const { year, month } = parsed;
 
   try {
     await ensureMonthlyFixedExpenses(userId, monthKey);
-    await markOverdueMonthlyExpenses(userId);
+    if (!skipOverdueSync) {
+      await markOverdueMonthlyExpenses(userId);
+    }
   } catch (error) {
     console.warn('Could not ensure monthly fixed expenses:', error.message);
   }
@@ -214,6 +217,26 @@ async function loadFixedExpensePageData(userId, monthKey, statusFilter) {
   };
 }
 
+async function updateCurrentPendingMonthlyInstance(userId, expenseId, dueDay) {
+  const currentMonthKey = getMonthKey();
+  const currentParsed = parseMonthKey(currentMonthKey);
+  if (!currentParsed) return;
+
+  const updatedDueDate = buildDate(currentParsed.year, currentParsed.month, dueDay);
+
+  await db.query(
+    `UPDATE monthly_fixed_expenses
+     SET due_date = ?
+     WHERE fixed_expense_id = ?
+       AND user_id = ?
+       AND year = ?
+       AND month = ?
+       AND status = 'pendente'
+       AND payment_date IS NULL`,
+    [updatedDueDate, expenseId, userId, currentParsed.year, currentParsed.month]
+  );
+}
+
 router.get('/', requireAuth, async (req, res) => {
   const userId = req.session.userId;
   const selected = getSelectedMonth(req);
@@ -229,8 +252,10 @@ router.get('/', requireAuth, async (req, res) => {
   const feedbackError = feedbackErrorMap[req.query.error] || null;
   const feedbackSuccess = feedbackSuccessMap[req.query.success] || null;
 
+  const skipOverdueSync = req.query.skip_overdue_sync === '1';
+
   try {
-    const data = await loadFixedExpensePageData(userId, selected.monthKey, selectedStatus);
+    const data = await loadFixedExpensePageData(userId, selected.monthKey, selectedStatus, { skipOverdueSync });
     renderWithBase(res, {
       data: {
         ...data,
@@ -417,7 +442,10 @@ router.post('/edit/:id', requireAuth, async (req, res) => {
       [normalizedDescription, hasAmount ? parsedAmount : null, Number.isNaN(categoryId) ? null : categoryId, dueDay, active, expenseId, userId]
     );
 
-    return res.redirect('/fixed-expenses');
+    // Keep history intact; only sync current month if it is still pending and unpaid.
+    await updateCurrentPendingMonthlyInstance(userId, expenseId, dueDay);
+
+    return res.redirect('/fixed-expenses?skip_overdue_sync=1');
   } catch (error) {
     console.error(error);
     const [expenses] = await db.query('SELECT * FROM fixed_expenses WHERE id = ? AND user_id = ?', [expenseId, userId]);
