@@ -222,23 +222,18 @@ async function updateCurrentPendingMonthlyInstance(userId, expenseId, dueDay) {
   const currentParsed = parseMonthKey(currentMonthKey);
   if (!currentParsed) return;
 
-  const { todayDate } = require('../utils/datetime');
   const updatedDueDate = buildDate(currentParsed.year, currentParsed.month, dueDay);
-  const today = todayDate();
-
-  // Recalcula o status correto com base na nova data de vencimento
-  const newStatus = updatedDueDate < today ? 'atrasado' : 'pendente';
 
   await db.query(
     `UPDATE monthly_fixed_expenses
-     SET due_date = ?, status = ?
+     SET due_date = ?
      WHERE fixed_expense_id = ?
        AND user_id = ?
        AND year = ?
        AND month = ?
-       AND status IN ('pendente', 'atrasado')
+       AND status = 'pendente'
        AND payment_date IS NULL`,
-    [updatedDueDate, newStatus, expenseId, userId, currentParsed.year, currentParsed.month]
+    [updatedDueDate, expenseId, userId, currentParsed.year, currentParsed.month]
   );
 }
 
