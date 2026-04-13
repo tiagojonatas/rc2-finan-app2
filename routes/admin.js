@@ -88,12 +88,12 @@ router.post('/users/add', requireAdmin, async (req, res) => {
       'INSERT INTO users (name, email, password_hash, role) VALUES (?, ?, ?, ?)',
       [normalizedName, normalizedEmail, hashedPassword, normalizedRole]
     );
-    return res.redirect('/admin/users?success=Usuario criado com sucesso');
+    return res.redirect('/admin/users?success=Usu?rio criado com sucesso');
   } catch (error) {
     console.error(error);
     const errorMessage = error.code === 'ER_DUP_ENTRY'
-      ? 'Email ja cadastrado'
-      : 'Erro ao criar usuario';
+      ? 'Email já cadastrado'
+      : 'Erro ao criar usu?rio';
     return res.render('admin-user-form', {
       mode: 'add',
       user: { name: normalizedName, email: normalizedEmail, role: normalizedRole },
@@ -162,12 +162,12 @@ router.post('/users/edit/:id', requireAdmin, async (req, res) => {
       );
     }
 
-    return res.redirect('/admin/users?success=Usuario atualizado com sucesso');
+    return res.redirect('/admin/users?success=Usu?rio atualizado com sucesso');
   } catch (error) {
     console.error(error);
     const errorMessage = error.code === 'ER_DUP_ENTRY'
-      ? 'Email ja cadastrado'
-      : 'Erro ao atualizar usuario';
+      ? 'Email já cadastrado'
+      : 'Erro ao atualizar usu?rio';
     return res.render('admin-user-form', {
       mode: 'edit',
       user: { id: userId, name: normalizedName, email: normalizedEmail, role: normalizedRole },
@@ -185,7 +185,7 @@ router.post('/users/delete/:id', requireAdmin, async (req, res) => {
   }
 
   if (userId === currentUserId) {
-    return res.redirect('/admin/users?success=Voce nao pode excluir seu proprio usuario');
+    return res.redirect('/admin/users?success=Você não pode excluir seu pr?prio usu?rio');
   }
 
   async function safeDelete(connection, sql, params = []) {
@@ -201,7 +201,7 @@ router.post('/users/delete/:id', requireAdmin, async (req, res) => {
     connection = await db.getConnection();
     await connection.beginTransaction();
 
-    // Remove dependencias financeiras do usuario antes de excluir a conta.
+    // Remove dependencias financeiras do usu?rio antes de excluir a conta.
     await safeDelete(
       connection,
       `DELETE ct
@@ -217,13 +217,13 @@ router.post('/users/delete/:id', requireAdmin, async (req, res) => {
     await connection.query('DELETE FROM users WHERE id = ?', [userId]);
 
     await connection.commit();
-    return res.redirect('/admin/users?success=Usuario excluido com sucesso');
+    return res.redirect('/admin/users?success=Usu?rio excluido com sucesso');
   } catch (error) {
     if (connection) {
       try {
         await connection.rollback();
       } catch (rollbackError) {
-        console.error('Erro ao fazer rollback da exclusao de usuario:', rollbackError);
+        console.error('Erro ao fazer rollback da exclus?o de usu?rio:', rollbackError);
       }
     }
     console.error(error);

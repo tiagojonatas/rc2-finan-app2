@@ -126,7 +126,7 @@ function buildFixedExpenseRedirect(month, status, extra = {}) {
 
 async function loadFixedExpensePageData(userId, monthKey, statusFilter) {
   const parsed = parseMonthKey(monthKey);
-  if (!parsed) throw new Error('Mes invalido');
+  if (!parsed) throw new Error('Mês inv?lido');
   const { year, month } = parsed;
 
   try {
@@ -298,12 +298,12 @@ router.post('/add', requireAuth, async (req, res) => {
       content: 'partials/pages/add-fixed-expense-content',
       data: {
         error: !normalizedDescription
-          ? 'Descricao e obrigatoria'
+          ? 'Descrição e obrigatéria'
           : (!dueDay || dueDay < 1 || dueDay > 31)
             ? 'Dia de vencimento deve estar entre 1 e 31'
             : isInvalidFixedAmount
               ? 'Para tipo Fixo, informe um valor base maior que zero'
-              : 'Se informar valor para tipo Variavel, use um valor maior que zero',
+              : 'Se informar valor para tipo Vari?vel, use um valor maior que zero',
         categories,
         formData: req.body
       }
@@ -384,12 +384,12 @@ router.post('/edit/:id', requireAuth, async (req, res) => {
         expense: { ...(expenses[0] || {}), ...req.body, id: expenseId },
         categories,
         error: !normalizedDescription
-          ? 'Descricao e obrigatoria'
+          ? 'Descrição e obrigatéria'
           : (!dueDay || dueDay < 1 || dueDay > 31)
             ? 'Dia de vencimento deve estar entre 1 e 31'
             : isInvalidFixedAmount
               ? 'Para tipo Fixo, informe um valor base maior que zero'
-              : 'Se informar valor para tipo Variavel, use um valor maior que zero'
+              : 'Se informar valor para tipo Vari?vel, use um valor maior que zero'
       }
     });
   }

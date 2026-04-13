@@ -5,7 +5,7 @@ const router = express.Router();
 
 function renderWithBase(res, options = {}) {
   const {
-    title = 'Cartoes - RC2 Finance',
+    title = 'Cartões - RC2 Finance',
     content = 'partials/pages/credit-cards-content',
     currentPath = '/credit-cards',
     data = {}
@@ -35,7 +35,7 @@ router.get('/', requireAuth, async (req, res) => {
   try {
     const [cards] = await db.query('SELECT * FROM credit_cards WHERE user_id = ? ORDER BY created_at DESC', [userId]);
     renderWithBase(res, {
-      title: 'Meus Cartoes - RC2 Finance',
+      title: 'Meus Cartões - RC2 Finance',
       content: 'partials/pages/credit-cards-content',
       currentPath: '/credit-cards',
       data: { cards, error: null, success: null }
@@ -43,10 +43,10 @@ router.get('/', requireAuth, async (req, res) => {
   } catch (error) {
     console.error(error);
     renderWithBase(res, {
-      title: 'Meus Cartoes - RC2 Finance',
+      title: 'Meus Cartões - RC2 Finance',
       content: 'partials/pages/credit-cards-content',
       currentPath: '/credit-cards',
-      data: { cards: [], error: 'Erro ao carregar cartoes', success: null }
+      data: { cards: [], error: 'Erro ao carregar cartões', success: null }
     });
   }
 });
@@ -54,7 +54,7 @@ router.get('/', requireAuth, async (req, res) => {
 // GET /credit-cards/add - Show add credit card form
 router.get('/add', requireAuth, (req, res) => {
   renderWithBase(res, {
-    title: 'Novo Cartao - RC2 Finance',
+    title: 'Novo Cart?o - RC2 Finance',
     content: 'partials/pages/add-credit-card-content',
     currentPath: '/credit-cards',
     data: { error: null }
@@ -75,7 +75,7 @@ router.post('/add', requireAuth, async (req, res) => {
       ? 'Informe um limite valido maior que zero'
       : 'Dias de fechamento e vencimento devem estar entre 1 e 31';
     return renderWithBase(res, {
-      title: 'Novo Cartao - RC2 Finance',
+      title: 'Novo Cart?o - RC2 Finance',
       content: 'partials/pages/add-credit-card-content',
       currentPath: '/credit-cards',
       data: { error: errorMessage }
@@ -89,10 +89,10 @@ router.post('/add', requireAuth, async (req, res) => {
   } catch (error) {
     console.error(error);
     renderWithBase(res, {
-      title: 'Novo Cartao - RC2 Finance',
+      title: 'Novo Cart?o - RC2 Finance',
       content: 'partials/pages/add-credit-card-content',
       currentPath: '/credit-cards',
-      data: { error: 'Erro ao adicionar cartao' }
+      data: { error: 'Erro ao adicionar cart?o' }
     });
   }
 });
@@ -107,7 +107,7 @@ async function renderEditCardForm(req, res) {
       return res.redirect('/credit-cards');
     }
     renderWithBase(res, {
-      title: 'Editar Cartao - RC2 Finance',
+      title: 'Editar Cart?o - RC2 Finance',
       content: 'partials/pages/edit-credit-card-content',
       currentPath: '/credit-cards',
       data: { card: cards[0], error: null }
@@ -140,7 +140,7 @@ router.post('/edit/:id', requireAuth, async (req, res) => {
       ? 'Informe um limite valido maior que zero'
       : 'Dias devem estar entre 1 e 31';
     return renderWithBase(res, {
-      title: 'Editar Cartao - RC2 Finance',
+      title: 'Editar Cart?o - RC2 Finance',
       content: 'partials/pages/edit-credit-card-content',
       currentPath: '/credit-cards',
       data: { card: cards[0], error: errorMessage }
@@ -155,10 +155,10 @@ router.post('/edit/:id', requireAuth, async (req, res) => {
     console.error(error);
     const [cards] = await db.query('SELECT * FROM credit_cards WHERE id = ? AND user_id = ?', [cardId, userId]);
     renderWithBase(res, {
-      title: 'Editar Cartao - RC2 Finance',
+      title: 'Editar Cart?o - RC2 Finance',
       content: 'partials/pages/edit-credit-card-content',
       currentPath: '/credit-cards',
-      data: { card: cards[0], error: 'Erro ao editar cartao' }
+      data: { card: cards[0], error: 'Erro ao editar cart?o' }
     });
   }
 });

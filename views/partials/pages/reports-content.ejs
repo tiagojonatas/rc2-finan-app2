@@ -4,18 +4,18 @@
 
 <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-8">
   <div>
-    <h1 class="text-2xl sm:text-3xl font-semibold text-white">Relatorios</h1>
+    <h1 class="text-2xl sm:text-3xl font-semibold text-white">Relatórios</h1>
     <p class="text-sm text-gray-400 mt-1"><%= selectedMonthLabel || '' %></p>
     <% if (typeof isFutureMonth !== 'undefined' && isFutureMonth) { %>
       <span class="mt-2 inline-flex items-center rounded-full px-2.5 py-0.5 text-[11px] font-semibold border border-cyan-700 bg-cyan-900/30 text-cyan-300">
-        Mes futuro (projetado)
+        Mês futuro (projetado)
       </span>
     <% } %>
   </div>
   <form id="monthFilterForm" action="/reports" method="GET" class="bg-gray-900 border border-gray-800 rounded-lg px-3 py-2 flex items-center gap-2 shadow-sm">
-    <label for="monthFilter" class="text-xs font-semibold text-gray-400 uppercase tracking-wide">Periodo</label>
+    <label for="monthFilter" class="text-xs font-semibold text-gray-400 uppercase tracking-wide">Período</label>
     <span class="inline-flex h-4 w-4 items-center justify-center rounded-full border border-slate-600 text-[10px] text-slate-400 cursor-help"
-          title="Meses futuros mostram despesas ja comprometidas (parcelas e recorrencias).">i</span>
+          title="Meses futuros mostram despesas já comprometidas (parcelas e recorrencias).">i</span>
     <select id="monthFilter" name="month" class="bg-transparent text-sm font-semibold text-gray-200 focus:outline-none">
       <% safeMonthOptions.forEach((monthKey) => { %>
         <% const [year, month] = monthKey.split('-').map(Number); %>
@@ -37,7 +37,7 @@
       <span class="text-xs font-medium text-emerald-300 bg-emerald-900/30 border border-emerald-800 px-2 py-1 rounded-full">Pizza</span>
     </div>
     <% if (safeExpenseCategoryReport.length === 0) { %>
-      <div class="h-72 flex items-center justify-center text-gray-400 text-sm">Sem despesas no periodo</div>
+      <div class="h-72 flex items-center justify-center text-gray-400 text-sm">Sem despesas no período</div>
     <% } else { %>
       <div class="h-72">
         <canvas id="expensePieChart"></canvas>
@@ -51,7 +51,7 @@
       <span class="text-xs font-medium text-sky-300 bg-sky-900/30 border border-sky-800 px-2 py-1 rounded-full">Linha</span>
     </div>
     <% if (safeMonthlyBalanceData.length === 0) { %>
-      <div class="h-72 flex items-center justify-center text-gray-400 text-sm">Sem historico suficiente</div>
+      <div class="h-72 flex items-center justify-center text-gray-400 text-sm">Sem histórico suficiente</div>
     <% } else { %>
       <div class="h-72">
         <canvas id="balanceLineChart"></canvas>
@@ -66,7 +66,7 @@
     <span class="text-sm font-semibold text-gray-300">Total: <%= formatCurrency(totalExpenses) %></span>
   </div>
   <% if (safeExpenseCategoryReport.length === 0) { %>
-    <p class="text-sm text-gray-400">Nenhum gasto no periodo para montar ranking.</p>
+    <p class="text-sm text-gray-400">Nenhum gasto no período para montar ranking.</p>
   <% } else { %>
     <div class="space-y-2">
       <% safeExpenseCategoryReport.forEach((item, index) => { %>

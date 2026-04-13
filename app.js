@@ -10,7 +10,7 @@ const isProduction = process.env.NODE_ENV === 'production';
 const sessionSecret = process.env.SESSION_SECRET || crypto.randomBytes(48).toString('hex');
 
 if (!process.env.SESSION_SECRET) {
-  console.warn('SESSION_SECRET nao definido no .env. Gerado segredo temporario para esta execucao.');
+  console.warn('SESSION_SECRET não definido no .env. Gerado segredo tempor?rio para esta execu??o.');
 }
 
 // Configuracao do EJS

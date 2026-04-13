@@ -779,11 +779,18 @@ router.get('/dashboard', requireAuth, async (req, res) => {
       expenseVariationPercent = 100;
     }
 
+    const isCurrentNegative = currentRealBalance < 0;
+    const isProjectedNegative = projectedRealBalanceValue < 0;
+    const isPositiveNowButRiskAhead = currentRealBalance >= 0 && isProjectedNegative;
+    const insightMessage = isCurrentNegative
+      ? 'Você já está negativo. Revise seus gastos imediatamente.'
+      : (isPositiveNowButRiskAhead
+        ? 'Seu saldo está positivo hoje, mas a projeção indica fechamento negativo no fim do mês.'
+        : 'Você está dentro do seu planejamento.');
+
     const financialInsight = {
-      isHealthy: totalExpensesForBalanceWithFixed <= totalIncomeForBalance,
-      message: totalExpensesForBalanceWithFixed <= totalIncomeForBalance
-        ? 'Voce esta dentro do seu planejamento'
-        : 'Atencao: voce esta gastando mais do que ganha',
+      isHealthy: !isCurrentNegative && !isProjectedNegative,
+      message: insightMessage,
       currentExpenses: totalExpensesForBalanceWithFixed,
       previousExpenses,
       expenseVariationPercent,

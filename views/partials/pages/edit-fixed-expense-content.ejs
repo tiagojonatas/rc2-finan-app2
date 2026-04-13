@@ -12,7 +12,7 @@
 
     <form action="/fixed-expenses/edit/<%= expense.id %>" method="POST" class="space-y-5">
       <div>
-        <label for="description" class="text-sm text-slate-400">Descricao</label>
+        <label for="description" class="text-sm text-slate-400">Descrição</label>
         <input id="description" name="description" type="text" value="<%= expense.description %>" required class="w-full mt-1 bg-slate-800 border border-slate-700 rounded-lg px-3 h-12 text-white focus:outline-none focus:ring-2 focus:ring-emerald-500 transition" />
       </div>
 
@@ -25,7 +25,7 @@
           </label>
           <label class="inline-flex items-center gap-2 text-sm text-slate-200">
             <input id="valueTypeVariable" type="radio" name="value_type" value="variable" <%= selectedValueType === 'variable' ? 'checked' : '' %> class="text-emerald-500 focus:ring-emerald-500" />
-            Variavel (ex: energia, fatura)
+            Variável (ex: energia, fatura)
           </label>
         </div>
       </div>
@@ -120,7 +120,7 @@
       const amountHelper = document.getElementById('amountHelper');
       if (amountHelper) {
         amountHelper.textContent = isVariable
-          ? 'Para tipo Variavel, o valor e opcional.'
+          ? 'Para tipo Variável, o valor e opcional.'
           : 'Para tipo Fixo, o valor e obrigatorio.';
       }
     }

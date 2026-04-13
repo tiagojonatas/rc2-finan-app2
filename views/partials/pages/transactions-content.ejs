@@ -5,7 +5,7 @@
 <div class="space-y-6">
   <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
     <div>
-      <h1 class="text-xl sm:text-3xl font-bold text-white">Lancamentos</h1>
+      <h1 class="text-xl sm:text-3xl font-bold text-white">Lançamentos</h1>
       <p class="text-sm text-slate-400 mt-1">Operacoes completas com filtros e acoes.</p>
     </div>
     <a href="/transactions/add?type=expense" class="h-12 px-5 rounded-lg bg-[#00C9A7] hover:bg-[#009e83] text-white font-medium inline-flex items-center justify-center transition-all duration-200">
@@ -63,7 +63,7 @@
           <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
             <div class="min-w-0">
               <div class="flex items-center gap-2 flex-wrap">
-                <p class="text-sm sm:text-base font-semibold text-white truncate"><%= transaction.description || 'Sem descricao' %></p>
+                <p class="text-sm sm:text-base font-semibold text-white truncate"><%= transaction.description || 'Sem descrição' %></p>
                 <% if (isInstallment) { %>
                   <span class="inline-flex items-center rounded-full px-2.5 py-0.5 text-[11px] font-semibold bg-violet-900/40 text-violet-300 border border-violet-700">Parcelado</span>
                 <% } %>

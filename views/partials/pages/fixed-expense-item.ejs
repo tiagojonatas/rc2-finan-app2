@@ -6,13 +6,13 @@
       <p class="font-semibold text-gray-100"><%= item.description %></p>
       <p class="text-xs text-gray-400 mt-1">Categoria: <%= item.category_name || 'Sem categoria' %> &bull; Vence em <%= formatDate(item.due_date) %></p>
       <% if (amountMissing) { %>
-        <p class="text-xs text-amber-300 mt-1">Valor nao informado</p>
+        <p class="text-xs text-amber-300 mt-1">Valor não informado</p>
       <% } %>
     </div>
 
     <div class="text-left md:text-right">
       <p class="text-lg font-semibold <%= amountMissing ? 'text-amber-300' : 'text-gray-100' %>">
-        <%= amountMissing ? 'Valor nao informado' : formatCurrency(numericAmount) %>
+        <%= amountMissing ? 'Valor não informado' : formatCurrency(numericAmount) %>
       </p>
       <% if (item.status === 'pago') { %>
         <span class="inline-flex mt-1 px-2 py-1 rounded-full text-xs font-semibold bg-emerald-900/40 text-emerald-300 border border-emerald-800">Pago</span>

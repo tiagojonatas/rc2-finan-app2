@@ -22,7 +22,7 @@
 
       <form action="/transactions/edit/<%= transaction.id %>" method="POST" class="space-y-5">
         <div>
-          <label for="description" class="text-sm text-slate-400">Descricao</label>
+          <label for="description" class="text-sm text-slate-400">Descrição</label>
           <input id="description" name="description" type="text" value="<%= transaction.description || '' %>" required class="w-full mt-1 bg-slate-800 border border-slate-700 rounded-lg px-3 h-12 text-white focus:outline-none focus:ring-2 focus:ring-emerald-500 transition" />
         </div>
 
@@ -69,15 +69,15 @@
         </div>
 
         <div id="cardWrapper">
-          <label for="card_id" class="text-sm text-slate-400">Cartao</label>
+          <label for="card_id" class="text-sm text-slate-400">Cartão</label>
           <select id="card_id" name="card_id" class="w-full mt-1 bg-slate-800 border border-slate-700 rounded-lg px-3 h-12 text-white focus:outline-none focus:ring-2 focus:ring-emerald-500 transition">
-            <option value="">Selecione um cartao</option>
+            <option value="">Selecione um cartão</option>
             <% safeCreditCards.forEach((card) => { %>
               <option value="<%= card.id %>" <%= selectedCardId === String(card.id) ? 'selected' : '' %>><%= card.name %></option>
             <% }); %>
           </select>
           <% if (!safeCreditCards.length) { %>
-            <p class="text-xs text-amber-300 mt-1">Nenhum cartao cadastrado. Cadastre em Cartoes para usar pagamento no credito.</p>
+            <p class="text-xs text-amber-300 mt-1">Nenhum cartão cadastrado. Cadastre em Cartões para usar pagamento no credito.</p>
           <% } %>
         </div>
 

@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title><%= mode === 'edit' ? 'Editar Usuario' : 'Novo Usuario' %> - Admin</title>
+  <title><%= mode === 'edit' ? 'Editar Usuário' : 'Novo Usuário' %> - Admin</title>
   <script src="https://cdn.tailwindcss.com"></script>
 </head>
 <body class="bg-[#f8fafc] font-sans text-slate-900">
@@ -11,8 +11,8 @@
     <div class="bg-white border border-slate-200 rounded-xl shadow-sm p-6 sm:p-7">
       <img src="/brand/rc2-finance-horizontal.svg" alt="RC2 Finance" class="h-9 w-auto mb-1" />
       <p class="text-xs text-slate-500 mb-2">by RC2 Tecnologia</p>
-      <h1 class="text-2xl font-semibold text-slate-900"><%= mode === 'edit' ? 'Editar usuario' : 'Criar usuario' %></h1>
-      <p class="text-sm text-slate-500 mt-1">Gestao administrativa de contas</p>
+      <h1 class="text-2xl font-semibold text-slate-900"><%= mode === 'edit' ? 'Editar usuário' : 'Criar usuário' %></h1>
+      <p class="text-sm text-slate-500 mt-1">Gestão administrativa de contas</p>
 
       <% if (error) { %>
         <div class="mt-4 rounded-xl border border-rose-200 bg-rose-50 text-rose-700 px-4 py-3"><%= error %></div>
@@ -30,7 +30,7 @@
         <div>
           <label for="role" class="block text-sm font-medium text-slate-700 mb-1">Perfil</label>
           <select id="role" name="role" class="w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-slate-900 focus:outline-none focus:ring-2 focus:ring-cyan-400 focus:border-cyan-500">
-            <option value="user" <%= user.role === 'user' ? 'selected' : '' %>>Usuario comum</option>
+            <option value="user" <%= user.role === 'user' ? 'selected' : '' %>>Usuário comum</option>
             <option value="admin" <%= user.role === 'admin' ? 'selected' : '' %>>Administrador</option>
           </select>
         </div>
@@ -43,7 +43,7 @@
 
         <div class="pt-2 flex flex-wrap gap-2">
           <button type="submit" class="min-h-[44px] px-4 rounded-xl bg-[#00C9A7] text-white font-medium hover:bg-[#009e83]">
-            <%= mode === 'edit' ? 'Salvar alteracoes' : 'Criar usuario' %>
+            <%= mode === 'edit' ? 'Salvar alteracoes' : 'Criar usuário' %>
           </button>
           <a href="/admin/users" class="min-h-[44px] inline-flex items-center px-4 rounded-xl border border-slate-300 bg-white hover:bg-[#f8fafc] text-slate-700">
             Cancelar

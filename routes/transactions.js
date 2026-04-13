@@ -7,7 +7,7 @@ const router = express.Router();
 
 function renderWithBase(res, options = {}) {
   const {
-    title = 'Transacoes - RC2 Finance',
+    title = 'Transa??es - RC2 Finance',
     content = 'partials/pages/add-transaction-content',
     currentPath = '/transactions',
     data = {}
@@ -193,7 +193,7 @@ function isDateWithinAllowedRange(dateValue) {
 
 function validateTransactionDate(dateValue, installmentTotal = 1) {
   if (!isDateWithinAllowedRange(dateValue)) {
-    return 'Data fora do intervalo permitido (ate 3 meses no passado e 12 meses no futuro)';
+    return 'Data fora do intervalo permitido (até 3 meses no passado e 12 meses no futuro)';
   }
 
   if (Number(installmentTotal || 1) > 1) {
@@ -294,7 +294,7 @@ router.get('/', requireAuth, async (req, res) => {
 
     const [transactions] = await db.query(sql, params);
     return renderWithBase(res, {
-      title: 'Lancamentos - RC2 Finance',
+      title: 'Lançamentos - RC2 Finance',
       content: 'partials/pages/transactions-content',
       currentPath: '/transactions',
       data: {
@@ -312,7 +312,7 @@ router.get('/', requireAuth, async (req, res) => {
   } catch (error) {
     console.error(error);
     return renderWithBase(res, {
-      title: 'Lancamentos - RC2 Finance',
+      title: 'Lançamentos - RC2 Finance',
       content: 'partials/pages/transactions-content',
       currentPath: '/transactions',
       data: {
@@ -325,7 +325,7 @@ router.get('/', requireAuth, async (req, res) => {
           type: '',
           category_id: ''
         },
-        error: 'Erro ao carregar lancamentos'
+        error: 'Erro ao carregar lançamentos'
       }
     });
   }
@@ -355,7 +355,7 @@ router.post('/add', requireAuth, async (req, res) => {
         content: 'partials/pages/add-transaction-content',
         currentPath: '/transactions',
         data: {
-          error: 'Categoria e obrigatoria',
+          error: 'Categoria e obrigatéria',
           defaultType,
           categories,
           creditCards,
@@ -433,7 +433,7 @@ router.post('/add', requireAuth, async (req, res) => {
           content: 'partials/pages/add-transaction-content',
           currentPath: '/transactions',
           data: {
-            error: 'Selecione um cartao para compras no credito',
+            error: 'Selecione um cart?o para compras no credito',
             defaultType,
             categories,
             creditCards,
@@ -449,7 +449,7 @@ router.post('/add', requireAuth, async (req, res) => {
           content: 'partials/pages/add-transaction-content',
           currentPath: '/transactions',
           data: {
-            error: 'Cartao invalido',
+            error: 'Cart?o inv?lido',
             defaultType,
             categories,
             creditCards,
@@ -612,7 +612,7 @@ router.post('/edit/:id', requireAuth, async (req, res) => {
           },
           categories,
           creditCards,
-          error: 'Categoria e obrigatoria'
+          error: 'Categoria e obrigatéria'
         }
       });
     }
@@ -707,7 +707,7 @@ router.post('/edit/:id', requireAuth, async (req, res) => {
             },
             categories,
             creditCards,
-            error: 'Selecione um cartao para compras no credito'
+            error: 'Selecione um cart?o para compras no credito'
           }
         });
       }
@@ -731,7 +731,7 @@ router.post('/edit/:id', requireAuth, async (req, res) => {
             },
             categories,
             creditCards,
-            error: 'Cartao invalido'
+            error: 'Cart?o inv?lido'
           }
         });
       }

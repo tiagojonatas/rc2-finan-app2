@@ -180,7 +180,7 @@ router.post('/add', requireAuth, async (req, res) => {
       title: 'Nova Categoria - RC2 Finance',
       content: 'partials/pages/add-category-content',
       currentPath: '/categories',
-      data: { error: 'Categoria Outros nao e permitida' }
+      data: { error: 'Categoria Outros não e permitida' }
     });
   }
 
@@ -191,7 +191,7 @@ router.post('/add', requireAuth, async (req, res) => {
         title: 'Nova Categoria - RC2 Finance',
         content: 'partials/pages/add-category-content',
         currentPath: '/categories',
-        data: { error: 'Categoria ja existe para este tipo' }
+        data: { error: 'Categoria já existe para este tipo' }
       });
     }
 
@@ -207,7 +207,7 @@ router.post('/add', requireAuth, async (req, res) => {
         title: 'Nova Categoria - RC2 Finance',
         content: 'partials/pages/add-category-content',
         currentPath: '/categories',
-        data: { error: 'Categoria ja existe para este tipo' }
+        data: { error: 'Categoria já existe para este tipo' }
       });
     }
     return renderWithBase(res, {
@@ -300,7 +300,7 @@ router.post('/edit/:id', requireAuth, async (req, res) => {
             name: normalizedName,
             color: normalizedColor
           },
-          error: 'Categoria Outros nao e permitida'
+          error: 'Categoria Outros não e permitida'
         }
       });
     }
@@ -317,7 +317,7 @@ router.post('/edit/:id', requireAuth, async (req, res) => {
             name: normalizedName,
             color: normalizedColor
           },
-          error: 'Ja existe categoria com esse nome nesse tipo'
+          error: 'Já existe categoria com esse nome nesse tipo'
         }
       });
     }
@@ -342,7 +342,7 @@ router.post('/edit/:id', requireAuth, async (req, res) => {
             name: normalizedName,
             color: normalizedColor
           },
-          error: 'Ja existe categoria com esse nome nesse tipo'
+          error: 'Já existe categoria com esse nome nesse tipo'
         }
       });
     }
@@ -401,7 +401,7 @@ router.post('/delete/:id', requireAuth, async (req, res) => {
         currentPath: '/categories',
         data: {
           categories,
-          error: 'Nao foi possivel excluir: categoria em uso por lancamentos',
+          error: 'Não foi poss?vel excluir: categoria em uso por lançamentos',
           searchQuery: '',
           selectedType: ''
         }
