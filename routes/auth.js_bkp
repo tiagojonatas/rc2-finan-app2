@@ -560,19 +560,29 @@ router.get('/dashboard', requireAuth, async (req, res) => {
     let pendingFixedExpenses = 0;
     let paidFixedExpenses = 0;
     try {
-      // Unifica 3 queries em 1 usando SUM condicional
-      const [fixedTotalsRows] = await db.query(
-        `SELECT
-           COALESCE(SUM(amount), 0) AS total,
-           COALESCE(SUM(CASE WHEN status IN ('pendente', 'atrasado') THEN amount ELSE 0 END), 0) AS pending,
-           COALESCE(SUM(CASE WHEN status = 'pago' THEN amount ELSE 0 END), 0) AS paid
+      const [fixedExpenseRows] = await db.query(
+        `SELECT COALESCE(SUM(amount), 0) AS total
          FROM monthly_fixed_expenses
          WHERE user_id = ? AND year = ? AND month = ?`,
         [userId, selectedYear, selectedMonthNumber]
       );
-      totalFixedExpenses = parseFloat((fixedTotalsRows[0] && fixedTotalsRows[0].total) || 0);
-      pendingFixedExpenses = parseFloat((fixedTotalsRows[0] && fixedTotalsRows[0].pending) || 0);
-      paidFixedExpenses = parseFloat((fixedTotalsRows[0] && fixedTotalsRows[0].paid) || 0);
+      totalFixedExpenses = parseFloat((fixedExpenseRows[0] && fixedExpenseRows[0].total) || 0);
+
+      const [pendingFixedRows] = await db.query(
+        `SELECT COALESCE(SUM(amount), 0) AS total
+         FROM monthly_fixed_expenses
+         WHERE user_id = ? AND year = ? AND month = ? AND status IN ('pendente', 'atrasado')`,
+        [userId, selectedYear, selectedMonthNumber]
+      );
+      pendingFixedExpenses = parseFloat((pendingFixedRows[0] && pendingFixedRows[0].total) || 0);
+
+      const [paidFixedRows] = await db.query(
+        `SELECT COALESCE(SUM(amount), 0) AS total
+         FROM monthly_fixed_expenses
+         WHERE user_id = ? AND year = ? AND month = ? AND status = 'pago'`,
+        [userId, selectedYear, selectedMonthNumber]
+      );
+      paidFixedExpenses = parseFloat((paidFixedRows[0] && paidFixedRows[0].total) || 0);
     } catch (fixedError) {
       console.warn('Fixed monthly expenses table unavailable. Run: npm run init-fixed-expenses');
       totalFixedExpenses = 0;
