@@ -196,12 +196,14 @@
 
     <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
       <div class="bg-slate-900/60 backdrop-blur border border-slate-800 rounded-xl p-4 shadow-md">
-        <p class="text-slate-400 text-sm mb-1 font-medium uppercase tracking-wide">Gastos realizados</p>
+        <p class="text-slate-400 text-sm mb-1 font-medium uppercase tracking-wide">Despesas ja pagas (ate hoje)</p>
         <p class="text-lg font-medium tracking-tight text-rose-300"><%= formatCurrency((breakdown.realizedExpenses || 0)) %></p>
+        <p class="text-[11px] text-slate-400 mt-1">Inclui despesas que ja impactaram saldo e fixas pagas no mes</p>
       </div>
       <div class="bg-slate-900/60 backdrop-blur border border-slate-800 rounded-xl p-4 shadow-md">
         <p class="text-slate-400 text-sm mb-1 font-medium uppercase tracking-wide">Compromissos futuros</p>
         <p class="text-lg font-medium tracking-tight text-amber-300"><%= formatCurrency((breakdown.futureCommitments || 0)) %></p>
+        <p class="text-[11px] text-slate-400 mt-1">Valores ainda nao pagos previstos para o restante do mes</p>
       </div>
       <div class="bg-slate-900/60 backdrop-blur border border-slate-800 rounded-xl p-4 shadow-md">
         <p class="text-slate-400 text-sm mb-1 font-medium uppercase tracking-wide">Total comprometido do mês</p>
