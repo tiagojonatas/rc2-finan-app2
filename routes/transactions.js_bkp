@@ -474,55 +474,70 @@ router.post('/add', requireAuth, async (req, res) => {
       return res.redirect(`/dashboard?toast=created&tx=${result.insertId}`);
     }
 
+    // Usa transação MySQL para garantir que todas as parcelas sejam inseridas
+    // ou nenhuma, evitando parcelas incompletas em caso de falha
     const installmentAmounts = splitAmountIntoInstallments(parsedAmount, normalizedInstallmentTotal);
-    const [firstInsert] = await db.query(
-      `INSERT INTO transactions
-       (user_id, description, amount, type, date, category_id, payment_method, card_id, is_recurring, affects_balance, installment_total, installment_number, parent_transaction_id)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-      [
-        userId,
-        `${description} - 1/${normalizedInstallmentTotal}`,
-        installmentAmounts[0],
-        defaultType,
-        date,
-        categoryId,
-        normalizedPaymentMethod,
-        normalizedCardId,
-        normalizedRecurring,
-        normalizedAffectsBalance,
-        normalizedInstallmentTotal,
-        1,
-        null
-      ]
-    );
+    const connection = await db.getConnection();
+    let parentTransactionId;
+    try {
+      await connection.beginTransaction();
 
-    const parentTransactionId = firstInsert.insertId;
-    await db.query(
-      'UPDATE transactions SET parent_transaction_id = ? WHERE id = ? AND user_id = ?',
-      [parentTransactionId, parentTransactionId, userId]
-    );
-
-    for (let installmentNumber = 2; installmentNumber <= normalizedInstallmentTotal; installmentNumber += 1) {
-      await db.query(
+      const [firstInsert] = await connection.query(
         `INSERT INTO transactions
          (user_id, description, amount, type, date, category_id, payment_method, card_id, is_recurring, affects_balance, installment_total, installment_number, parent_transaction_id)
          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         [
           userId,
-          `${description} - ${installmentNumber}/${normalizedInstallmentTotal}`,
-          installmentAmounts[installmentNumber - 1],
+          `${description} - 1/${normalizedInstallmentTotal}`,
+          installmentAmounts[0],
           defaultType,
-          addMonthsKeepingDay(date, installmentNumber - 1),
+          date,
           categoryId,
           normalizedPaymentMethod,
           normalizedCardId,
           normalizedRecurring,
           normalizedAffectsBalance,
           normalizedInstallmentTotal,
-          installmentNumber,
-          parentTransactionId
+          1,
+          null
         ]
       );
+
+      parentTransactionId = firstInsert.insertId;
+      await connection.query(
+        'UPDATE transactions SET parent_transaction_id = ? WHERE id = ? AND user_id = ?',
+        [parentTransactionId, parentTransactionId, userId]
+      );
+
+      for (let installmentNumber = 2; installmentNumber <= normalizedInstallmentTotal; installmentNumber += 1) {
+        await connection.query(
+          `INSERT INTO transactions
+           (user_id, description, amount, type, date, category_id, payment_method, card_id, is_recurring, affects_balance, installment_total, installment_number, parent_transaction_id)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+          [
+            userId,
+            `${description} - ${installmentNumber}/${normalizedInstallmentTotal}`,
+            installmentAmounts[installmentNumber - 1],
+            defaultType,
+            addMonthsKeepingDay(date, installmentNumber - 1),
+            categoryId,
+            normalizedPaymentMethod,
+            normalizedCardId,
+            normalizedRecurring,
+            normalizedAffectsBalance,
+            normalizedInstallmentTotal,
+            installmentNumber,
+            parentTransactionId
+          ]
+        );
+      }
+
+      await connection.commit();
+    } catch (installmentError) {
+      await connection.rollback();
+      throw installmentError;
+    } finally {
+      connection.release();
     }
 
     return res.redirect(`/dashboard?toast=created&tx=${parentTransactionId}`);

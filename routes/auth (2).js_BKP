@@ -1,6 +1,5 @@
 const express = require('express');
 const bcrypt = require('bcrypt');
-const rateLimit = require('express-rate-limit');
 const db = require('../db');
 const { getDefaultCategoryCatalog } = require('../utils/default-categories');
 const { ensureMonthlyFixedExpenses, markOverdueMonthlyExpenses } = require('../utils/monthly-fixed-expenses');
@@ -8,17 +7,6 @@ const { nowInTz, toTzDate, getDateKey, getMonthKey, isValidMonthKey, getMonthSta
 
 const router = express.Router();
 const LAST_LOGIN_EMAIL_COOKIE = 'lastLoginEmail';
-
-// Rate limiter para rotas de autenticacao
-// Máximo de 20 tentativas por IP a cada 15 minutos
-const authLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000,
-  max: 20,
-  standardHeaders: true,
-  legacyHeaders: false,
-  message: { error: 'Muitas tentativas. Tente novamente em 15 minutos.' },
-  skipSuccessfulRequests: true  // nao conta requisicoes bem-sucedidas no limite
-});
 const isProduction = process.env.NODE_ENV === 'production';
 const DEFAULT_CATEGORIES = getDefaultCategoryCatalog();
 const MAX_MONTH_FILTER_OPTIONS = 18;
@@ -185,25 +173,10 @@ router.get('/register', (req, res) => {
 });
 
 // POST /register
-router.post('/register', authLimiter, async (req, res) => {
+router.post('/register', async (req, res) => {
   const { name, email, password } = req.body;
   const normalizedName = (name || '').trim();
   const normalizedEmail = (email || '').trim().toLowerCase();
-  const normalizedPassword = (password || '');
-
-  // Validacoes basicas antes de qualquer query
-  if (!normalizedName) {
-    return res.render('register', { error: 'Nome é obrigatório' });
-  }
-  if (!normalizedEmail) {
-    return res.render('register', { error: 'Email é obrigatório' });
-  }
-  if (normalizedPassword.length < 8) {
-    return res.render('register', { error: 'A senha deve ter no mínimo 8 caracteres' });
-  }
-  if (normalizedPassword.length > 128) {
-    return res.render('register', { error: 'Senha muito longa' });
-  }
 
   try {
     const [existingUser] = await db.query('SELECT id FROM users WHERE email = ?', [normalizedEmail]);
@@ -211,7 +184,7 @@ router.post('/register', authLimiter, async (req, res) => {
       return res.render('register', { error: 'Email ja cadastrado' });
     }
 
-    const hashedPassword = await bcrypt.hash(normalizedPassword, 10);
+    const hashedPassword = await bcrypt.hash(password, 10);
 
     const [result] = await db.query(
       "INSERT INTO users (name, email, password_hash, role) VALUES (?, ?, ?, 'user')",
@@ -238,7 +211,7 @@ router.get('/login', (req, res) => {
 });
 
 // POST /login
-router.post('/login', authLimiter, async (req, res) => {
+router.post('/login', async (req, res) => {
   const { email, password } = req.body;
   const normalizedEmail = (email || '').trim().toLowerCase();
   setLastLoginEmailCookie(res, normalizedEmail);

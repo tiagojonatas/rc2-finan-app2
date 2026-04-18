@@ -410,11 +410,8 @@ router.post('/add', requireAuth, async (req, res) => {
       });
     }
 
-    // Valida categoria usando o array já carregado — evita uma 2ª query ao banco
-    const categoryIsValid = categories.some(
-      (c) => c.id === categoryId && c.type === defaultType
-    );
-    if (!categoryIsValid) {
+    const validCategory = await isValidCategory(userId, categoryId, defaultType);
+    if (!validCategory) {
       return renderWithBase(res, {
         title: 'Nova Transacao - RC2 Finance',
         content: 'partials/pages/add-transaction-content',
@@ -465,6 +462,16 @@ router.post('/add', requireAuth, async (req, res) => {
     }
 
     normalizedAffectsBalance = enforceAffectsBalance(defaultType, normalizedPaymentMethod, normalizedAffectsBalance);
+
+    // LOG TEMPORARIO - remover após diagnóstico
+    console.log('[TRANSACAO DEBUG]', {
+      description,
+      type: defaultType,
+      amount: parsedAmount,
+      payment_method: normalizedPaymentMethod,
+      affects_balance: normalizedAffectsBalance,
+      category_id: categoryId
+    });
 
     if (!installmentEnabled) {
       const [result] = await db.query(

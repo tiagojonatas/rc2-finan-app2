@@ -2,18 +2,12 @@ const express = require('express');
 const path = require('path');
 const crypto = require('crypto');
 const session = require('express-session');
-const helmet = require('helmet');
 const db = require('./db'); // Adiciona a conexao com o banco
 const helpers = require('./helpers'); // Import helpers
 const { nowInTz } = require('./utils/datetime');
 const app = express();
 const isProduction = process.env.NODE_ENV === 'production';
 const sessionSecret = process.env.SESSION_SECRET || crypto.randomBytes(48).toString('hex');
-
-// Helmet — headers de segurança HTTP
-app.use(helmet({
-  contentSecurityPolicy: false  // desabilitado para nao quebrar EJS + inline scripts do sistema
-}));
 
 if (!process.env.SESSION_SECRET) {
   console.warn('SESSION_SECRET não definido no .env. Gerado segredo tempor?rio para esta execu??o.');
