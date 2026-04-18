@@ -249,7 +249,8 @@ router.get('/', requireAuth, async (req, res) => {
     date_from = '',
     date_to = '',
     type = '',
-    category_id = ''
+    category_id = '',
+    card_id = ''
   } = req.query;
 
   const normalizedType = type === 'income' || type === 'expense' ? type : '';
@@ -261,6 +262,8 @@ router.get('/', requireAuth, async (req, res) => {
   try {
     const categories = await getUserCategories(userId);
     const creditCards = await getUserCreditCards(userId);
+    const normalizedCardId = Number.parseInt(card_id, 10);
+    const hasCardFilter = creditCards.some((card) => Number(card.id) === normalizedCardId);
     let sql = `
       SELECT t.*, c.name AS category_name, c.color AS category_color, cc.name AS card_name
       FROM transactions t
@@ -278,6 +281,11 @@ router.get('/', requireAuth, async (req, res) => {
     if (hasCategoryFilter) {
       sql += ' AND t.category_id = ?';
       params.push(normalizedCategoryId);
+    }
+
+    if (hasCardFilter) {
+      sql += ' AND t.card_id = ?';
+      params.push(normalizedCardId);
     }
 
     if (hasDateFrom) {
@@ -305,7 +313,8 @@ router.get('/', requireAuth, async (req, res) => {
           date_from: hasDateFrom ? date_from : '',
           date_to: hasDateTo ? date_to : '',
           type: normalizedType,
-          category_id: hasCategoryFilter ? String(normalizedCategoryId) : ''
+          category_id: hasCategoryFilter ? String(normalizedCategoryId) : '',
+          card_id: hasCardFilter ? String(normalizedCardId) : ''
         }
       }
     });
@@ -323,7 +332,8 @@ router.get('/', requireAuth, async (req, res) => {
           date_from: '',
           date_to: '',
           type: '',
-          category_id: ''
+          category_id: '',
+          card_id: ''
         },
         error: 'Erro ao carregar lançamentos'
       }
@@ -827,4 +837,3 @@ router.post('/delete/:id', requireAuth, async (req, res) => {
 });
 
 module.exports = router;
-

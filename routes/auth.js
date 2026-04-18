@@ -919,17 +919,35 @@ router.get('/dashboard', requireAuth, async (req, res) => {
 
     if (creditCards.length > 0) {
       const cardIds = creditCards.map((card) => card.id);
-      const [monthlyTotals] = await db.query(
+      const [monthlyCardTransactionTotals] = await db.query(
         `SELECT card_id, COALESCE(SUM(amount), 0) AS total
          FROM card_transactions
          WHERE card_id IN (?) AND date BETWEEN ? AND ?
          GROUP BY card_id`,
         [cardIds, startDate, endDate]
       );
+      const [monthlyTransactionTotals] = await db.query(
+        `SELECT card_id, COALESCE(SUM(amount), 0) AS total
+         FROM transactions
+         WHERE user_id = ?
+           AND card_id IN (?)
+           AND type = 'expense'
+           AND payment_method = 'credit'
+           AND date BETWEEN ? AND ?
+         GROUP BY card_id`,
+        [userId, cardIds, startDate, endDate]
+      );
 
       const totalsByCard = new Map();
-      monthlyTotals.forEach((row) => {
-        totalsByCard.set(Number(row.card_id), parseFloat(row.total));
+      monthlyCardTransactionTotals.forEach((row) => {
+        const cardId = Number(row.card_id);
+        const total = parseFloat(row.total || 0);
+        totalsByCard.set(cardId, (totalsByCard.get(cardId) || 0) + total);
+      });
+      monthlyTransactionTotals.forEach((row) => {
+        const cardId = Number(row.card_id);
+        const total = parseFloat(row.total || 0);
+        totalsByCard.set(cardId, (totalsByCard.get(cardId) || 0) + total);
       });
 
       const cards = creditCards.map((card) => {
@@ -1238,7 +1256,6 @@ router.get('/analysis', requireAuth, async (req, res) => {
 });
 
 module.exports = router;
-
 
 
 
