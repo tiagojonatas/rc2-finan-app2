@@ -743,7 +743,8 @@ router.get('/dashboard', requireAuth, async (req, res) => {
     const realizedExpensesWithFixed = realizedExpenses + paidFixedExpenses;
     const futureCommitments = futureExpenseCommitments + pendingFixedExpenses;
     const totalCommittedMonth = realizedExpensesWithFixed + futureCommitments;
-    const currentRealBalance = balance;
+    // Current real balance must include what was already paid in fixed expenses this month.
+    const currentRealBalance = totalIncomeForBalance - (totalExpensesForBalance + paidFixedExpenses);
     const projectedRealBalanceValue = Number(monthlyProjection && monthlyProjection.realProjectedBalance ? monthlyProjection.realProjectedBalance : 0);
     const estimatedHistoricalBalanceValue = Number(monthlyProjection && monthlyProjection.historicalEstimatedBalance ? monthlyProjection.historicalEstimatedBalance : 0);
     const financialBreakdown = {
@@ -1237,7 +1238,6 @@ router.get('/analysis', requireAuth, async (req, res) => {
 });
 
 module.exports = router;
-
 
 
 
