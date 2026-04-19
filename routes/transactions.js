@@ -298,7 +298,7 @@ router.get('/', requireAuth, async (req, res) => {
       params.push(date_to);
     }
 
-    sql += ' ORDER BY t.date DESC, t.id DESC';
+    sql += ' ORDER BY t.id DESC';
 
     const [transactions] = await db.query(sql, params);
     return renderWithBase(res, {
