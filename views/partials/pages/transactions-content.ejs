@@ -7,7 +7,7 @@
   <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
     <div>
       <h1 class="text-xl sm:text-3xl font-bold text-white">Lançamentos</h1>
-      <p class="text-sm text-slate-400 mt-1">Operacoes completas com filtros e acoes.</p>
+      <p class="text-sm text-slate-400 mt-1">Operacoes completas com filtros e acoes. Inclui transacoes e ocorrencias de despesas fixas.</p>
     </div>
     <a href="/transactions/add?type=expense" class="h-12 px-5 rounded-lg bg-[#00C9A7] hover:bg-[#009e83] text-white font-medium inline-flex items-center justify-center transition-all duration-200">
       + Nova transacao
@@ -71,6 +71,9 @@
 
       <% safeTransactions.forEach((transaction, index) => { %>
         <% const isInstallment = Number(transaction && transaction.installment_total ? transaction.installment_total : 1) > 1; %>
+        <% const isFixedMonthly = transaction.source === 'fixed_monthly'; %>
+        <% const txDateKey = String(transaction.date || '').slice(0, 10); %>
+        <% const txMonthKey = txDateKey.length >= 7 ? txDateKey.slice(0, 7) : ''; %>
         <div class="px-4 sm:px-5 py-4 <%= index < safeTransactions.length - 1 ? 'border-b border-slate-800' : '' %>">
           <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
             <div class="min-w-0">
@@ -82,16 +85,23 @@
                 <% if (Number(transaction.is_recurring || 0) === 1) { %>
                   <span class="inline-flex items-center rounded-full px-2.5 py-0.5 text-[11px] font-semibold bg-teal-900/40 text-teal-300 border border-teal-700">Fixo</span>
                 <% } %>
+                <% if (isFixedMonthly) { %>
+                  <span class="inline-flex items-center rounded-full px-2.5 py-0.5 text-[11px] font-semibold bg-cyan-900/40 text-cyan-300 border border-cyan-700">Ocorrencia mensal</span>
+                <% } %>
               </div>
               <div class="mt-1 flex items-center gap-2 flex-wrap text-xs text-slate-400">
                 <span><%= formatDate(transaction.date) %></span>
                 <span>|</span>
                 <span><%= transaction.category_name || 'Sem categoria' %></span>
                 <span>|</span>
-                <span><%= transaction.payment_method === 'credit' ? 'Credito' : transaction.payment_method === 'debit' ? 'Debito' : transaction.payment_method === 'pix' ? 'Pix' : 'Dinheiro' %></span>
+                <span><%= transaction.payment_method === 'credit' ? 'Credito' : transaction.payment_method === 'debit' ? 'Debito' : transaction.payment_method === 'pix' ? 'Pix' : transaction.payment_method === 'fixed' ? 'Despesa fixa' : 'Dinheiro' %></span>
                 <% if (transaction.payment_method === 'credit' && transaction.card_name) { %>
                   <span>|</span>
                   <span><%= transaction.card_name %></span>
+                <% } %>
+                <% if (isFixedMonthly && transaction.fixed_status) { %>
+                  <span>|</span>
+                  <span class="<%= transaction.fixed_status === 'pago' ? 'text-emerald-300' : (transaction.fixed_status === 'atrasado' ? 'text-rose-300' : 'text-amber-300') %>"><%= transaction.fixed_status %></span>
                 <% } %>
               </div>
             </div>
@@ -100,10 +110,14 @@
               <p class="text-base sm:text-lg font-bold whitespace-nowrap <%= transaction.type === 'income' ? 'text-emerald-400' : 'text-rose-400' %>">
                 <%= transaction.type === 'income' ? '+' : '-' %><%= formatCurrency(Math.abs(transaction.amount || 0)) %>
               </p>
-              <a href="/transactions/edit/<%= transaction.id %>" class="h-10 px-3 rounded-lg bg-slate-800 border border-slate-700 text-slate-300 hover:bg-slate-700 inline-flex items-center text-sm">Editar</a>
-              <form action="/transactions/delete/<%= transaction.id %>" method="POST" class="inline" data-confirm-title="Excluir transacao" data-confirm-message="Tem certeza que deseja excluir esta transacao?">
-                <button type="submit" class="h-10 px-3 rounded-lg bg-rose-900/30 border border-rose-800 text-rose-300 hover:bg-rose-900/50 inline-flex items-center text-sm">Excluir</button>
-              </form>
+              <% if (isFixedMonthly) { %>
+                <a href="/fixed-expenses?<%= txMonthKey ? `month=${encodeURIComponent(txMonthKey)}` : '' %>" class="h-10 px-3 rounded-lg bg-slate-800 border border-slate-700 text-cyan-300 hover:bg-slate-700 inline-flex items-center text-sm">Editar em fixas</a>
+              <% } else { %>
+                <a href="/transactions/edit/<%= transaction.id %>" class="h-10 px-3 rounded-lg bg-slate-800 border border-slate-700 text-slate-300 hover:bg-slate-700 inline-flex items-center text-sm">Editar</a>
+                <form action="/transactions/delete/<%= transaction.id %>" method="POST" class="inline" data-confirm-title="Excluir transacao" data-confirm-message="Tem certeza que deseja excluir esta transacao?">
+                  <button type="submit" class="h-10 px-3 rounded-lg bg-rose-900/30 border border-rose-800 text-rose-300 hover:bg-rose-900/50 inline-flex items-center text-sm">Excluir</button>
+                </form>
+              <% } %>
             </div>
           </div>
         </div>

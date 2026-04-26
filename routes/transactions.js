@@ -301,12 +301,90 @@ router.get('/', requireAuth, async (req, res) => {
     sql += ' ORDER BY t.id DESC';
 
     const [transactions] = await db.query(sql, params);
+    const includeFixedMonthly = normalizedType !== 'income' && !hasCardFilter;
+    let fixedMonthlyTransactions = [];
+
+    if (includeFixedMonthly) {
+      let fixedSql = `
+        SELECT
+          mfe.id AS monthly_id,
+          mfe.fixed_expense_id,
+          mfe.amount,
+          mfe.due_date AS date,
+          mfe.status AS fixed_status,
+          fe.description,
+          fe.category_id,
+          c.name AS category_name,
+          c.color AS category_color
+        FROM monthly_fixed_expenses mfe
+        INNER JOIN fixed_expenses fe ON fe.id = mfe.fixed_expense_id
+        LEFT JOIN categories c ON c.id = fe.category_id
+        WHERE mfe.user_id = ?
+      `;
+      const fixedParams = [userId];
+
+      if (hasCategoryFilter) {
+        fixedSql += ' AND fe.category_id = ?';
+        fixedParams.push(normalizedCategoryId);
+      }
+
+      if (hasDateFrom) {
+        fixedSql += ' AND mfe.due_date >= ?';
+        fixedParams.push(date_from);
+      }
+
+      if (hasDateTo) {
+        fixedSql += ' AND mfe.due_date <= ?';
+        fixedParams.push(date_to);
+      }
+
+      fixedSql += ' ORDER BY mfe.id DESC';
+
+      try {
+        const [fixedRows] = await db.query(fixedSql, fixedParams);
+        fixedMonthlyTransactions = fixedRows.map((row) => ({
+          id: `fixed-${row.monthly_id}`,
+          source: 'fixed_monthly',
+          fixed_monthly_id: row.monthly_id,
+          fixed_expense_id: row.fixed_expense_id,
+          description: row.description,
+          amount: parseFloat(row.amount || 0),
+          type: 'expense',
+          date: row.date,
+          category_id: row.category_id,
+          category_name: row.category_name || 'Sem categoria',
+          category_color: row.category_color || '#00C9A7',
+          payment_method: 'fixed',
+          card_id: null,
+          card_name: null,
+          is_recurring: 1,
+          affects_balance: 1,
+          fixed_status: row.fixed_status
+        }));
+      } catch (fixedError) {
+        if (fixedError.code !== 'ER_NO_SUCH_TABLE') {
+          throw fixedError;
+        }
+      }
+    }
+
+    const normalizedTransactions = transactions.map((transaction) => ({
+      ...transaction,
+      source: 'transaction'
+    }));
+    const mergedTransactions = [...normalizedTransactions, ...fixedMonthlyTransactions]
+      .sort((a, b) => {
+        const diff = toTzDate(b.date).valueOf() - toTzDate(a.date).valueOf();
+        if (diff !== 0) return diff;
+        return String(b.id).localeCompare(String(a.id));
+      });
+
     return renderWithBase(res, {
       title: 'Lançamentos - RC2 Finance',
       content: 'partials/pages/transactions-content',
       currentPath: '/transactions',
       data: {
-        transactions,
+        transactions: mergedTransactions,
         categories,
         creditCards,
         filters: {
